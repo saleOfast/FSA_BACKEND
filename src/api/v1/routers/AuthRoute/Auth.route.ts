@@ -13,6 +13,7 @@ app.set('view engine', 'ejs');
 // app.set('views', path.join(__dirname, '../../../../views'));
 
 router.post('/login', validateDtoMiddleware(Login), async (req: Request, res: Response) => {
+    console.log('sdjbcjsnlkncdkslcns')
     try {
         const input: Login = RequestHandler.Defaults.getBody<Login>(req, Login);
         const data = await userController.login(input);

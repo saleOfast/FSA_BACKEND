@@ -110,7 +110,7 @@ class Postgresdb {
 				synchronize: JSON.parse(this.isSync),
 				logging: true,
 				entities: [
-					PolicyTypeHead, PolicyHead, ExpenseManagement, User,
+					PolicyTypeHead, PolicyHead, ExpenseManagement, User,	
 					Attendance, Beat, CollectPayment, Discount, Distributor,
 					Inventory, Orders, OutletInventory, Products, StoreCategory,
 					Stores, Visits, Brand, ProductCategory, Scheme, CollectAmount,

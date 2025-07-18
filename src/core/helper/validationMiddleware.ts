@@ -81,7 +81,7 @@ export const validateDtoMiddleware = function (dto: any) {
         } else {
             input = Object.assign({}, RequestHandler.Defaults.getQuery(req), RequestHandler.Defaults.getBody(req), RequestHandler.Defaults.getParams(req));
         }
-        let validationErrors: ValidationError[] = [];
+        let validationErrors: ValidationError[] = []; 
         let obj: any;
         if (Array.isArray(input)) {
             obj = [];
