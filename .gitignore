@@ -1,5 +1,5 @@
 node_modules
-# .env
+.env
 dist
 # Ignore package lock files
 # package-lock.json
