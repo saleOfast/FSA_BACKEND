@@ -67,6 +67,7 @@ const holidays_entity_1 = require("./Entities/holidays.entity");
 const rcpa_entity_1 = require("./Entities/rcpa.entity");
 const tax_entity_1 = require("./Entities/tax.entity");
 const new_target_entity_1 = require("./Entities/new.target.entity");
+const warehouse_entity_1 = require("./Entities/warehouse.entity");
 class Postgresdb {
     constructor() {
         // Don't call envConfig here - wait until initialize()
@@ -122,7 +123,8 @@ class Postgresdb {
                         userType_entity_1.UserTypes, feedback_entity_1.FeedBack, samples_entity_1.Samples, activities_entity_1.Activities, activities_jointWork_entity_1.JointWork, sessions_entity_1.Sessions,
                         userLeave_entity_1.UserLeave, userLeaveApplication_entity_1.LeaveApplication,
                         activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
-                        dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget
+                        dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
+                        warehouse_entity_1.Warehouse
                     ],
                     schema: 'public',
                     extra: {

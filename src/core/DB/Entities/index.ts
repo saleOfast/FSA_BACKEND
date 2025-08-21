@@ -11,7 +11,8 @@ import { OutletInventory } from "./outlet_inventory.entity";
 import { Products } from "./products.entity";
 import { StoreCategory } from "./storeCategory.entity";
 import { Stores } from "./stores.entity";
+import { Warehouse } from "./warehouse.entity";
 
-const dbentities = [ User, Attendance, Beat, CollectPayment, Discount, Distributor, Inventory, Orders, OutletInventory, Products, StoreCategory, Stores, Visits ]
+const dbentities = [ User, Attendance, Beat, CollectPayment, Discount, Distributor, Inventory, Orders, OutletInventory, Products, StoreCategory, Stores, Visits, Warehouse ]
 
 export { dbentities }

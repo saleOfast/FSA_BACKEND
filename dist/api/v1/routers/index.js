@@ -48,6 +48,7 @@ const Workplace_route_1 = require("./WorkplaceRouter/Workplace.route");
 const eDetailing_route_1 = require("./EDetailing/eDetailing.route");
 const HolidayRouter_1 = require("./HolidayRouter/HolidayRouter");
 const RCPA_route_1 = require("./RCPARouter/RCPA.route");
+const warehouse_route_1 = require("./warehouseRoutes/warehouse.route");
 const router = express_1.default.Router();
 exports.routes = router;
 /* Auth ROutes */
@@ -94,3 +95,4 @@ router.use('/dar/config/status', status_route_1.StatusRouter);
 router.use('/eDetailing', eDetailing_route_1.EDetailingRouter);
 router.use('/holidays', HolidayRouter_1.HolidayRouter);
 router.use('/rcpa', RCPA_route_1.RCPARouter);
+router.use('/warehouse', warehouse_route_1.WarehouseRouter);

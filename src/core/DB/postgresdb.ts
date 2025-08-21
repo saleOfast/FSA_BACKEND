@@ -61,6 +61,7 @@ import { RCPA } from './Entities/rcpa.entity';
 import { Taxes } from './Entities/tax.entity';
 
 import { NewTarget } from './Entities/new.target.entity';
+import { Warehouse } from './Entities/warehouse.entity';
 
 
 interface IDBConfig {
@@ -139,7 +140,8 @@ class Postgresdb {
 					UserTypes, FeedBack, Samples, Activities, JointWork, Sessions,
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
-					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget
+					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
+					Warehouse
 				],
 				schema: 'public',
 				extra: {

@@ -44,9 +44,9 @@ import { EDetailingRouter } from "./EDetailing/eDetailing.route";
 import { HolidayRouter } from "./HolidayRouter/HolidayRouter";
 
 import { RCPARouter } from "./RCPARouter/RCPA.route";
+import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
 
 const router = express.Router();
-
 /* Auth ROutes */
 router.use('/user', UserRoute);
 router.use('/profile', ProfileRoute);
@@ -95,5 +95,6 @@ router.use('/dar/config/status', StatusRouter);
 router.use('/eDetailing', EDetailingRouter);
 router.use('/holidays', HolidayRouter);
 router.use('/rcpa', RCPARouter);
+router.use('/warehouse', WarehouseRouter);
 
 export { router as routes };
