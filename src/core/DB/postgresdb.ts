@@ -61,6 +61,7 @@ import { RCPA } from './Entities/rcpa.entity';
 import { Taxes } from './Entities/tax.entity';
 
 import { NewTarget } from './Entities/new.target.entity';
+import { InventoryItem } from './Entities/inventory';
 
 
 const { dbHost, dbName, dbPassword, dbPort, dbUserName, isSynchronize } = envConfig();
@@ -103,12 +104,15 @@ class Postgresdb {
 			console.log('-------------------------------------------------------------');
 			console.log('Initializing postgresdb');
 
-			const { postgresDBUrl } = envConfig();
+			const { postgresDBUrl, environment } = envConfig();
+			const env = (environment || '').toLowerCase();
+			const isLocal = env === 'local' || this.dbConfig.host === 'localhost' || this.dbConfig.host === '127.0.0.1';
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',
 				url: this.connectionUrl,
 				synchronize: JSON.parse(this.isSync),
 				logging: true,
+				ssl: isLocal ? false : { rejectUnauthorized: false },
 				entities: [
 					PolicyTypeHead, PolicyHead, ExpenseManagement, User,	
 					Attendance, Beat, CollectPayment, Discount, Distributor,
@@ -119,19 +123,17 @@ class Postgresdb {
 					UserTypes, FeedBack, Samples, Activities, JointWork, Sessions,
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
-					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget
+					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
+					InventoryItem
 				],
 				schema: 'public',
 				extra: {
-					ssl: {
-						rejectUnauthorized: false,
-					},
-					host: this.dbConfig.host,
-					port: 22,
-					user: this.dbConfig.userName,
-					password: this.dbConfig.password,
 					keepAlive: true,
-					timeZone: 'IST'
+					timeZone: 'IST',
+					host: this.dbConfig.host,
+					port: this.dbConfig.port,
+					user: this.dbConfig.userName,
+					password: this.dbConfig.password
 				}
 			});
 

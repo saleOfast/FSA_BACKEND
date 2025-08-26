@@ -50,6 +50,7 @@ const app = (0, express_1.default)();
 app.set('view engine', 'ejs');
 // app.set('views', path.join(__dirname, '../../../../views'));
 router.post('/login', (0, validationMiddleware_1.validateDtoMiddleware)(AuthService_1.Login), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('sdjbcjsnlkncdkslcns');
     try {
         const input = RequestHander_1.RequestHandler.Defaults.getBody(req, AuthService_1.Login);
         const data = yield auth_controller_1.userController.login(input);

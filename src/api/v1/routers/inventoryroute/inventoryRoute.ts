@@ -13,4 +13,5 @@ router.get("/:id", (req, res) => inventoryController.getById(req, res));
 router.put("/:id", (req, res) => inventoryController.update(req, res));
 router.delete("/:id", (req, res) => inventoryController.delete(req, res));
 
+
 export default router;

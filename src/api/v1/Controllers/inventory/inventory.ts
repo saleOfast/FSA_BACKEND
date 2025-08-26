@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { InventoryItem } from "../../../../core/DB/Entities/inventory";
 import { Products } from "../../../../core/DB/Entities/products.entity";
 import { RequestHandler } from "../../../../core/helper/RequestHander";
+import { ILike } from "typeorm";
 
 export class InventoryController {
   async create(req: Request, res: Response) {
@@ -94,28 +95,63 @@ const response = {
 
 return res.status(201).json(response);
 
-    } catch (err) {
-      console.error("Error in creating inventory items", err);
-      return res.status(500).json({ error: "Error saving inventory item" });
+       } catch (err: any) {
+      console.error("Error fetching inventory item:", err?.message || err);
+      return res.status(500).json({ error: "Error fetching inventory item", message: err?.message || "Unknown error" });
     }
   }
 
-  async getAll(req: Request, res: Response) {
+async getAll(req: Request, res: Response) {
     try {
-      const items = await InventoryItem.find();
+      const { productId, productName, batchNumber } = req.query;
+      const where: any = {};
+      const productWhere: any = {};
+
+      // productId filter
+      if (productId) {
+        const pid = Number(productId);
+        if (!Number.isFinite(pid)) {
+          return res.status(400).json({ error: "productId must be a number" });
+        }
+        productWhere.productId = pid;
+      }
+
+      // productName filter
+      if (productName && String(productName).trim() !== "") {
+        productWhere.productName = ILike(`%${String(productName).trim()}%`);
+      }
+
+      // batchNumber filter
+      if (batchNumber && String(batchNumber).trim() !== "") {
+        where.batchNumber = ILike(`%${String(batchNumber).trim()}%`);
+      }
+
+      // Add product filters if exist
+      if (Object.keys(productWhere).length > 0) {
+        where.product = productWhere;
+      }
+
+      // Fetch data
+      const items = Object.keys(where).length > 0
+        ? await InventoryItem.find({ where })
+        : await InventoryItem.find();
+
       const response = items.map((i) => {
         const plain = JSON.parse(JSON.stringify(i));
         delete plain.product;
         return {
           productId: i.product?.productId,
           productName: i.product?.productName,
-           ...plain
+          ...plain,
         };
       });
+
       return res.json(response);
-    } catch (err) {
-      console.error("Error fetching inventory items:", err);
-      return res.status(500).json({ error: "Error fetching inventory items" });
+    } catch (err: any) {
+      return res.status(500).json({
+        error: "Error fetching inventory items",
+        message: err?.message || "Unknown error",
+      });
     }
   }
 
@@ -169,20 +205,7 @@ return res.status(201).json(response);
         }
       }
 
-      if (req.body.serialNumber !== undefined) {
-        const sn = String(req.body.serialNumber).trim();
-        if (!sn) {
-          return res.status(400).json({ error: "serialNumber is required" });
-        }
-        if (sn !== item.serialNumber) {
-          const exists = await InventoryItem.findOne({ where: { serialNumber: sn } });
-          if (exists) {
-            return res.status(400).json({ error: "serialNumber already exists" });
-          }
-          item.serialNumber = sn;
-          didChange = true;
-        }
-      }
+      
 
       // Merge other fields
       const {
@@ -197,7 +220,7 @@ return res.status(201).json(response);
         dateReceived,
         expiryDate,
         averageCost,
-      
+      serialNumber,
       } = req.body;
 
       // Update product relation when productId is provided
@@ -222,6 +245,7 @@ return res.status(201).json(response);
       if (dateReceived !== undefined && dateReceived !== item.dateReceived) { item.dateReceived = dateReceived; didChange = true; }
       if (expiryDate !== undefined && expiryDate !== item.expiryDate) { item.expiryDate = expiryDate; didChange = true; }
       if (averageCost !== undefined && averageCost !== item.averageCost) { item.averageCost = averageCost; didChange = true; }
+      if(serialNumber !== undefined && serialNumber !== item.serialNumber) { item.serialNumber = serialNumber; didChange = true; }
       // if (supplierId !== undefined && supplierId !== item.supplierId) { item.supplierId = supplierId; didChange = true; }
 
       // Recompute available
@@ -268,7 +292,7 @@ return res.status(201).json(response);
       return res.status(500).json({ error: "Error deleting inventory item" });
     }
   }
-}
 
+}
 const inventoryController = new InventoryController();
 export default inventoryController;
