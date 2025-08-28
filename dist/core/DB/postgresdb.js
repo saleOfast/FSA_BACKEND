@@ -67,6 +67,9 @@ const holidays_entity_1 = require("./Entities/holidays.entity");
 const rcpa_entity_1 = require("./Entities/rcpa.entity");
 const tax_entity_1 = require("./Entities/tax.entity");
 const new_target_entity_1 = require("./Entities/new.target.entity");
+const inventory_1 = require("./Entities/inventory");
+const { dbHost, dbName, dbPassword, dbPort, dbUserName, isSynchronize } = (0, config_1.config)();
+const dbConfig = { userName: dbUserName, password: dbPassword, host: dbHost, port: dbPort, dbName: dbName, isSynchronize: isSynchronize };
 const warehouse_entity_1 = require("./Entities/warehouse.entity");
 class Postgresdb {
     constructor() {
@@ -113,6 +116,7 @@ class Postgresdb {
                     url: this.connectionUrl,
                     synchronize: JSON.parse(this.isSync),
                     logging: true,
+                    ssl: isLocal ? false : { rejectUnauthorized: false },
                     entities: [
                         policyHeadType_entity_1.PolicyTypeHead, policyHead_entity_1.PolicyHead, expenseManagement_entity_1.ExpenseManagement, User_entity_1.User,
                         attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor,
@@ -125,6 +129,8 @@ class Postgresdb {
                         activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
                         dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
                         warehouse_entity_1.Warehouse
+                        dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
+                        inventory_1.InventoryItem
                     ],
                     schema: 'public',
                     extra: {
@@ -133,10 +139,9 @@ class Postgresdb {
                         } : false,
                         host: this.dbConfig.host,
                         port: this.dbConfig.port,
+                        port: this.dbConfig.port,
                         user: this.dbConfig.userName,
-                        password: this.dbConfig.password,
-                        keepAlive: true,
-                        timeZone: 'IST'
+                        password: this.dbConfig.password
                     }
                 });
                 this.isConnected = true;

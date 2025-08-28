@@ -44,6 +44,7 @@ import { EDetailingRouter } from "./EDetailing/eDetailing.route";
 import { HolidayRouter } from "./HolidayRouter/HolidayRouter";
 
 import { RCPARouter } from "./RCPARouter/RCPA.route";
+import inventoryroute from "./inventoryroute/inventoryRoute";
 import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
 import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
 import { DistributorRouter } from "./DistributorRouter/Distributor.route";
@@ -101,5 +102,6 @@ router.use('/rcpa', RCPARouter);
 router.use('/warehouse', WarehouseRouter);
 router.use('/salesReturn', SalesReturnRouter);  
 router.use('/distributor', DistributorRouter);
+router.use('/inventoryItem',inventoryroute);
 
 export { router as routes };
