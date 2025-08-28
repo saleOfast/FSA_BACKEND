@@ -136,15 +136,30 @@ export class UpdateWarehouse {
 }
 
 export class GetWarehouseList {
+	// General search (searches across name, city, and ID)
 	@IsOptional() @IsString()
 	search?: string;
 
+	// Specific field searches
+	@IsOptional() @IsString()
+	name?: string;
+
+	@Transform(({ value }) => value ? parseInt(value) : undefined)
+	@IsOptional() @IsNumber()
+	id?: number;
+
+	@IsOptional() @IsString()
+	city?: string;
+
+	// Status filter: 'ACTIVE', 'INACTIVE', or undefined for all
 	@IsOptional() @IsEnum(WarehouseStatus)
 	status?: WarehouseStatus;
 
+	@Transform(({ value }) => value ? parseInt(value) : undefined)
 	@IsOptional() @IsNumber()
 	pageNumber?: number;
 
+	@Transform(({ value }) => value ? parseInt(value) : undefined)
 	@IsOptional() @IsNumber()
 	pageSize?: number;
 }

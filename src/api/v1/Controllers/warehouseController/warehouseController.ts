@@ -55,23 +55,40 @@ class WarehouseController {
 	}
 
 	async list(input: GetWarehouseList): Promise<IApiResponse> {
-		let { search, status, pageNumber, pageSize } = input;
+		let { search, name, id, city, status, pageNumber, pageSize } = input;
 		pageNumber = pageNumber && pageNumber > 0 ? pageNumber : 1;
 		pageSize = pageSize && pageSize > 0 ? pageSize : 10;
 
 		const qb = this.repo.createQueryBuilder('w');
 		
+		// General search across multiple fields
 		if (search && search.trim()) {
 			qb.andWhere(`(
-				LOWER(w.warehouse_name) LIKE LOWER(:s) OR
-				LOWER(w.city) LIKE LOWER(:s) OR
-				LOWER(w.state) LIKE LOWER(:s) OR
-				CAST(w.warehouse_id AS TEXT) LIKE :s
-			)`, { s: `%${search}%` });
+				LOWER(w.warehouse_name) LIKE LOWER(:search) OR
+				LOWER(w.city) LIKE LOWER(:search) OR
+				LOWER(w.state) LIKE LOWER(:search) OR
+				CAST(w.warehouse_id AS TEXT) LIKE :search
+			)`, { search: `%${search}%` });
 		}
+
+		// Specific field searches
+		if (name && name.trim()) {
+			qb.andWhere('LOWER(w.warehouse_name) LIKE LOWER(:name)', { name: `%${name}%` });
+		}
+
+		if (id) {
+			qb.andWhere('w.warehouse_id = :id', { id });
+		}
+
+		if (city && city.trim()) {
+			qb.andWhere('LOWER(w.city) LIKE LOWER(:city)', { city: `%${city}%` });
+		}
+
+		// Status filter (if not provided, returns all)
 		if (status) {
 			qb.andWhere('w.status = :status', { status });
 		}
+
 		qb.orderBy('w.last_updated_date', 'DESC');
 		qb.skip((pageNumber - 1) * pageSize).take(pageSize);
 
@@ -88,7 +105,15 @@ class WarehouseController {
 				pagination: {
 					pageNumber,
 					pageSize,
-					totalRecords: total
+					totalRecords: total,
+					totalPages: Math.ceil(total / pageSize)
+				},
+				filters: {
+					search: search || null,
+					name: name || null,
+					id: id || null,
+					city: city || null,
+					status: status || null
 				}
 			}
 		};

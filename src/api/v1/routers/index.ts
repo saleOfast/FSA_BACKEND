@@ -45,6 +45,9 @@ import { HolidayRouter } from "./HolidayRouter/HolidayRouter";
 
 import { RCPARouter } from "./RCPARouter/RCPA.route";
 import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
+import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
+import { DistributorRouter } from "./DistributorRouter/Distributor.route";
+
 
 const router = express.Router();
 /* Auth ROutes */
@@ -96,5 +99,7 @@ router.use('/eDetailing', EDetailingRouter);
 router.use('/holidays', HolidayRouter);
 router.use('/rcpa', RCPARouter);
 router.use('/warehouse', WarehouseRouter);
+router.use('/salesReturn', SalesReturnRouter);  
+router.use('/distributor', DistributorRouter);
 
 export { router as routes };

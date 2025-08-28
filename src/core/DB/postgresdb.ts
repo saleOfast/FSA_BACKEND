@@ -62,6 +62,7 @@ import { Taxes } from './Entities/tax.entity';
 
 import { NewTarget } from './Entities/new.target.entity';
 import { Warehouse } from './Entities/warehouse.entity';
+import { SalesReturn } from './Entities/sales_return.entity';
 
 
 interface IDBConfig {
@@ -141,7 +142,7 @@ class Postgresdb {
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
-					Warehouse
+					Warehouse, SalesReturn
 				],
 				schema: 'public',
 				extra: {

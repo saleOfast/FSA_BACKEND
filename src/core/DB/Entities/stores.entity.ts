@@ -25,7 +25,7 @@ export class Stores extends BaseEntity implements IStore {
     @Column({ name: 'emp_id' })
     empId: number
 
-    @Column({ name: 'retailor_id' })
+    @Column({ name: 'retailor_id', nullable: true })
     retailorId: number
 
     @Column({ name: 'store_name' })

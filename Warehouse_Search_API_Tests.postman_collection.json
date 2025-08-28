@@ -1,0 +1,229 @@
+{
+  "info": {
+    "name": "Enhanced Warehouse Search API Tests",
+    "description": "Test collection for enhanced warehouse search and filter functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8449",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get All Warehouses",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. Search by Warehouse Name",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?name=main",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "name",
+              "value": "main",
+              "description": "Search in warehouse name field"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Search by Warehouse ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?id=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "id",
+              "value": "1",
+              "description": "Search by specific warehouse ID"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Search by City",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?city=mumbai",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "city",
+              "value": "mumbai",
+              "description": "Search in city field"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Filter Active Warehouses",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?status=ACTIVE",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "status",
+              "value": "ACTIVE",
+              "description": "Filter only active warehouses"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. Filter Inactive Warehouses",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?status=INACTIVE",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "status",
+              "value": "INACTIVE",
+              "description": "Filter only inactive warehouses"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. General Search (Multi-field)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?search=warehouse",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "search",
+              "value": "warehouse",
+              "description": "General search across name, city, state, and ID"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. Combined Search and Filter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?city=delhi&status=ACTIVE&pageSize=5",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "city",
+              "value": "delhi",
+              "description": "Search by city"
+            },
+            {
+              "key": "status",
+              "value": "ACTIVE",
+              "description": "Filter active warehouses"
+            },
+            {
+              "key": "pageSize",
+              "value": "5",
+              "description": "Limit results to 5 per page"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "9. Multiple Specific Searches",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?name=central&city=bangalore",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "name",
+              "value": "central",
+              "description": "Search warehouse name"
+            },
+            {
+              "key": "city",
+              "value": "bangalore",
+              "description": "Search city"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10. Pagination Test",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/warehouse/list?pageNumber=2&pageSize=3",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "warehouse", "list"],
+          "query": [
+            {
+              "key": "pageNumber",
+              "value": "2",
+              "description": "Get page 2"
+            },
+            {
+              "key": "pageSize",
+              "value": "3",
+              "description": "3 items per page"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
