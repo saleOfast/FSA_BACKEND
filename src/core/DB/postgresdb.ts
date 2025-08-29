@@ -64,8 +64,7 @@ import { NewTarget } from './Entities/new.target.entity';
 import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
 
-
-const { dbHost, dbName, dbPassword, dbPort, dbUserName, isSynchronize, postgresDBUrl, environment } = envConfig();
+// Do not read env config at module load; defer to initialize()
 
 interface IDBConfig {
 	userName: string,
@@ -90,12 +89,9 @@ class Postgresdb {
 		this.masterDb = null;
 		this.isConnected = false;
 		this.masterConnection = null;
-		this.connectionUrl = (postgresDBUrl && postgresDBUrl.trim().length > 0)
-			? postgresDBUrl
-			: `postgresql://${config.userName}:${config.password}@${config.host}:${config.port}/${config.dbName}`;
-		console.log(this.connectionUrl, 'connection url')
-		this.isSync = config.isSynchronize;
-		console.log(this.isSync, 'this.isSync==============')
+		// Will be set in initialize() based on env config
+		this.connectionUrl = '' as string;
+		this.isSync = 'false';
 	}
 	/**
 	 * @description Initialize the Postgresdb
