@@ -5,11 +5,12 @@ import {
   BaseEntity,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,      
-  JoinColumn 
+  ManyToOne,
+  JoinColumn,
+  Unique,
 } from "typeorm";
 
-import { Products } from "../Entities/products.entity"; 
+import { Products } from "../Entities/products.entity";
 
 export enum InventoryStatus {
   ACTIVE = "Active",
@@ -17,6 +18,7 @@ export enum InventoryStatus {
 }
 
 @Entity({ name: "inventory_item" })
+@Unique(["product", "warehouseId"]) // unique per product per warehouse
 export class InventoryItem extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -25,14 +27,11 @@ export class InventoryItem extends BaseEntity {
   @JoinColumn({ name: "product_id" })
   product: Products;
 
-
   @Column({ name: "batch_number", type: "varchar", length: 50, nullable: true })
   batchNumber: string | null;
 
-  // TEMP: nullable so TypeORM can add on existing rows; will tighten later
-@Column({ type: "int", unique: true , nullable: true })
-warehouseId: number | null;
-
+  @Column({ type: "int", nullable: false })
+  warehouseId: number;
 
   @Column({ name: "serial_number", type: "varchar", length: 50, nullable: true })
   serialNumber: string | null;
@@ -55,10 +54,30 @@ warehouseId: number | null;
   @Column({ name: "expiry_date", type: "date", nullable: true })
   expiryDate: Date | null;
 
-  @Column({ name: "cost_price", type: "numeric", precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: "cost_price",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) => (value !== null ? parseFloat(value) : null),
+    },
+  })
   costPrice: number | null;
 
-  @Column({ name: "average_cost", type: "numeric", precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: "average_cost",
+    type: "decimal",
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number | null) => value,
+      from: (value: string | null) => (value !== null ? parseFloat(value) : null),
+    },
+  })
   averageCost: number | null;
 
   @Column({ name: "unit_of_measure", type: "varchar", length: 50, nullable: true })

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import { InventoryItem } from "../../../../core/DB/Entities/inventory";
+import { InventoryItem, InventoryStatus } from "../../../../core/DB/Entities/inventory";
 import { Products } from "../../../../core/DB/Entities/products.entity";
 import { RequestHandler } from "../../../../core/helper/RequestHander";
 import { ILike } from "typeorm";
 
 export class InventoryController {
-  async create(req: Request, res: Response) {
+ async create(req: Request, res: Response) {
     try {
       const {
         productId,
@@ -26,78 +26,67 @@ export class InventoryController {
       const user = RequestHandler.Custom.getUser(req);
       const createdBy = user?.emp_id ? String(user.emp_id) : null;
 
+      // Validate product
       const product = await Products.findOneBy({ productId });
-      if (!product) {
-        return res.status(400).json({ error: "Invalid productId. Product not found." });
+      if (!product) return res.status(400).json({ error: "Invalid productId. Product not found." });
+
+      // Safe numeric parsing
+      const parsedWarehouseId = warehouseId !== undefined ? Number(warehouseId) : null;
+      if (parsedWarehouseId === null || !Number.isFinite(parsedWarehouseId)) {
+        return res.status(400).json({ error: "warehouseId is required and must be a valid number" });
       }
 
-      // Required validations
-      const parsedWarehouseId = Number(warehouseId);
-      const noWarehouseId =
-        warehouseId === undefined || warehouseId === null || !Number.isFinite(parsedWarehouseId);
-      // const noSerial = !serialNumber || String(serialNumber).trim() === "";
+      const onHand = quantityOnHand !== undefined ? Number(quantityOnHand) : 0;
+      const reserved = quantityReserved !== undefined ? Number(quantityReserved) : 0;
+      const reorder = reorderLevel !== undefined ? Number(reorderLevel) : null;
+      const cost = costPrice !== undefined ? Number(costPrice) : null;
+      const avgCost = averageCost !== undefined ? Number(averageCost) : null;
 
-     
-      if (noWarehouseId) {
-        return res.status(400).json({ error: "warehouseId is required and must be a number" });
+      if (!Number.isFinite(onHand) || !Number.isFinite(reserved) || (reorder !== null && !Number.isFinite(reorder))) {
+        return res.status(400).json({ error: "Numeric fields must be valid numbers" });
       }
-      
-      // Uniqueness checks
-      const existingWarehouse = await InventoryItem.findOne({
-        where: { warehouseId: parsedWarehouseId },
+
+      // Check uniqueness per product + warehouse
+      const existingItem = await InventoryItem.findOne({
+        where: { warehouseId: parsedWarehouseId, product: { productId } },
       });
-      if (existingWarehouse) {
-        return res.status(400).json({ error: "warehouseId already exists" });
-      }
+      if (existingItem) return res.status(400).json({ error: "Inventory item for this product in this warehouse already exists" });
 
-      // if (serialNumber) {
-      //   const existingItem = await InventoryItem.findOne({ where: { serialNumber } });
-      //   if (existingItem) {
-      //     return res.status(400).json({ error: "serialNumber already exists" });
-      //   }
-      // }
-
-      const reserved = typeof quantityReserved === "number" ? quantityReserved : 0;
-      const available =
-        typeof quantityOnHand === "number" ? quantityOnHand - reserved : 0;
+      const available = onHand - reserved;
 
       const newItem = InventoryItem.create({
         product,
         warehouseId: parsedWarehouseId,
-        batchNumber,
-        serialNumber,
-        quantityOnHand,
+        batchNumber: batchNumber || null,
+        serialNumber: serialNumber || null,
+        quantityOnHand: onHand,
         quantityReserved: reserved,
         quantityAvailable: available,
-        reorderLevel,
-        dateReceived,
-        expiryDate,
-        costPrice,
-        averageCost,
-        unitOfMeasure,
-        status,
+        reorderLevel: reorder,
+        dateReceived: dateReceived || null,
+        expiryDate: expiryDate || null,
+        costPrice: cost,
+        averageCost: avgCost,
+        unitOfMeasure: unitOfMeasure || null,
+        status: status || InventoryStatus.ACTIVE,
         createdBy,
         lastModifiedBy: createdBy,
       } as Partial<InventoryItem>);
 
-      const saveItem = await InventoryItem.save(newItem);
+      const savedItem = await InventoryItem.save(newItem);
 
-const plainItem = JSON.parse(JSON.stringify(saveItem));
-delete plainItem.product;
+      const plainItem = JSON.parse(JSON.stringify(savedItem));
+      delete plainItem.product;
 
-const response = {
-    productId: product.productId,
-  productName: product.productName,
-  ...plainItem
+      return res.status(201).json({
+        productId: product.productId,
+        productName: product.productName,
+        ...plainItem,
+      });
 
-};
-
-
-return res.status(201).json(response);
-
-       } catch (err: any) {
-      console.error("Error fetching inventory item:", err?.message || err);
-      return res.status(500).json({ error: "Error fetching inventory item", message: err?.message || "Unknown error" });
+    } catch (err: any) {
+      console.error("Error creating inventory item:", err?.message || err);
+      return res.status(500).json({ error: "Error creating inventory item", message: err?.message || "Unknown error" });
     }
   }
 
@@ -293,6 +282,78 @@ async getAll(req: Request, res: Response) {
     }
   }
 
+  
+  async getSummary(req: Request, res: Response) {
+    try {
+      // Fetch all items
+      const items = await InventoryItem.find();
+
+      const totalItems = items.length;
+
+      const lowStockItems = items.filter(
+        (i) =>
+          typeof i.quantityOnHand === "number" &&
+          typeof i.reorderLevel === "number" &&
+          i.reorderLevel !== null &&
+          i.quantityOnHand <= i.reorderLevel
+      ).length;
+
+      const activeItems = items.filter(
+        (i) => i.status === InventoryStatus.ACTIVE
+      ).length;
+
+      const totalValue = items.reduce((sum, i) => {
+        if (i.costPrice !== null && typeof i.quantityOnHand === "number") {
+          return sum + Number(i.costPrice) * i.quantityOnHand;
+        }
+        return sum;
+      }, 0);
+
+      return res.json({
+        totalItems,
+        lowStockItems,
+        activeItems,
+        totalValue,
+      });
+    } catch (err: any) {
+      console.error("Error generating inventory summary:", err);
+      return res.status(500).json({
+        error: "Error generating inventory summary",
+        message: err?.message || "Unknown error",
+      });
+    }
+  }
+  async getLowStock(req: Request, res: Response) {
+  try {
+    // Fetch all inventory items with product relation
+    const items = await InventoryItem.find({ relations: ["product"] });
+
+    // Filter items that are low stock
+    const lowStockItems = items
+      .filter(
+        (i) =>
+          i.reorderLevel !== null &&
+          typeof i.quantityOnHand === "number" &&
+          i.quantityOnHand <= i.reorderLevel
+      )
+      .map((i) => ({
+        productName: i.product?.productName || "Unknown",
+        available: i.quantityOnHand,
+        reorderLevel: i.reorderLevel,
+      }));
+
+    return res.json({
+      lowStockItems,
+    });
+  } catch (err: any) {
+    console.error("Error fetching low stock items:", err);
+    return res.status(500).json({
+      error: "Error fetching low stock items",
+      message: err?.message || "Unknown error",
+    });
+  }
 }
+}
+
 const inventoryController = new InventoryController();
 export default inventoryController;
