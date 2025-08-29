@@ -7,7 +7,8 @@
     "tsc": "tsc",
     "start": "node ./dist/mrapp.js",
     "dev": "tsnd --respawn ./src/mrapp.ts",
-    "d": "tsnd --respawn ./src/mrapp.ts"
+    "d": "tsnd --respawn ./src/mrapp.ts",
+    "seed": "ts-node ./src/scripts/seed.ts"
   },
   "dependencies": {
     "@types/date-fns": "^2.6.0",

@@ -65,6 +65,8 @@ import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
 
 
+const { dbHost, dbName, dbPassword, dbPort, dbUserName, isSynchronize, postgresDBUrl, environment } = envConfig();
+
 interface IDBConfig {
 	userName: string,
 	password: string,
@@ -88,19 +90,17 @@ class Postgresdb {
 		this.masterDb = null;
 		this.isConnected = false;
 		this.masterConnection = null;
-		this.connectionUrl = '';
-		this.isSync = 'false';
-		this.dbConfig = {
-			userName: '',
-			password: '',
-			host: '',
-			port: 5432,
-			dbName: '',
-			isSynchronize: 'false',
-			ssl: false
-		};
+		this.connectionUrl = (postgresDBUrl && postgresDBUrl.trim().length > 0)
+			? postgresDBUrl
+			: `postgresql://${config.userName}:${config.password}@${config.host}:${config.port}/${config.dbName}`;
+		console.log(this.connectionUrl, 'connection url')
+		this.isSync = config.isSynchronize;
+		console.log(this.isSync, 'this.isSync==============')
 	}
-
+	/**
+	 * @description Initialize the Postgresdb
+	 * @returns Promise<void>
+	 */
 	async initialize() {
 		try {
 			// Get config here when initialize is called
@@ -126,9 +126,21 @@ class Postgresdb {
 			console.log('-------------------------------------------------------------');
 			console.log(`Initializing postgresdb for ${config.environment} environment`);
 
+			const { postgresDBUrl, environment: envName } = envConfig();
+			const normalizedEnv = (envName || '').toLowerCase();
+			const isLocalHost = ['localhost', '127.0.0.1'].includes(String(this.dbConfig.host).toLowerCase());
+			const urlLooksLocal = (this.connectionUrl || '').toLowerCase().includes('localhost') || (this.connectionUrl || '').includes('127.0.0.1');
+			const dbSslEnv = (process.env.DB_SSL || '').toLowerCase();
+			// Never use SSL for localhost connections, regardless of env vars
+			const shouldUseSsl = (isLocalHost || urlLooksLocal)
+				? false
+				: (dbSslEnv === 'true' || dbSslEnv === '1' || dbSslEnv === 'require'
+					? true
+					: !(normalizedEnv === 'local' || normalizedEnv === 'development' || normalizedEnv === 'dev' || normalizedEnv === 'test'));
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',
 				url: this.connectionUrl,
+				ssl: shouldUseSsl ? { rejectUnauthorized: false } : false, 
 				synchronize: JSON.parse(this.isSync),
 				logging: true,
 				entities: [
@@ -146,9 +158,7 @@ class Postgresdb {
 				],
 				schema: 'public',
 				extra: {
-					ssl: this.dbConfig.ssl ? {
-						rejectUnauthorized: false,
-					} : false,
+					ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
 					host: this.dbConfig.host,
 					port: this.dbConfig.port,
 					user: this.dbConfig.userName,
