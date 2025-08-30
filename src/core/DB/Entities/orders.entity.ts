@@ -112,6 +112,6 @@ export class Orders extends BaseEntity implements IOrders {
     }
 }
 
-export const OrdersRepository = (): Repository<IOrders> => {
+export const OrdersRepository = (): Repository<Orders> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Orders);
 }

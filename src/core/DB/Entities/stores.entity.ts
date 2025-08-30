@@ -183,6 +183,6 @@ export class Stores extends BaseEntity implements IStore {
     rcpa: RCPA[];
 }
 
-export const StoreRepository = (): Repository<IStore> => {
+export const StoreRepository = (): Repository<Stores> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Stores);
 }

@@ -178,7 +178,7 @@ class StoreController {
             }
             // console.log({fitlerQuery})
 
-            let buildQuery: SelectQueryBuilder<IStore> = this.storeRepositry.createQueryBuilder('stores')
+            let buildQuery: SelectQueryBuilder<Stores> = this.storeRepositry.createQueryBuilder('stores')
                 .leftJoinAndSelect("stores.storeCat", "storeCat")
 
 

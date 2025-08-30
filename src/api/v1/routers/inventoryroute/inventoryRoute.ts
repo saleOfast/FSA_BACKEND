@@ -8,7 +8,7 @@ const router = Router();
 router.use(AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN));
 
 router.post("/create", (req, res) => inventoryController.create(req, res));
-router.get("/", (req, res) => inventoryController.getAll(req, res));
+router.get("/getAll", (req, res) => inventoryController.getAll(req, res));
 router.get("/getSummary", (req, res) => inventoryController.getSummary(req, res));
 router.get("/getLowStock", (req, res) => inventoryController.getLowStock(req, res));
 router.get("/:id", (req, res) => inventoryController.getById(req, res));

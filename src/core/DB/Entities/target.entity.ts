@@ -50,6 +50,6 @@ export class Target extends BaseEntity implements ITarget {
     }
 }
 
-export const TargetRepository = (): Repository<ITarget> => {
+export const TargetRepository = (): Repository<Target> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Target);
 }

@@ -243,7 +243,7 @@ class OrderController {
     async getOrderById(input: GetOrderById): Promise<IApiResponse> {
         try {
             const { orderId } = input;
-            const order: IOrders | null = await this.orderRepositry.findOne({ where: { orderId: Number(orderId) }, relations: ["store", "visit"] });
+            const order: Orders | null = await this.orderRepositry.findOne({ where: { orderId: Number(orderId) }, relations: ["store", "visit"] });
 
             if (!order) {
                 return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND }
@@ -277,7 +277,7 @@ class OrderController {
             //     }
             // }
 
-            let queryBuilder: IOrders[] | any = await this.orderRepositry.createQueryBuilder("orders")
+            let queryBuilder: Orders[] | any = await this.orderRepositry.createQueryBuilder("orders")
                 .leftJoinAndSelect("orders.store", "store")
                 .leftJoinAndSelect("orders.visit", "visit")
                 .select(["orders.orderId", "orders.orderAmount", "orders.orderDate", "visit.visitDate", "orders.orderStatus", "orders.netAmount", "orders.paymentStatus", "orders.collectedAmount", "orders.products"]) // specify the fields you need
@@ -349,11 +349,11 @@ class OrderController {
         try {
             const { orderId } = input;
             const { emp_id } = payload;
-            const queryFilter: FindOptionsWhere<IOrders> = {
+            const queryFilter: FindOptionsWhere<Orders> = {
                 orderId: Number(orderId),
                 // empId: emp_id
             }
-            const orders: IOrders | null = await this.orderRepositry.findOne({ where: queryFilter, relations: ["store", "visit"] });
+            const orders: Orders | null = await this.orderRepositry.findOne({ where: queryFilter, relations: ["store", "visit"] });
 
 
             return { message: "Success.", status: STATUSCODES.SUCCESS, data: orders }
@@ -746,7 +746,7 @@ class OrderController {
     async updateOrderTrackStatus(input: UpdateOrderTrackStatusById): Promise<IApiResponse> {
         try {
             const { orderId, orderStatus } = input;
-            const order: IOrders | null = await OrdersRepository().findOne({ where: { orderId } });
+            const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
 
             if (!order) {
                 return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
@@ -773,7 +773,7 @@ class OrderController {
     async updateOrderBySpecialDiscount(input: UpdateOrderBySpecialDiscountById): Promise<IApiResponse> {
         try {
             const { orderId, specialDiscountValue, specialDiscountStatus } = input;
-            const order: IOrders | null = await OrdersRepository().findOne({ where: { orderId } });
+            const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
             if (!order) {
                 return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
             }

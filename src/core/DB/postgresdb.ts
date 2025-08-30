@@ -61,10 +61,12 @@ import { RCPA } from './Entities/rcpa.entity';
 import { Taxes } from './Entities/tax.entity';
 
 import { NewTarget } from './Entities/new.target.entity';
+import { InventoryItem } from './Entities/inventory';
 import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
 
-// Do not read env config at module load; defer to initialize()
+
+const { userName, password, host, port, dbName, isSynchronize } = envConfig();
 
 interface IDBConfig {
 	userName: string,
@@ -72,26 +74,28 @@ interface IDBConfig {
 	host: string,
 	port: number,
 	dbName: string,
-	isSynchronize: string,
-	ssl?: boolean
+	isSynchronize: string
 }
 
+const dbConfig: IDBConfig = { userName, password, host, port, dbName, isSynchronize };
+
 class Postgresdb {
-	masterDb: any;
-	isConnected: any;
-	masterConnection: any;
+	masterDb: DataSource | null;
+	isConnected: boolean;
+	masterConnection: DataSource | null;
 	private connectionUrl: string;
 	private isSync: string;
 	private dbConfig: IDBConfig;
 
-	constructor() {
-		// Don't call envConfig here - wait until initialize()
+	constructor(config: IDBConfig) {
+		this.dbConfig = config;
 		this.masterDb = null;
 		this.isConnected = false;
 		this.masterConnection = null;
-		// Will be set in initialize() based on env config
-		this.connectionUrl = '' as string;
-		this.isSync = 'false';
+		this.connectionUrl = `postgresql://${config.userName}:${config.password}@${config.host}:${config.port}/${config.dbName}` as string;
+		console.log(this.connectionUrl, 'connection url')
+		this.isSync = config.isSynchronize;
+		console.log(this.isSync, 'this.isSync==============')
 	}
 	/**
 	 * @description Initialize the Postgresdb
@@ -99,46 +103,18 @@ class Postgresdb {
 	 */
 	async initialize() {
 		try {
-			// Get config here when initialize is called
-			const config = envConfig();
-			console.log('Environment detected:', config.environment);
-			console.log('Database config:', config);
-			
-			this.dbConfig = {
-				userName: config.userName, 
-				password: config.password, 
-				host: config.host, 
-				port: config.port, 
-				dbName: config.dbName, 
-				isSynchronize: config.isSynchronize,
-				ssl: config.ssl
-			};
-			
-			this.connectionUrl = `postgresql://${this.dbConfig.userName}:${this.dbConfig.password}@${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.dbName}` as string;
-			console.log(`Connection URL for ${config.environment}:`, this.connectionUrl);
-			this.isSync = this.dbConfig.isSynchronize;
-			console.log('Synchronize mode:', this.isSync);
-
 			console.log('-------------------------------------------------------------');
-			console.log(`Initializing postgresdb for ${config.environment} environment`);
+			console.log('Initializing postgresdb');
 
-			const { postgresDBUrl, environment: envName } = envConfig();
-			const normalizedEnv = (envName || '').toLowerCase();
-			const isLocalHost = ['localhost', '127.0.0.1'].includes(String(this.dbConfig.host).toLowerCase());
-			const urlLooksLocal = (this.connectionUrl || '').toLowerCase().includes('localhost') || (this.connectionUrl || '').includes('127.0.0.1');
-			const dbSslEnv = (process.env.DB_SSL || '').toLowerCase();
-			// Never use SSL for localhost connections, regardless of env vars
-			const shouldUseSsl = (isLocalHost || urlLooksLocal)
-				? false
-				: (dbSslEnv === 'true' || dbSslEnv === '1' || dbSslEnv === 'require'
-					? true
-					: !(normalizedEnv === 'local' || normalizedEnv === 'development' || normalizedEnv === 'dev' || normalizedEnv === 'test'));
+			const { postgresDBUrl, environment } = envConfig();
+			const env = (environment || '').toLowerCase();
+			const isLocal = env === 'local' || this.dbConfig.host === 'localhost' || this.dbConfig.host === '127.0.0.1';
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',
 				url: this.connectionUrl,
-				ssl: shouldUseSsl ? { rejectUnauthorized: false } : false, 
 				synchronize: JSON.parse(this.isSync),
 				logging: true,
+				ssl: isLocal ? false : { rejectUnauthorized: false },
 				entities: [
 					PolicyTypeHead, PolicyHead, ExpenseManagement, User,	
 					Attendance, Beat, CollectPayment, Discount, Distributor,
@@ -150,23 +126,22 @@ class Postgresdb {
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
-					Warehouse, SalesReturn
+					InventoryItem, Warehouse, SalesReturn
 				],
 				schema: 'public',
 				extra: {
-					ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
+					keepAlive: true,
+					timeZone: 'IST',
 					host: this.dbConfig.host,
 					port: this.dbConfig.port,
 					user: this.dbConfig.userName,
-					password: this.dbConfig.password,
-					keepAlive: true,
-					timeZone: 'IST'
+					password: this.dbConfig.password
 				}
 			});
 
 			this.isConnected = true;
 			this.masterConnection = await dbConn.initialize();
-			console.log(`Connected to ${config.environment} database at ${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.dbName}`);
+			console.log('Connected to host', postgresDBUrl);
 
 			return dbConn;
 		} catch (err) {
@@ -178,7 +153,6 @@ class Postgresdb {
 
 	getConnection() {
 		try {
-
 			if (this.masterConnection) {
 				return this.masterConnection;
 			}
@@ -187,16 +161,19 @@ class Postgresdb {
 		}
 		catch (err) {
 			console.log('????????????????????????????????', err);
-
+			throw err; // Re-throw the error so calling code can handle it
 		}
 	}
+	
 	async close() {
-		await this.masterConnection.close();
+		if (this.masterConnection) {
+			await this.masterConnection.close();
+		}
 		this.isConnected = false;
 	}
 }
 
 
 export const DbConnections = {
-	AppDbConnection: new Postgresdb()
+	AppDbConnection: new Postgresdb(dbConfig)
 }

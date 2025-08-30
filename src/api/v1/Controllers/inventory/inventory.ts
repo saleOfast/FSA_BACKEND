@@ -95,6 +95,7 @@ async getAll(req: Request, res: Response) {
       const { productId, productName, batchNumber } = req.query;
       const where: any = {};
       const productWhere: any = {};
+      
 
       // productId filter
       if (productId) {
@@ -134,7 +135,6 @@ async getAll(req: Request, res: Response) {
           ...plain,
         };
       });
-
       return res.json(response);
     } catch (err: any) {
       return res.status(500).json({
@@ -143,6 +143,7 @@ async getAll(req: Request, res: Response) {
       });
     }
   }
+
 
   async getById(req: Request, res: Response) {
     try {
