@@ -17,32 +17,41 @@ class SalesReturnController {
 
 
 
-	async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
-		const { orderId, customerId, returnDate, returnValue, creditNoteId, remarks, attachments } = input;
-		const { emp_id } = payload;
+async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
+  const { orderId, customerId, returnDate, returnValue, creditNoteId, remarks, attachments } = input;
+  const { emp_id } = payload;
 
-		const order = await this.orderRepo.findOne({ where: { orderId } });
-		if (!order) return { status: STATUSCODES.NOT_FOUND, message: "Order not found." };
+  // Check if the order already has a return request
+  const existingReturnRequest = await this.repo.findOne({ where: { orderId } });
+  if (existingReturnRequest) {
+    return { status: STATUSCODES.BAD_REQUEST, message: "Order return request already generated." };
+  }
 
-		const customer = await this.storeRepo.findOne({ where: { storeId: customerId } });
-		if (!customer) return { status: STATUSCODES.NOT_FOUND, message: "Customer not found." };
+  // Check if the order exists
+  const order = await this.orderRepo.findOne({ where: { orderId } });
+  if (!order) return { status: STATUSCODES.NOT_FOUND, message: "Order not found." };
 
-		const entity = new SalesReturn();
-		entity.orderId = orderId;
+  // Check if the customer exists
+  const customer = await this.storeRepo.findOne({ where: { storeId: customerId } });
+  if (!customer) return { status: STATUSCODES.NOT_FOUND, message: "Customer not found." };
 
-		entity.customerId = customerId;
-		entity.returnDate = returnDate ? new Date(returnDate) : new Date();
-		entity.remarks = remarks;
-		entity.creditNoteId = creditNoteId ?? null;
-		entity.attachments = attachments ?? [];
-		entity.returnValue = returnValue || 0;
-		entity.createdBy = emp_id;
-		entity.lastModifiedBy = emp_id;
+  // Create the sales return entity
+  const entity = new SalesReturn();
+  entity.orderId = orderId;
+  entity.customerId = customerId;
+  entity.returnDate = returnDate ? new Date(returnDate) : new Date();
+  entity.remarks = remarks;
+  entity.creditNoteId = creditNoteId ?? null;
+  entity.attachments = attachments ?? [];
+  entity.returnValue = returnValue || 0;
+  entity.createdBy = emp_id;
+  entity.lastModifiedBy = emp_id;
 
-		// await this.repo.save(entity);
-		const savedReturn = await this.repo.save(entity);
-		return { status: STATUSCODES.SUCCESS, message: "Sales return created.", data: { savedReturn } };
-	}
+  // Save the sales return
+  const savedReturn = await this.repo.save(entity);
+
+  return { status: STATUSCODES.SUCCESS, message: "Sales return created.", data: { savedReturn } };
+}
 
 	async update(input: UpdateSalesReturn, payload: IUser): Promise<IApiResponse> {
 		const { returnId, customerId, returnDate, creditNoteId, remarks, attachments } = input;
