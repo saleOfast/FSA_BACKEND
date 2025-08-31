@@ -44,8 +44,10 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
   entity.creditNoteId = creditNoteId ?? null;
   entity.attachments = attachments ?? [];
   entity.returnValue = returnValue || 0;
-  entity.createdBy = emp_id;
-  entity.lastModifiedBy = emp_id;
+  entity.createdBy = `${payload.firstname} ${payload.lastname || ''}`.trim();
+  entity.createdByUserId = emp_id;
+  entity.lastModifiedBy = `${payload.firstname} ${payload.lastname || ''}`.trim();
+  entity.lastModifiedByUserId = emp_id;
 
   // Save the sales return
   const savedReturn = await this.repo.save(entity);
@@ -72,7 +74,8 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
 
 
 
-		entity.lastModifiedBy = emp_id;
+		entity.lastModifiedBy = `${payload.firstname} ${payload.lastname || ''}`.trim();
+		entity.lastModifiedByUserId = emp_id;
 		await this.repo.save(entity);
 		return { status: STATUSCODES.SUCCESS, message: "Sales return updated." };
 	}

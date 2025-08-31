@@ -40,18 +40,24 @@ export class SalesReturn extends BaseEntity {
 	@Column({ name: 'return_value', type: 'decimal', nullable: true })
 	returnValue: number;
 
-	@Column({ name: 'created_by' })
-	createdBy: number;
+	@Column({ name: 'created_by', type: 'varchar', length: 100 })
+	createdBy: string;
 
-	@ManyToOne(() => User, user => user.emp_id, { onDelete: "SET NULL" })
-	@JoinColumn({ name: 'created_by', referencedColumnName: 'emp_id' })
+	@Column({ name: 'created_by_user_id', nullable: true })
+	createdByUserId?: number;
+
+	@ManyToOne(() => User, { onDelete: "SET NULL" })
+	@JoinColumn({ name: 'created_by_user_id', referencedColumnName: 'emp_id' })
 	createdByUser?: User;
 
-	@Column({ name: 'last_modified_by', nullable: true })
-	lastModifiedBy?: number;
+	@Column({ name: 'last_modified_by', type: 'varchar', length: 100, nullable: true })
+	lastModifiedBy?: string;
 
-	@ManyToOne(() => User, user => user.emp_id, { onDelete: "SET NULL" })
-	@JoinColumn({ name: 'last_modified_by', referencedColumnName: 'emp_id' })
+	@Column({ name: 'last_modified_by_user_id', nullable: true })
+	lastModifiedByUserId?: number;
+
+	@ManyToOne(() => User, { onDelete: "SET NULL" })
+	@JoinColumn({ name: 'last_modified_by_user_id', referencedColumnName: 'emp_id' })
 	lastModifiedByUser?: User;
 
 	@CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
