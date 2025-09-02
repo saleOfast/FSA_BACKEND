@@ -15,5 +15,6 @@ const products_entity_1 = require("./products.entity");
 const storeCategory_entity_1 = require("./storeCategory.entity");
 const stores_entity_1 = require("./stores.entity");
 const warehouse_entity_1 = require("./warehouse.entity");
-const dbentities = [User_entity_1.User, attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor, inventory_entity_1.Inventory, orders_entity_1.Orders, outlet_inventory_entity_1.OutletInventory, products_entity_1.Products, storeCategory_entity_1.StoreCategory, stores_entity_1.Stores, Visit_entity_1.Visits, warehouse_entity_1.Warehouse];
+const sales_return_entity_1 = require("./sales_return.entity");
+const dbentities = [User_entity_1.User, attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor, inventory_entity_1.Inventory, orders_entity_1.Orders, outlet_inventory_entity_1.OutletInventory, products_entity_1.Products, storeCategory_entity_1.StoreCategory, stores_entity_1.Stores, Visit_entity_1.Visits, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn];
 exports.dbentities = dbentities;

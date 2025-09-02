@@ -55,6 +55,7 @@ const samples_entity_1 = require("./Entities/samples.entity");
 const giftDistribution_entity_1 = require("./Entities/giftDistribution.entity");
 const sessions_entity_1 = require("./Entities/sessions.entity");
 const userType_entity_1 = require("./Entities/userType.entity");
+const profile_entity_1 = require("./Entities/profile.entity");
 const activityRelatedTo_entity_1 = require("./Entities/activityRelatedTo.entity");
 const activityType_entity_1 = require("./Entities/activityType.entity");
 const nextActionOn_entity_1 = require("./Entities/nextActionOn.entity");
@@ -67,18 +68,18 @@ const holidays_entity_1 = require("./Entities/holidays.entity");
 const rcpa_entity_1 = require("./Entities/rcpa.entity");
 const tax_entity_1 = require("./Entities/tax.entity");
 const new_target_entity_1 = require("./Entities/new.target.entity");
-const { dbHost, dbName, dbPassword, dbPort, dbUserName, isSynchronize, postgresDBUrl, environment } = (0, config_1.config)();
-const dbConfig = { userName: dbUserName, password: dbPassword, host: dbHost, port: dbPort, dbName: dbName, isSynchronize: isSynchronize };
+const inventory_1 = require("./Entities/inventory");
 const warehouse_entity_1 = require("./Entities/warehouse.entity");
+const sales_return_entity_1 = require("./Entities/sales_return.entity");
+const { userName, password, host, port, dbName, isSynchronize } = (0, config_1.config)();
+const dbConfig = { userName, password, host, port, dbName, isSynchronize };
 class Postgresdb {
-    constructor() {
-        // Don't call envConfig here - wait until initialize()
+    constructor(config) {
+        this.dbConfig = config;
         this.masterDb = null;
         this.isConnected = false;
         this.masterConnection = null;
-        this.connectionUrl = (postgresDBUrl && postgresDBUrl.trim().length > 0)
-            ? postgresDBUrl
-            : `postgresql://${config.userName}:${config.password}@${config.host}:${config.port}/${config.dbName}`;
+        this.connectionUrl = `postgresql://${config.userName}:${config.password}@${config.host}:${config.port}/${config.dbName}`;
         console.log(this.connectionUrl, 'connection url');
         this.isSync = config.isSynchronize;
         console.log(this.isSync, 'this.isSync==============');
@@ -90,36 +91,14 @@ class Postgresdb {
     initialize() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // Get config here when initialize is called
-                const config = (0, config_1.config)();
-                console.log('Environment detected:', config.environment);
-                console.log('Database config:', config);
-                this.dbConfig = {
-                    userName: config.userName,
-                    password: config.password,
-                    host: config.host,
-                    port: config.port,
-                    dbName: config.dbName,
-                    isSynchronize: config.isSynchronize,
-                    ssl: config.ssl
-                };
-                this.connectionUrl = `postgresql://${this.dbConfig.userName}:${this.dbConfig.password}@${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.dbName}`;
-                console.log(`Connection URL for ${config.environment}:`, this.connectionUrl);
-                this.isSync = this.dbConfig.isSynchronize;
-                console.log('Synchronize mode:', this.isSync);
                 console.log('-------------------------------------------------------------');
                 console.log('Initializing postgresdb');
-                const { postgresDBUrl, environment: envName } = (0, config_1.config)();
-                const normalizedEnv = (envName || '').toLowerCase();
-                const isLocalHost = ['localhost', '127.0.0.1'].includes(String(this.dbConfig.host).toLowerCase());
-                const dbSslEnv = (process.env.DB_SSL || '').toLowerCase();
-                const shouldUseSsl = dbSslEnv === 'true' || dbSslEnv === '1' || dbSslEnv === 'require'
-                    ? true
-                    : !(normalizedEnv === 'local' || normalizedEnv === 'development' || isLocalHost);
+                const { postgresDBUrl, environment } = (0, config_1.config)();
+                const env = (environment || '').toLowerCase();
+                const isLocal = env === 'local' || this.dbConfig.host === 'localhost' || this.dbConfig.host === '127.0.0.1';
                 const dbConn = new typeorm_1.DataSource({
                     type: 'postgres',
                     url: this.connectionUrl,
-                    ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
                     synchronize: JSON.parse(this.isSync),
                     logging: true,
                     ssl: isLocal ? false : { rejectUnauthorized: false },
@@ -134,13 +113,12 @@ class Postgresdb {
                         userLeave_entity_1.UserLeave, userLeaveApplication_entity_1.LeaveApplication,
                         activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
                         dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
-                        warehouse_entity_1.Warehouse
-                        dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
-                        inventory_1.InventoryItem
+                        inventory_1.InventoryItem, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, profile_entity_1.Profile
                     ],
                     schema: 'public',
                     extra: {
-                        ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
+                        keepAlive: true,
+                        timeZone: 'IST',
                         host: this.dbConfig.host,
                         port: this.dbConfig.port,
                         user: this.dbConfig.userName,
@@ -149,7 +127,7 @@ class Postgresdb {
                 });
                 this.isConnected = true;
                 this.masterConnection = yield dbConn.initialize();
-                console.log(`Connected to ${config.environment} database at ${this.dbConfig.host}:${this.dbConfig.port}/${this.dbConfig.dbName}`);
+                console.log('Connected to host', postgresDBUrl);
                 return dbConn;
             }
             catch (err) {
@@ -168,15 +146,18 @@ class Postgresdb {
         }
         catch (err) {
             console.log('????????????????????????????????', err);
+            throw err; // Re-throw the error so calling code can handle it
         }
     }
     close() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.masterConnection.close();
+            if (this.masterConnection) {
+                yield this.masterConnection.close();
+            }
             this.isConnected = false;
         });
     }
 }
 exports.DbConnections = {
-    AppDbConnection: new Postgresdb()
+    AppDbConnection: new Postgresdb(dbConfig)
 };

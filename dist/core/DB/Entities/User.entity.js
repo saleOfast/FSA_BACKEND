@@ -25,6 +25,7 @@ const rcpa_entity_1 = require("./rcpa.entity");
 const tax_entity_1 = require("./tax.entity");
 const giftDistribution_entity_1 = require("./giftDistribution.entity");
 const new_target_entity_1 = require("./new.target.entity");
+const profile_entity_1 = require("./profile.entity");
 let User = class User extends typeorm_1.BaseEntity {
 };
 __decorate([
@@ -144,6 +145,10 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' }),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => profile_entity_1.Profile, profile => profile.user, { cascade: true }),
+    __metadata("design:type", profile_entity_1.Profile)
+], User.prototype, "profile", void 0);
 __decorate([
     (0, typeorm_1.DeleteDateColumn)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)

@@ -1,7 +1,7 @@
 import express from "express";
 import { UserRoute } from './AuthRoute/Auth.route';
 import { AttendanceRoute } from "./AttendanceRouter/Attendance.route";
-import { ProfileRoute } from "./AuthRoute/ProfileRouter/Profile.route";
+import { ProfileRouter } from "./ProfileRouter/Profile.route";
 import { VisitRoute } from "./VisitRoute/Visit.route";
 import { StoreRoute } from "./StoreRouter/Store.route";
 import { BeatRoute } from "./BeatRouter/Beat.route";
@@ -53,7 +53,7 @@ import { DistributorRouter } from "./DistributorRouter/Distributor.route";
 const router = express.Router();
 /* Auth ROutes */
 router.use('/user', UserRoute);
-router.use('/profile', ProfileRoute);
+router.use('/profile', ProfileRouter);
 router.use('/attendance', AttendanceRoute);
 router.use('/visit', VisitRoute);
 router.use('/store', StoreRoute);

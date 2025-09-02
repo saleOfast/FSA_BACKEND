@@ -48,6 +48,7 @@ import { Gifts } from './Entities/giftDistribution.entity';
 
 import { Sessions } from './Entities/sessions.entity';
 import { UserTypes } from './Entities/userType.entity';
+import { Profile } from './Entities/profile.entity';
 import { ActivityRelTo } from './Entities/activityRelatedTo.entity';
 import { ActivityType } from './Entities/activityType.entity';
 import { NextActionOn } from './Entities/nextActionOn.entity';
@@ -126,7 +127,7 @@ class Postgresdb {
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
-					InventoryItem, Warehouse, SalesReturn
+					InventoryItem, Warehouse, SalesReturn, Profile
 				],
 				schema: 'public',
 				extra: {
