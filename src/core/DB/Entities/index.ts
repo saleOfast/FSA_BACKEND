@@ -13,7 +13,33 @@ import { StoreCategory } from "./storeCategory.entity";
 import { Stores } from "./stores.entity";
 import { Warehouse } from "./warehouse.entity";
 import { SalesReturn } from "./sales_return.entity";
+import { ObjectEntity } from "./object.entity";
+import { ObjectPermission } from "./ObjectPermission.entity";
+import { Tab } from "./Tab.entity";
+import { TabPermission } from "./TabPermission.entity";
+import { SystemPermission } from "./systemPermission.entity";
 
-const dbentities = [ User, Attendance, Beat, CollectPayment, Discount, Distributor, Inventory, Orders, OutletInventory, Products, StoreCategory, Stores, Visits, Warehouse, SalesReturn ]
+const dbentities = [ 
+  User, 
+  Attendance, 
+  Beat, 
+  CollectPayment, 
+  Discount, 
+  Distributor, 
+  Inventory, 
+  Orders, 
+  OutletInventory, 
+  Products, 
+  StoreCategory, 
+  Stores, 
+  Visits, 
+  Warehouse, 
+  SalesReturn, 
+  ObjectEntity,
+  ObjectPermission,
+  Tab,
+  TabPermission,
+  SystemPermission
+];
 
 export { dbentities }

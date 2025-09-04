@@ -14,6 +14,8 @@ import { RCPA } from "./rcpa.entity";
 import { Taxes } from "./tax.entity";
 import { Gifts } from "./giftDistribution.entity";
 import { NewTarget } from "./new.target.entity";
+import { Profile } from "./profile.entity";
+
 
 @Entity({ name: "users" })
 export class User extends BaseEntity implements IUser {
@@ -96,6 +98,15 @@ export class User extends BaseEntity implements IUser {
 
     @Column({ name: 'learning_role', nullable: true })
     learningRole?: string
+
+    @Column({ name: 'profile_id', nullable: true })
+    profileId: number;
+
+
+    @ManyToOne(() => Profile, (profile) => profile.users, { eager: true })
+    @JoinColumn({ name: 'profile_id' })
+    profile: Profile;
+
 
     @Column({
         type: 'enum',

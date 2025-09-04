@@ -28,6 +28,9 @@ import { Course } from './Entities/LearningModule/course.entity';
 import { LearningSession } from './Entities/LearningModule/learningSession.entity';
 import { Quiz } from './Entities/LearningModule/quiz.entity';
 import { Target } from './Entities/target.entity';
+import { ObjectEntity } from './Entities/object.entity';
+import { ObjectPermission } from './Entities/ObjectPermission.entity';
+
 import { Reason } from './Entities/reason.entity';
 import { Colour } from './Entities/colour.entity';
 import { Size } from './Entities/size.entity';
@@ -65,6 +68,10 @@ import { NewTarget } from './Entities/new.target.entity';
 import { InventoryItem } from './Entities/inventory';
 import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
+import { Tab } from './Entities/Tab.entity';
+import { TabPermission } from './Entities/TabPermission.entity';
+import { SystemPermission } from './Entities/systemPermission.entity';
+
 
 
 const { userName, password, host, port, dbName, isSynchronize } = envConfig();
@@ -110,25 +117,26 @@ class Postgresdb {
 			const { postgresDBUrl, environment } = envConfig();
 			const env = (environment || '').toLowerCase();
 			const isLocal = env === 'local' || this.dbConfig.host === 'localhost' || this.dbConfig.host === '127.0.0.1';
+			const entities = [
+				PolicyHead, PolicyTypeHead, ExpenseManagement,
+				User, Attendance, Beat, CollectPayment, Discount, Distributor, Inventory,
+				Orders, OutletInventory, Products, StoreCategory, Stores, Visits, Brand,
+				CompetitorBrand, ProductCategory, Scheme, CollectAmount, Payment, Course,
+				LearningSession, Quiz, Target, ObjectEntity, Reason, Colour,
+				Size, Feature, Role, PaymentMode, LeaveHead, LeaveHeadCount,
+				UserTypes, FeedBack, Samples, Activities, JointWork, Sessions,
+				UserLeave, LeaveApplication,
+				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
+				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
+				InventoryItem, Warehouse, SalesReturn, Profile,ObjectPermission,Tab,TabPermission, SystemPermission
+			];
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',
 				url: this.connectionUrl,
 				synchronize: JSON.parse(this.isSync),
 				logging: true,
 				ssl: isLocal ? false : { rejectUnauthorized: false },
-				entities: [
-					PolicyTypeHead, PolicyHead, ExpenseManagement, User,	
-					Attendance, Beat, CollectPayment, Discount, Distributor,
-					Inventory, Orders, OutletInventory, Products, StoreCategory,
-					Stores, Visits, Brand, ProductCategory, Scheme, CollectAmount,
-					Payment, Course, LearningSession, Quiz, Target, Reason, Colour,
-					Size, Feature, Role, PaymentMode, LeaveHead, LeaveHeadCount,
-					UserTypes, FeedBack, Samples, Activities, JointWork, Sessions,
-					UserLeave, LeaveApplication,
-					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
-					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
-					InventoryItem, Warehouse, SalesReturn, Profile
-				],
+				entities,
 				schema: 'public',
 				extra: {
 					keepAlive: true,
