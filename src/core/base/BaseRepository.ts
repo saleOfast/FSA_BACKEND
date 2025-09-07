@@ -54,8 +54,12 @@ export class BaseRepository<T extends ObjectLiteral> {
 
   async findById(id: number, relations?: string[]): Promise<T | null> {
     await this.ensureRepositoryInitialized();
+  
+    const metadata = this.dataSource.getMetadata(this.entity);
+    const primaryColumn = metadata.primaryColumns[0].propertyName;
+  
     return await this.repo.findOne({
-      where: { id } as any,
+      where: { [primaryColumn]: id } as any,
       relations,
     });
   }

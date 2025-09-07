@@ -1,14 +1,14 @@
 import { Profile } from '../../../../core/DB/Entities/profile.entity';
-import { ProfileRepository } from '../../../../core/repositories/ProfileRepository';
+import { BaseRepository } from '../../../../core/base/BaseRepository';
 import { IUser } from '../../../../core/types/AuthService/AuthService';
-import { IUserReference } from '../../../../core/types/Profile/Profile.types';
-import { ICreateProfileDto, IUpdateProfileDto } from '../../../../core/types/Profile/Profile.types';
+import { IUserReference, ICreateProfileDto, IUpdateProfileDto } from '../../../../core/types/Profile/Profile.types';
 
 export class ProfileController {
-  private profileRepository: ProfileRepository;
+  private profileRepo: BaseRepository<Profile>;
 
-  constructor(profileRepository?: ProfileRepository) {
-    this.profileRepository = profileRepository || new ProfileRepository();
+  constructor() {
+    // Directly use BaseRepository with Profile entity
+    this.profileRepo = new BaseRepository(Profile);
   }
 
   // Create Profile
@@ -19,8 +19,8 @@ export class ProfileController {
       }
 
       // Check if profile with same name already exists
-      const existingProfile = await this.profileRepository.findByName(profileData.profileName);
-      if (existingProfile) {
+      const existingProfile = await this.profileRepo.findAll({ profileName: profileData.profileName });
+      if (existingProfile.total > 0) {
         return { status: 400, message: 'Profile with this name already exists', data: null };
       }
 
@@ -30,7 +30,7 @@ export class ProfileController {
         name: `${user.firstname} ${user.lastname || ''}`.trim()
       };
 
-      const newProfile = await this.profileRepository.createProfile({
+      const newProfile = await this.profileRepo.create({
         ...profileData,
         createdBy: userReference
       });
@@ -42,14 +42,14 @@ export class ProfileController {
       };
     } catch (error) {
       console.error('Error creating profile:', error);
-      throw error; // Let the error handler middleware handle it
+      throw error;
     }
   }
 
   // Get Profile by ID
   async getProfile(profileId: number) {
     try {
-      const profile = await this.profileRepository.findById(profileId);
+      const profile = await this.profileRepo.findById(profileId);
       if (!profile) {
         return { status: 404, message: 'Profile not found', data: null };
       }
@@ -72,19 +72,19 @@ export class ProfileController {
         return { status: 401, message: 'Unauthorized', data: null };
       }
 
-      const profile = await this.profileRepository.findById(profileId);
+      const profile = await this.profileRepo.findById(profileId);
       if (!profile) {
         return { status: 404, message: 'Profile not found', data: null };
       }
 
       const updateData: Omit<IUpdateProfileDto, 'modifiedBy'> = { ...profileData };
-      
+
       // Only include fields that are defined in the DTO
       if (updateData.profileName === undefined) delete updateData.profileName;
       if (updateData.userLicence === undefined) delete updateData.userLicence;
       if (updateData.remarks === undefined) delete updateData.remarks;
 
-      const updatedProfile = await this.profileRepository.updateProfile(profileId, {
+      const updatedProfile = await this.profileRepo.update(profileId, {
         ...updateData,
         modifiedBy: {
           id: user.emp_id,
@@ -106,13 +106,13 @@ export class ProfileController {
   // Delete Profile
   async deleteProfile(profileId: number) {
     try {
-      const profile = await this.profileRepository.findById(profileId);
+      const profile = await this.profileRepo.findById(profileId);
       if (!profile) {
         return { status: 404, message: 'Profile not found', data: null };
       }
 
-      await this.profileRepository.delete(profileId);
-      
+      await this.profileRepo.delete(profileId);
+
       return {
         status: 200,
         message: 'Profile deleted successfully',
@@ -127,7 +127,7 @@ export class ProfileController {
   // Get All Profiles with pagination
   async getAllProfiles(page: number = 1, limit: number = 10) {
     try {
-      const result = await this.profileRepository.findAll({}, page, limit);
+      const result = await this.profileRepo.findAll({}, page, limit);
 
       return {
         status: 200,

@@ -37,7 +37,7 @@ export class ProfileRepository extends BaseRepository<Profile> {
 
   async findById(profileId: number): Promise<Profile | null> {
     await this.ensureRepositoryInitialized();
-    return this.repo.findOne({ where: { id: profileId } } as any);
+    return this.repo.findOne({ where: { profileId } } as any);
   }
 
   async findByName(profileName: string): Promise<Profile | null> {
