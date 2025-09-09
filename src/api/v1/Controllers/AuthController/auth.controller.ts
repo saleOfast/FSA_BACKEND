@@ -2,28 +2,60 @@ import bcrypt from 'bcryptjs';
 import { generateToken, generateVerifyEmailToken } from '../../../../core/helper/verifyToken';
 import { emailGenerator } from '../../../../core/helper/sendEmail';
 import { UserRepository, User } from '../../../../core/DB/Entities/User.entity';
-import { IUser, Login, SignUp } from '../../../../core/types/AuthService/AuthService';
+import { Profile } from '../../../../core/DB/Entities/profile.entity';
+import { IUser, Login, SignUp as ISignUp } from '../../../../core/types/AuthService/AuthService';
+import { UserRole } from '../../../../core/types/Constent/common';
 import { IApiResponse } from '../../../../core/types/Constent/commonService';
 import { STATUSCODES } from '../../../../core/types/Constent/common';
-import { resetPassword } from '../../../../core/emailTemplate/template';
+
+interface SignUp extends Omit<ISignUp, 'role'> {
+  role: UserRole;
+  profileId?: number;
+}
 
 const salt = bcrypt.genSaltSync(10);
 
 const userController = {
     login: async (input: Login): Promise<IApiResponse> => {
         try {
-            const { phone, password } = input;
-            const user: IUser | null = await UserRepository().findOne({ where: { phone, isDeleted: false } })
+            const { phone: inputPhone, password: inputPassword } = input;
+            const user: IUser | null = await UserRepository().findOne({ where: { phone: inputPhone, isDeleted: false } })
             if (!user) {
                 return { status: STATUSCODES.NOT_FOUND, message: "User Not Found." }
             }
-            console.log({ user })
-            const isMatch: boolean = await bcrypt.compare(password, user.password);
+            
+            const isMatch: boolean = await bcrypt.compare(inputPassword, user.password);
             if (!isMatch) {
                 return { status: STATUSCODES.BAD_REQUEST, message: "Invalid Password" }
             }
-            const token = await generateToken(JSON.parse(JSON.stringify({ id: user.emp_id, email: user.email, role: user.role })));
-            return { status: STATUSCODES.SUCCESS, message: "Success.", data: { accessToken: token } }
+            
+            // Get user with profile details
+            const userWithProfile = await UserRepository().findOne({
+                where: { emp_id: user.emp_id },
+                relations: ['profile'] // This will load the profile relation
+            });
+
+            if (!userWithProfile) {
+                return { status: STATUSCODES.NOT_FOUND, message: "User not found" };
+            }
+
+            const token = await generateToken(JSON.parse(JSON.stringify({ 
+                id: user.emp_id, 
+                email: user.email, 
+                role: user.role 
+            })));
+            
+            // Extract only necessary user data to return
+            const { password: _, ...userData } = userWithProfile;
+            
+            return { 
+                status: STATUSCODES.SUCCESS, 
+                message: "Success.", 
+                data: { 
+                    accessToken: token,
+                    user: userData
+                } 
+            }
         } catch (error) {
             throw error;
         }
@@ -52,6 +84,15 @@ const userController = {
                 newUser.managerId = managerId;
                 newUser.role = role;
                 newUser.learningRole = learningRole;
+                
+                // Set profile if profileId is provided
+                if (input.profileId) {
+                    const profile = await UserRepository().manager.findOne(Profile, { where: { profileId: input.profileId } });
+                    if (profile) {
+                        newUser.profile = profile;
+                    }
+                }
+                
                 await UserRepository().save(newUser);
                 return { message: "Success.", status: STATUSCODES.SUCCESS }
             }
@@ -68,7 +109,7 @@ const userController = {
     
         // Validate and map each input to a User entity
         for (const input of inputs) {
-            const { email, password, firstname, lastname, age, phone, address, zone, joining_date, dob, managerId, role, learningRole } = input;
+            const { email, password, firstname, lastname, age, phone, address, zone, joining_date, dob, managerId, role, learningRole, profileId } = input;
             
             // Hash the password
             const hashPassword = bcrypt.hashSync(password, salt);
@@ -88,6 +129,15 @@ const userController = {
                 skippedUsers.push(`User with phone ${phone} (Already exists in database)`);
                 continue;  // Skip the user if they already exist in the database
             }
+
+            // Check if profile exists
+            if (profileId) {
+                const profile = await UserRepository().manager.findOne(Profile, { where: { profileId } });
+                if (!profile) {
+                    skippedUsers.push(`User with phone ${phone} (Profile not found)`);
+                    continue;
+                }
+            }
     
             // Create new user entity
             const newUser = new User();
@@ -104,6 +154,14 @@ const userController = {
             newUser.managerId = managerId;
             newUser.role = role;
             newUser.learningRole = learningRole;
+            
+            // Only assign profile if profileId is provided
+            if (profileId !== undefined) {
+                const profile = await UserRepository().manager.findOne(Profile, { where: { profileId } });
+                if (profile) {
+                    newUser.profile = profile;
+                }
+            }
     
             newUsers.push(newUser);  // Add the new user to the list of users to be saved
         }

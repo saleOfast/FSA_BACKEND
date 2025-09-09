@@ -100,12 +100,11 @@ export class User extends BaseEntity implements IUser {
     learningRole?: string
 
     @Column({ name: 'profile_id', nullable: true })
-    profileId: number;
+    profileId?: number;
 
-
-    @ManyToOne(() => Profile, (profile) => profile.users, { eager: true })
+    @ManyToOne(() => Profile, (profile) => profile.users, { eager: true, nullable: true })
     @JoinColumn({ name: 'profile_id' })
-    profile: Profile;
+    profile?: Profile;
 
 
     @Column({
