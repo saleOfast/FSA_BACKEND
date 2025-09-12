@@ -48,10 +48,12 @@ import inventoryroute from "./inventoryroute/inventoryRoute";
 import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
 import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
 import { DistributorRouter } from "./DistributorRouter/Distributor.route";
+import { SkuRouter } from "./SkuRouter/sku.route";
 
 
 const router = express.Router();
 /* Auth ROutes */
+
 router.use('/user', UserRoute);
 router.use('/profile', ProfileRoute);
 router.use('/attendance', AttendanceRoute);
@@ -103,5 +105,6 @@ router.use('/warehouse', WarehouseRouter);
 router.use('/salesReturn', SalesReturnRouter);  
 router.use('/distributor', DistributorRouter);
 router.use('/inventoryItem',inventoryroute);
+router.use('/sku', SkuRouter);
 
 export { router as routes };

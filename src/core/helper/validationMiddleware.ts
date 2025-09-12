@@ -4,7 +4,7 @@ import express from 'express';
 import { JwtTokenTypes, STATUSCODES, UserRole } from "../../core/types/Constent/common";
 import { RequestHandler } from "./RequestHander";
 import { ValidationError, validate } from "class-validator";
-import { plainToClass } from "class-transformer";
+import { plainToInstance } from "class-transformer";
 import { authentication } from "./verifyToken";
 import { UserRepository } from "../../core/DB/Entities/User.entity";
 import { IUser } from "../../core/types/AuthService/AuthService";
@@ -86,14 +86,14 @@ export const validateDtoMiddleware = function (dto: any) {
         if (Array.isArray(input)) {
             obj = [];
             input.map(async (e: Record<string, any>) => {
-                const objClass: any = plainToClass(dto, e);
+                const objClass: any = plainToInstance(dto, e, { enableImplicitConversion: true });
                 const validationError = await validate(objClass, { validationError: { target: false } });
                 obj.push(objClass)
                 validationErrors.push(...validationError)
             });
             await Promise.all(input);
         } else {
-            obj = plainToClass(dto, input);
+            obj = plainToInstance(dto, input, { enableImplicitConversion: true });
             validationErrors = await validate(obj, { validationError: { target: false } });
         }
         const isFailed = validationErrors.length > 0;

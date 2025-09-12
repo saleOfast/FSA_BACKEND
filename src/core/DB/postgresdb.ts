@@ -64,7 +64,7 @@ import { NewTarget } from './Entities/new.target.entity';
 import { InventoryItem } from './Entities/inventory';
 import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
-
+import { Sku } from './Entities/sku.entity';
 
 const { userName, password, host, port, dbName, isSynchronize } = envConfig();
 
@@ -126,7 +126,7 @@ class Postgresdb {
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
-					InventoryItem, Warehouse, SalesReturn
+					InventoryItem, Warehouse, SalesReturn,Sku 
 				],
 				schema: 'public',
 				extra: {

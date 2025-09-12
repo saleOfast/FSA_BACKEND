@@ -113,11 +113,11 @@ export class SignUp {
 
     @IsDateString()
     @IsNotEmpty()
-    joining_date: Date;
+    joining_date: string;
 
-    // @IsDateString()
+    @IsDateString()
     @IsOptional()
-    dob: Date;
+    dob: string;
 
     @IsString()
     @IsNotEmpty()

@@ -82,7 +82,7 @@ const validateDtoMiddleware = function (dto) {
         if (Array.isArray(input)) {
             obj = [];
             input.map((e) => __awaiter(this, void 0, void 0, function* () {
-                const objClass = (0, class_transformer_1.plainToClass)(dto, e);
+                const objClass = (0, class_transformer_1.plainToInstance)(dto, e, { enableImplicitConversion: true });
                 const validationError = yield (0, class_validator_1.validate)(objClass, { validationError: { target: false } });
                 obj.push(objClass);
                 validationErrors.push(...validationError);
@@ -90,7 +90,7 @@ const validateDtoMiddleware = function (dto) {
             yield Promise.all(input);
         }
         else {
-            obj = (0, class_transformer_1.plainToClass)(dto, input);
+            obj = (0, class_transformer_1.plainToInstance)(dto, input, { enableImplicitConversion: true });
             validationErrors = yield (0, class_validator_1.validate)(obj, { validationError: { target: false } });
         }
         const isFailed = validationErrors.length > 0;

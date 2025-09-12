@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { Details } from "express-useragent";
-import { ClassConstructor, plainToClass } from 'class-transformer';
+import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { Schema } from 'mongoose';
 import { ExpressExtendedRequestParams, UserRole } from '../../core/types/Constent/common';
 
@@ -17,7 +17,7 @@ export interface IUser {
 
 function getBody<T>(req: express.Request, cls?: ClassConstructor<T>): T {
     if (cls) {
-        return plainToClass(cls, req.body);
+        return plainToInstance(cls, req.body, { enableImplicitConversion: true });
     } else {
         return req.body as T;
     }
@@ -25,7 +25,7 @@ function getBody<T>(req: express.Request, cls?: ClassConstructor<T>): T {
 
 function getParams<T>(req: express.Request, cls?: ClassConstructor<T>): T {
     if (cls) {
-        return plainToClass(cls, req.params);
+        return plainToInstance(cls, req.params, { enableImplicitConversion: true });
     } else {
         return req.params as T;
     }
@@ -33,7 +33,7 @@ function getParams<T>(req: express.Request, cls?: ClassConstructor<T>): T {
 
 function getQuery<T>(req: express.Request, cls?: ClassConstructor<T>): T {
     if (cls) {
-        return plainToClass(cls, req.query);
+        return plainToInstance(cls, req.query, { enableImplicitConversion: true });
     } else {
         return req.query as T;
     }

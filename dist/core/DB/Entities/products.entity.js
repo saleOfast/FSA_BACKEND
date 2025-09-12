@@ -27,6 +27,10 @@ __decorate([
     __metadata("design:type", Number)
 ], Products.prototype, "productId", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'sku', unique: true, nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "sku", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'emp_id' }),
     __metadata("design:type", Number)
 ], Products.prototype, "empId", void 0);
@@ -39,7 +43,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Products.prototype, "brandId", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => brand_entity_1.Brand),
+    (0, typeorm_1.ManyToOne)(() => brand_entity_1.Brand, { eager: true }),
     (0, typeorm_1.JoinColumn)({ name: 'brand_id' }),
     __metadata("design:type", brand_entity_1.Brand)
 ], Products.prototype, "brand", void 0);
@@ -69,6 +73,90 @@ __decorate([
     __metadata("design:type", Object)
 ], Products.prototype, "skuDiscount", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'batch_number', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "batchNumber", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'manufacturing_date', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "manufacturingDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'expiry_date', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "expiryDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "subcategory", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'shelf_life', nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "shelf_life", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'product_state', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "product_state", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'unit_of_measure', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "unitOfMeasure", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'total_quantity', nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "total_quantity", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'max_stock_level', nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "maxStockLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "currency", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'purchase_price', nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "purchase_price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'selling_price', nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "selling_price", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'storage_location', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "storage_location", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'stock_in_date', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "stock_in_date", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'stock_out_date', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "stock_out_date", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "damaged_quantity", default: 0 }),
+    __metadata("design:type", Number)
+], Products.prototype, "damagedQuantity", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'image', type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", Object)
+], Products.prototype, "image", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "reorder_level", nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "reorderLevel", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "total_sold", default: 0 }),
+    __metadata("design:type", Number)
+], Products.prototype, "totalSold", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "quantity_in_stock", default: 0 }),
+    __metadata("design:type", Number)
+], Products.prototype, "quantityInStock", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: "storage_condition", nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "storageCondition", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'is_focused', default: false }),
     __metadata("design:type", Boolean)
 ], Products.prototype, "isFocused", void 0);
@@ -88,14 +176,6 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' }),
     __metadata("design:type", Date)
 ], Products.prototype, "updatedAt", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Products.prototype, "image", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'colour', nullable: true }),
-    __metadata("design:type", String)
-], Products.prototype, "colour", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => sessions_entity_1.Sessions, (session) => session.store),
     __metadata("design:type", Array)

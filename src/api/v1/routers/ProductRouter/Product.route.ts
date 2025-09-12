@@ -35,10 +35,13 @@ router.post('/update', validateDtoMiddleware(UpdateProductRequest), AccessTokenS
 
 router.get('/getById/:productId', validateDtoMiddleware(GetProductById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
     try {
+         
         const input: GetProductById = RequestHandler.Defaults.getBody<GetProductById>(req, GetProductById);
         const productService = new ProductService();
         const data = await productService.getById(input);
         ResponseHandler.sendResponse(res, data);
+
+        console.log(data);
     } catch (error) {
         ResponseHandler.sendErrorResponse(res, error);
     }
@@ -78,7 +81,9 @@ router.post('/category/add', validateDtoMiddleware(CreateProductCategory), Acces
         const data = await productService.createProductCategory(input, payload);
         ResponseHandler.sendResponse(res, data);
     } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
+    console.log(JSON.stringify(error, null, 2)); // 👈 full nested error
+    ResponseHandler.sendErrorResponse(res, error);
+
     }
 });
 

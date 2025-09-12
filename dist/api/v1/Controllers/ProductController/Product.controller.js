@@ -23,63 +23,226 @@ class ProductController {
         this.productCategoryRespositry = (0, productCategory_entity_1.ProductCategoryRepository)();
     }
     createProduct(input, payload) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
+                const { sku, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, batchNumber, manufacturingDate, expiryDate, subcategory, shelf_life, product_state, unitOfMeasure, total_quantity, total_sold, quantity_in_stock, reorderLevel, maxStockLevel, currency, purchase_price, selling_price, storage_location, storage_condition, stock_in_date, stock_out_date, damaged_quantity, } = input;
                 const { emp_id } = payload;
-                const brand = yield this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-                if (!brand) {
-                    return { message: "Brand Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                // ✅ Validate brand
+                if (!brandId || isNaN(Number(brandId)) || Number(brandId) <= 0) {
+                    return { message: "Invalid brandId", status: common_1.STATUSCODES.BAD_REQUEST };
                 }
+                const parsedBrandId = Number(brandId);
+                const brand = yield this.brandRepository.findOneBy({
+                    brandId: parsedBrandId,
+                    isDeleted: false,
+                });
+                if (!brand) {
+                    return {
+                        message: `Brand ${parsedBrandId} not found`,
+                        status: common_1.STATUSCODES.NOT_FOUND,
+                    };
+                }
+                // ✅ Validate category
+                if (categoryId) {
+                    const category = yield this.productCategoryRespositry.findOneBy({
+                        productCategoryId: Number(categoryId),
+                        isDeleted: false,
+                    });
+                    if (!category) {
+                        return {
+                            message: "Category Not Found",
+                            status: common_1.STATUSCODES.NOT_FOUND,
+                        };
+                    }
+                }
+                // ✅ Ensure total_quantity is defined
+                if (total_quantity === undefined || total_quantity < 0) {
+                    return {
+                        message: "total_quantity is required and must be >= 0",
+                        status: common_1.STATUSCODES.BAD_REQUEST,
+                    };
+                }
+                // ✅ Stock validation
+                const totalQuantity = total_quantity;
+                const totalSold = total_sold !== null && total_sold !== void 0 ? total_sold : 0;
+                const damagedQty = damaged_quantity !== null && damaged_quantity !== void 0 ? damaged_quantity : 0;
+                if (totalSold + damagedQty > totalQuantity) {
+                    return {
+                        message: "Invalid stock data: total sold + damaged quantity exceeds total quantity",
+                        status: common_1.STATUSCODES.BAD_REQUEST,
+                    };
+                }
+                // ✅ Create product
                 const product = new this.productModel();
+                product.sku = input.sku;
                 product.productName = productName;
                 product.empId = emp_id;
-                product.brandId = brandId;
+                product.brandId = parsedBrandId;
                 product.categoryId = categoryId;
                 product.mrp = mrp;
                 product.rlp = rlp;
                 product.caseQty = caseQty;
-                product.image = image;
-                product.isFocused = isFocused;
-                product.isActive = isActive;
+                product.batchNumber = batchNumber;
+                product.subcategory = subcategory;
+                product.shelf_life = shelf_life;
+                product.product_state = product_state !== null && product_state !== void 0 ? product_state : "In stock";
+                product.unitOfMeasure = unitOfMeasure;
+                product.total_quantity = totalQuantity;
+                product.totalSold = totalSold;
+                product.damagedQuantity = damagedQty;
+                product.quantityInStock =
+                    quantity_in_stock !== null && quantity_in_stock !== void 0 ? quantity_in_stock : totalQuantity - (totalSold + damagedQty);
+                product.reorderLevel = reorderLevel;
+                product.maxStockLevel = maxStockLevel;
+                product.currency = currency;
+                product.purchase_price = purchase_price;
+                product.selling_price = selling_price;
+                product.storage_location = storage_location;
+                product.storageCondition = storage_condition;
+                // ✅ Dates
+                product.manufacturingDate = manufacturingDate
+                    ? new Date(manufacturingDate).toISOString()
+                    : undefined;
+                product.expiryDate = expiryDate
+                    ? new Date(expiryDate).toISOString()
+                    : undefined;
+                product.stock_in_date = stock_in_date
+                    ? new Date(stock_in_date).toISOString()
+                    : undefined;
+                product.stock_out_date = stock_out_date
+                    ? new Date(stock_out_date).toISOString()
+                    : undefined;
+                // ✅ Flags
+                product.isFocused = (_a = input.isFocused) !== null && _a !== void 0 ? _a : false;
+                product.isActive = (_b = input.isActive) !== null && _b !== void 0 ? _b : true;
+                // ✅ SKU Discount
                 if (skuDiscount) {
-                    // Validate skuDiscount if provided
                     const skuDiscountObj = new ProductService_1.SkuDiscount();
                     skuDiscountObj.discountType = skuDiscount.discountType;
-                    skuDiscountObj.isActive = (_a = skuDiscount.isActive) !== null && _a !== void 0 ? _a : false; // Default to false if not provided
-                    skuDiscountObj.value = (_b = skuDiscount.value) !== null && _b !== void 0 ? _b : 0; // Default to 0 if not provided
-                    // Save skuDiscount to product
+                    skuDiscountObj.isActive = (_c = skuDiscount.isActive) !== null && _c !== void 0 ? _c : false;
+                    skuDiscountObj.value = (_d = skuDiscount.value) !== null && _d !== void 0 ? _d : 0;
                     product.skuDiscount = skuDiscountObj;
                 }
-                if (product.rlp > product.mrp) {
-                    return { message: "RLP must be less than or equal to MRP", status: common_1.STATUSCODES.BAD_REQUEST };
+                // ✅ RLP validation
+                if (product.rlp !== undefined && product.rlp > product.mrp) {
+                    return {
+                        message: "RLP must be <= MRP",
+                        status: common_1.STATUSCODES.BAD_REQUEST,
+                    };
                 }
                 yield this.productRepositry.save(product);
-                return { message: "Success.", status: common_1.STATUSCODES.SUCCESS };
+                return {
+                    message: "Product created successfully.",
+                    status: common_1.STATUSCODES.SUCCESS,
+                };
             }
             catch (error) {
+                console.error("Error in createProduct:", error);
                 throw error;
             }
         });
     }
     updateProduct(input, payload) {
+        var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive } = input;
+                const { productId, sku, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, batchNumber, manufacturingDate, expiryDate, subcategory, shelf_life, product_state, unitOfMeasure, total_quantity, total_sold, quantity_in_stock, reorderLevel, maxStockLevel, currency, purchase_price, selling_price, storage_location, storage_condition, stock_in_date, stock_out_date, damaged_quantity, isFocused, isActive, } = input;
                 const product = yield this.productRepositry.findOne({
-                    where: { productId: Number(productId), isDeleted: false }
+                    where: { productId: Number(productId), isDeleted: false },
                 });
                 if (!product) {
                     return { message: "Product Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
                 }
+                // ✅ Validate brand if provided
+                if (brandId) {
+                    const brand = yield this.brandRepository.findOneBy({
+                        brandId: Number(brandId),
+                        isDeleted: false,
+                    });
+                    if (!brand) {
+                        return { message: `Brand ${brandId} not found`, status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // ✅ Validate category if provided
+                if (categoryId) {
+                    const category = yield this.productCategoryRespositry.findOneBy({
+                        productCategoryId: Number(categoryId),
+                        isDeleted: false,
+                    });
+                    if (!category) {
+                        return { message: "Category Not Found", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // ✅ Stock validation
+                const totalQty = (_a = total_quantity !== null && total_quantity !== void 0 ? total_quantity : product.total_quantity) !== null && _a !== void 0 ? _a : 0;
+                const totalSold = (_b = total_sold !== null && total_sold !== void 0 ? total_sold : product.totalSold) !== null && _b !== void 0 ? _b : 0;
+                const damagedQty = (_c = damaged_quantity !== null && damaged_quantity !== void 0 ? damaged_quantity : product.damagedQuantity) !== null && _c !== void 0 ? _c : 0;
+                if (totalSold + damagedQty > totalQty) {
+                    return {
+                        message: "Invalid stock data: total sold + damaged quantity exceeds total quantity",
+                        status: common_1.STATUSCODES.BAD_REQUEST,
+                    };
+                }
+                // ✅ Build partial update object
+                const updateData = {
+                    sku: sku !== null && sku !== void 0 ? sku : product.sku,
+                    productName: productName !== null && productName !== void 0 ? productName : product.productName,
+                    brandId: brandId !== null && brandId !== void 0 ? brandId : product.brandId,
+                    categoryId: categoryId !== null && categoryId !== void 0 ? categoryId : product.categoryId,
+                    mrp: mrp !== null && mrp !== void 0 ? mrp : product.mrp,
+                    rlp: rlp !== null && rlp !== void 0 ? rlp : product.rlp,
+                    caseQty: caseQty !== null && caseQty !== void 0 ? caseQty : product.caseQty,
+                    batchNumber: batchNumber !== null && batchNumber !== void 0 ? batchNumber : product.batchNumber,
+                    subcategory: subcategory !== null && subcategory !== void 0 ? subcategory : product.subcategory,
+                    shelf_life: shelf_life !== null && shelf_life !== void 0 ? shelf_life : product.shelf_life,
+                    product_state: product_state !== null && product_state !== void 0 ? product_state : product.product_state,
+                    unitOfMeasure: unitOfMeasure !== null && unitOfMeasure !== void 0 ? unitOfMeasure : product.unitOfMeasure,
+                    total_quantity: totalQty,
+                    totalSold: totalSold,
+                    damagedQuantity: damagedQty,
+                    quantityInStock: quantity_in_stock !== null && quantity_in_stock !== void 0 ? quantity_in_stock : (totalQty - (totalSold + damagedQty)),
+                    reorderLevel: reorderLevel !== null && reorderLevel !== void 0 ? reorderLevel : product.reorderLevel,
+                    maxStockLevel: maxStockLevel !== null && maxStockLevel !== void 0 ? maxStockLevel : product.maxStockLevel,
+                    currency: currency !== null && currency !== void 0 ? currency : product.currency,
+                    purchase_price: purchase_price !== null && purchase_price !== void 0 ? purchase_price : product.purchase_price,
+                    selling_price: selling_price !== null && selling_price !== void 0 ? selling_price : product.selling_price,
+                    storage_location: storage_location !== null && storage_location !== void 0 ? storage_location : product.storage_location,
+                    storageCondition: storage_condition !== null && storage_condition !== void 0 ? storage_condition : product.storageCondition,
+                    isFocused: isFocused !== null && isFocused !== void 0 ? isFocused : product.isFocused,
+                    isActive: isActive !== null && isActive !== void 0 ? isActive : product.isActive,
+                };
+                // ✅ Dates
+                if (manufacturingDate)
+                    updateData.manufacturingDate = new Date(manufacturingDate).toISOString();
+                if (expiryDate)
+                    updateData.expiryDate = new Date(expiryDate).toISOString();
+                if (stock_in_date)
+                    updateData.stock_in_date = new Date(stock_in_date).toISOString();
+                if (stock_out_date)
+                    updateData.stock_out_date = new Date(stock_out_date).toISOString();
+                // ✅ SKU Discount
+                if (skuDiscount) {
+                    updateData.skuDiscount = {
+                        discountType: skuDiscount.discountType,
+                        value: (_d = skuDiscount.value) !== null && _d !== void 0 ? _d : 0,
+                        isActive: (_e = skuDiscount.isActive) !== null && _e !== void 0 ? _e : false,
+                    };
+                }
+                // ✅ RLP validation
+                if (updateData.rlp !== undefined && updateData.mrp !== undefined && updateData.rlp > updateData.mrp) {
+                    return { message: "RLP must be <= MRP", status: common_1.STATUSCODES.BAD_REQUEST };
+                }
                 yield this.productRepositry
                     .createQueryBuilder()
-                    .update({ productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive })
-                    .where({ productId }).execute();
-                return { message: "Success.", status: common_1.STATUSCODES.SUCCESS };
+                    .update(products_entity_1.Products)
+                    .set(updateData)
+                    .where({ productId: Number(productId) })
+                    .execute();
+                return { message: "Product updated successfully.", status: common_1.STATUSCODES.SUCCESS };
             }
             catch (error) {
+                console.error("Error in updateProduct:", error);
                 throw error;
             }
         });
@@ -284,7 +447,7 @@ class ProductController {
                 console.log({ inputs });
                 // Loop through inputs
                 for (const input of inputs) {
-                    const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
+                    const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive } = input;
                     // Create a unique key to identify each product by name, brand, and category
                     const productKey = `${productName}-${brandId}-${categoryId}`;
                     // In-memory duplicate check (skip if the product is already processed)
@@ -313,7 +476,7 @@ class ProductController {
                     product.mrp = mrp;
                     product.rlp = rlp;
                     product.caseQty = caseQty;
-                    product.image = image;
+                    // product.image = image;
                     product.isFocused = isFocused;
                     product.isActive = isActive;
                     // Add SKU discount if available

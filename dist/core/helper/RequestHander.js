@@ -5,7 +5,7 @@ const class_transformer_1 = require("class-transformer");
 const common_1 = require("../../core/types/Constent/common");
 function getBody(req, cls) {
     if (cls) {
-        return (0, class_transformer_1.plainToClass)(cls, req.body);
+        return (0, class_transformer_1.plainToInstance)(cls, req.body, { enableImplicitConversion: true });
     }
     else {
         return req.body;
@@ -13,7 +13,7 @@ function getBody(req, cls) {
 }
 function getParams(req, cls) {
     if (cls) {
-        return (0, class_transformer_1.plainToClass)(cls, req.params);
+        return (0, class_transformer_1.plainToInstance)(cls, req.params, { enableImplicitConversion: true });
     }
     else {
         return req.params;
@@ -21,7 +21,7 @@ function getParams(req, cls) {
 }
 function getQuery(req, cls) {
     if (cls) {
-        return (0, class_transformer_1.plainToClass)(cls, req.query);
+        return (0, class_transformer_1.plainToInstance)(cls, req.query, { enableImplicitConversion: true });
     }
     else {
         return req.query;

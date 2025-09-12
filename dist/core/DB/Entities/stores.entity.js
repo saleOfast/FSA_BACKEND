@@ -38,7 +38,7 @@ __decorate([
     __metadata("design:type", Number)
 ], Stores.prototype, "empId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'retailor_id' }),
+    (0, typeorm_1.Column)({ name: 'retailor_id', nullable: true }),
     __metadata("design:type", Number)
 ], Stores.prototype, "retailorId", void 0);
 __decorate([

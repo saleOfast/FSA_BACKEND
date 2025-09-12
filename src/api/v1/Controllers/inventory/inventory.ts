@@ -167,105 +167,118 @@ async getAll(req: Request, res: Response) {
   }
 
   async update(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      const item = await InventoryItem.findOneBy({ id });
+  try {
+    const id = parseInt(req.params.id);
+    const item = await InventoryItem.findOneBy({ id });
 
-      if (!item) {
-        return res.status(404).json({ error: "Inventory item is not found" });
-      }
+    if (!item) {
+      return res.status(404).json({ error: "Inventory item is not found" });
+    }
 
-      const user = RequestHandler.Custom.getUser(req);
-      const lastModifiedBy = user?.emp_id ? String(user.emp_id) : null;
-      let didChange = false;
+    const user = RequestHandler.Custom.getUser(req);
+    const lastModifiedBy = user?.emp_id ? String(user.emp_id) : null;
+    let didChange = false;
 
-      // Optional: validate incoming warehouseId/serialNumber on update
-      if (req.body.warehouseId !== undefined) {
-        const parsed = Number(req.body.warehouseId);
-        if (!Number.isFinite(parsed)) {
-          return res.status(400).json({ error: "warehouseId must be a number" });
+    // --- Validate and update warehouseId ---
+   if (req.body.warehouseId !== undefined) {
+  const parsed = Number(req.body.warehouseId);
+  if (!Number.isFinite(parsed)) {
+    return res.status(400).json({ error: "warehouseId must be a number" });
+  }
+
+  // 🔑 Only check if it's different from the current item's warehouseId
+  if (parsed !== item.warehouseId) {
+    const exists = await InventoryItem.findOne({ where: { warehouseId: parsed } });
+    if (exists && exists.id !== item.id) {
+      return res.status(400).json({ error: "warehouseId already exists" });
+    }
+    item.warehouseId = parsed;
+    didChange = true;
+  }
+}
+
+    // --- Validate and update serialNumber ---
+    if (req.body.serialNumber !== undefined) {
+      const newSerial = req.body.serialNumber;
+      if (newSerial !== item.serialNumber) {
+        const exists = await InventoryItem.findOne({ where: { serialNumber: newSerial } });
+        if (exists && exists.id !== item.id) {
+          return res.status(400).json({ error: "serialNumber already exists" });
         }
-        if (parsed !== item.warehouseId) {
-          const exists = await InventoryItem.findOne({ where: { warehouseId: parsed } });
-          if (exists) {
-            return res.status(400).json({ error: "warehouseId already exists" });
-          }
-          item.warehouseId = parsed;
-          didChange = true;
-        }
-      }
-
-      
-
-      // Merge other fields
-      const {
-        productId,
-        batchNumber,
-        quantityOnHand,
-        quantityReserved,
-        reorderLevel,
-        costPrice,
-        unitOfMeasure,
-        status,
-        dateReceived,
-        expiryDate,
-        averageCost,
-      serialNumber,
-      } = req.body;
-
-      // Update product relation when productId is provided
-      if (productId !== undefined) {
-        const product = await Products.findOneBy({ productId });
-        if (!product) {
-          return res.status(400).json({ error: "Invalid productId. Product not found." });
-        }
-        if (item.product?.productId !== product.productId) {
-          item.product = product;
-          didChange = true;
-        }
-      }
-
-      if (batchNumber !== undefined && batchNumber !== item.batchNumber) { item.batchNumber = batchNumber; didChange = true; }
-      if (quantityOnHand !== undefined && quantityOnHand !== item.quantityOnHand) { item.quantityOnHand = quantityOnHand; didChange = true; }
-      if (quantityReserved !== undefined && quantityReserved !== item.quantityReserved) { item.quantityReserved = quantityReserved; didChange = true; }
-      if (reorderLevel !== undefined && reorderLevel !== item.reorderLevel) { item.reorderLevel = reorderLevel; didChange = true; }
-      if (costPrice !== undefined && costPrice !== item.costPrice) { item.costPrice = costPrice; didChange = true; }
-      if (unitOfMeasure !== undefined && unitOfMeasure !== item.unitOfMeasure) { item.unitOfMeasure = unitOfMeasure; didChange = true; }
-      if (status !== undefined && status !== item.status) { item.status = status; didChange = true; }
-      if (dateReceived !== undefined && dateReceived !== item.dateReceived) { item.dateReceived = dateReceived; didChange = true; }
-      if (expiryDate !== undefined && expiryDate !== item.expiryDate) { item.expiryDate = expiryDate; didChange = true; }
-      if (averageCost !== undefined && averageCost !== item.averageCost) { item.averageCost = averageCost; didChange = true; }
-      if(serialNumber !== undefined && serialNumber !== item.serialNumber) { item.serialNumber = serialNumber; didChange = true; }
-      // if (supplierId !== undefined && supplierId !== item.supplierId) { item.supplierId = supplierId; didChange = true; }
-
-      // Recompute available
-      const newAvailable =
-        typeof item.quantityOnHand === "number" && typeof item.quantityReserved === "number"
-          ? item.quantityOnHand - item.quantityReserved
-          : item.quantityAvailable || 0;
-      if (newAvailable !== item.quantityAvailable) {
-        item.quantityAvailable = newAvailable;
+        item.serialNumber = newSerial;
         didChange = true;
       }
-
-      if (didChange) {
-        item.lastModifiedBy = lastModifiedBy;
-      }
-
-      const updateItem = await InventoryItem.save(item);
-
-      const plain = JSON.parse(JSON.stringify(updateItem));
-      delete plain.product;
-
-      return res.json({
-        ...plain,
-        productId: item.product?.productId,
-        productName: item.product?.productName,
-      });
-    } catch (err) {
-      return res.status(500).json({ error: "Error updating inventory item" });
     }
+
+    // --- Merge other fields ---
+    const {
+      productId,
+      batchNumber,
+      quantityOnHand,
+      quantityReserved,
+      reorderLevel,
+      costPrice,
+      unitOfMeasure,
+      status,
+      dateReceived,
+      expiryDate,
+      averageCost,
+    } = req.body;
+
+    // Update product relation
+    if (productId !== undefined) {
+      const product = await Products.findOneBy({ productId });
+      if (!product) {
+        return res.status(400).json({ error: "Invalid productId. Product not found." });
+      }
+      if (item.product?.productId !== product.productId) {
+        item.product = product;
+        didChange = true;
+      }
+    }
+
+    if (batchNumber !== undefined && batchNumber !== item.batchNumber) { item.batchNumber = batchNumber; didChange = true; }
+    if (quantityOnHand !== undefined && quantityOnHand !== item.quantityOnHand) { item.quantityOnHand = quantityOnHand; didChange = true; }
+    if (quantityReserved !== undefined && quantityReserved !== item.quantityReserved) { item.quantityReserved = quantityReserved; didChange = true; }
+    if (reorderLevel !== undefined && reorderLevel !== item.reorderLevel) { item.reorderLevel = reorderLevel; didChange = true; }
+    if (costPrice !== undefined && costPrice !== item.costPrice) { item.costPrice = costPrice; didChange = true; }
+    if (unitOfMeasure !== undefined && unitOfMeasure !== item.unitOfMeasure) { item.unitOfMeasure = unitOfMeasure; didChange = true; }
+    if (status !== undefined && status !== item.status) { item.status = status; didChange = true; }
+    if (dateReceived !== undefined && dateReceived !== item.dateReceived) { item.dateReceived = dateReceived; didChange = true; }
+    if (expiryDate !== undefined && expiryDate !== item.expiryDate) { item.expiryDate = expiryDate; didChange = true; }
+    if (averageCost !== undefined && averageCost !== item.averageCost) { item.averageCost = averageCost; didChange = true; }
+
+    // --- Recompute available ---
+    const newAvailable =
+      typeof item.quantityOnHand === "number" && typeof item.quantityReserved === "number"
+        ? item.quantityOnHand - item.quantityReserved
+        : item.quantityAvailable || 0;
+
+    if (newAvailable !== item.quantityAvailable) {
+      item.quantityAvailable = newAvailable;
+      didChange = true;
+    }
+
+    // --- Save only if something changed ---
+    if (didChange) {
+      item.lastModifiedBy = lastModifiedBy;
+    }
+
+    const updateItem = await InventoryItem.save(item);
+
+    const plain = JSON.parse(JSON.stringify(updateItem));
+    delete plain.product;
+
+    return res.json({
+      ...plain,
+      productId: item.product?.productId,
+      productName: item.product?.productName,
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Error updating inventory item" });
   }
+}
+
 
   async delete(req: Request, res: Response) {
     try {

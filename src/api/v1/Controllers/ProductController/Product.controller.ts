@@ -16,71 +16,322 @@ class ProductController {
 
     constructor() { }
 
-    async createProduct(input: CreateProductRequest, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
-            const { emp_id } = payload;
+async createProduct(
+  input: CreateProductRequest,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const {
+      sku,
+      productName,
+      brandId,
+      categoryId,
+      mrp,
+      rlp,
+      caseQty,
+      skuDiscount,
+      batchNumber,
+      manufacturingDate,
+      expiryDate,
+      subcategory,
+      shelf_life,
+      product_state,
+      unitOfMeasure,
+      total_quantity,
+      total_sold,
+      quantity_in_stock,
+      reorderLevel,
+      maxStockLevel,
+      currency,
+      purchase_price,
+      selling_price,
+      storage_location,
+      storage_condition,
+      stock_in_date,
+      stock_out_date,
+      damaged_quantity,
+      image,
+      colour
+    } = input;
 
-            const brand: IBrand | null = await this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-            if (!brand) {
-                return { message: "Brand Not Found.", status: STATUSCODES.NOT_FOUND }
-            }
-            const product = new this.productModel();
-            product.productName = productName;
-            product.empId = emp_id;
-            product.brandId = brandId;
-            product.categoryId = categoryId;
-            product.mrp = mrp;
-            product.rlp = rlp;
-            product.caseQty = caseQty;
-            product.image = image;
-            product.isFocused = isFocused;
-            product.isActive = isActive
+    const { emp_id } = payload;
 
-            if (skuDiscount) {
-                // Validate skuDiscount if provided
-                const skuDiscountObj: ISkuDiscount = new SkuDiscount();
-                skuDiscountObj.discountType = skuDiscount.discountType as DiscountType;
-                skuDiscountObj.isActive = skuDiscount.isActive ?? false; // Default to false if not provided
-                skuDiscountObj.value = skuDiscount.value ?? 0; // Default to 0 if not provided
-
-                // Save skuDiscount to product
-                product.skuDiscount = skuDiscountObj;
-            }
-
-            if (product.rlp > product.mrp) {
-                return { message: "RLP must be less than or equal to MRP", status: STATUSCODES.BAD_REQUEST }
-            }
-            await this.productRepositry.save(product)
-
-            return { message: "Success.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
-        }
+    // ✅ Validate brand
+    if (!brandId || isNaN(Number(brandId)) || Number(brandId) <= 0) {
+      return { message: "Invalid brandId", status: STATUSCODES.BAD_REQUEST };
+    }
+    const parsedBrandId = Number(brandId);
+    const brand: IBrand | null = await this.brandRepository.findOneBy({
+      brandId: parsedBrandId,
+      isDeleted: false,
+    });
+    if (!brand) {
+      return {
+        message: `Brand ${parsedBrandId} not found`,
+        status: STATUSCODES.NOT_FOUND,
+      };
     }
 
-    async updateProduct(input: UpdateProductRequest, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive } = input;
-
-            const product: IProducts | null = await this.productRepositry.findOne({
-                where: { productId: Number(productId), isDeleted: false }
-            });
-
-            if (!product) {
-                return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND }
-            }
-
-            await this.productRepositry
-                .createQueryBuilder()
-                .update({ productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive })
-                .where({ productId }).execute()
-
-            return { message: "Success.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
-        }
+    // ✅ Validate category
+    if (categoryId) {
+      const category = await this.productCategoryRespositry.findOneBy({
+        productCategoryId: Number(categoryId),
+        isDeleted: false,
+      });
+      if (!category) {
+        return {
+          message: "Category Not Found",
+          status: STATUSCODES.NOT_FOUND,
+        };
+      }
     }
+
+    // ✅ Ensure total_quantity is defined
+    if (total_quantity === undefined || total_quantity < 0) {
+      return {
+        message: "total_quantity is required and must be >= 0",
+        status: STATUSCODES.BAD_REQUEST,
+      };
+    }
+
+    // ✅ Stock validation
+    const totalQuantity = total_quantity;
+    const totalSold = total_sold ?? 0;
+    const damagedQty = damaged_quantity ?? 0;
+
+    if (totalSold + damagedQty > totalQuantity) {
+      return {
+        message:
+          "Invalid stock data: total sold + damaged quantity exceeds total quantity",
+        status: STATUSCODES.BAD_REQUEST,
+      };
+    }
+
+    // ✅ Create product
+    const product = new this.productModel();
+    product.sku = input.sku;
+    product.productName = productName;
+    product.empId = emp_id;
+    product.brandId = parsedBrandId;
+    product.categoryId = categoryId;
+    product.mrp = mrp;
+    product.rlp = rlp;
+    product.caseQty = caseQty;
+    product.batchNumber = batchNumber;
+    product.subcategory = subcategory;
+    product.shelf_life = shelf_life;
+    product.product_state = product_state ?? "In stock";
+    product.unitOfMeasure = unitOfMeasure;
+    product.total_quantity = totalQuantity;
+    product.totalSold = totalSold;
+    product.damagedQuantity = damagedQty;
+
+    product.quantityInStock =
+      quantity_in_stock ?? totalQuantity - (totalSold + damagedQty);
+
+    product.reorderLevel = reorderLevel;
+    product.maxStockLevel = maxStockLevel;
+    product.currency = currency;
+    product.purchase_price = purchase_price;
+    product.selling_price = selling_price;
+    product.storage_location = storage_location;
+    product.storageCondition = storage_condition;
+    product.image = image;
+    product.colour = input.colour;
+    // ✅ Dates
+    product.manufacturingDate = manufacturingDate
+      ? new Date(manufacturingDate).toISOString()
+      : undefined;
+    product.expiryDate = expiryDate
+      ? new Date(expiryDate).toISOString()
+      : undefined;
+    product.stock_in_date = stock_in_date
+      ? new Date(stock_in_date).toISOString()
+      : undefined;
+    product.stock_out_date = stock_out_date
+      ? new Date(stock_out_date).toISOString()
+      : undefined;
+
+    // ✅ Flags
+    product.isFocused = input.isFocused ?? false;
+    product.isActive = input.isActive ?? true;
+
+    // ✅ SKU Discount
+    if (skuDiscount) {
+      const skuDiscountObj: ISkuDiscount = new SkuDiscount();
+      skuDiscountObj.discountType = skuDiscount.discountType;
+      skuDiscountObj.isActive = skuDiscount.isActive ?? false;
+      skuDiscountObj.value = skuDiscount.value ?? 0;
+      product.skuDiscount = skuDiscountObj;
+    }
+
+    // ✅ RLP validation
+    if (product.rlp !== undefined && product.rlp > product.mrp) {
+      return {
+        message: "RLP must be <= MRP",
+        status: STATUSCODES.BAD_REQUEST,
+      };
+    }
+
+    await this.productRepositry.save(product);
+    return {
+      message: "Product created successfully.",
+      status: STATUSCODES.SUCCESS,
+    };
+  } catch (error) {
+    console.error("Error in createProduct:", error);
+    throw error;
+  }
+}
+
+
+
+   async updateProduct(input: UpdateProductRequest, payload: IUser): Promise<IApiResponse> {
+  try {
+    const {
+      productId,
+      sku,
+      productName,
+      brandId,
+      categoryId,
+      mrp,
+      rlp,
+      caseQty,
+      skuDiscount,
+      batchNumber,
+      manufacturingDate,
+      expiryDate,
+      subcategory,
+      shelf_life,
+      product_state,
+      unitOfMeasure,
+      total_quantity,
+      total_sold,
+      quantity_in_stock,
+      reorderLevel,
+      maxStockLevel,
+      currency,
+      image,
+      colour,
+      purchase_price,
+      selling_price,
+      storage_location,
+      storage_condition,
+      stock_in_date,
+      stock_out_date,
+      damaged_quantity,
+      isFocused,
+      isActive,
+    } = input;
+
+    const product: Products | null = await this.productRepositry.findOne({
+      where: { productId: Number(productId), isDeleted: false },
+    });
+
+    if (!product) {
+      return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND };
+    }
+
+    // ✅ Validate brand if provided
+    if (brandId) {
+      const brand = await this.brandRepository.findOneBy({
+        brandId: Number(brandId),
+        isDeleted: false,
+      });
+      if (!brand) {
+        return { message: `Brand ${brandId} not found`, status: STATUSCODES.NOT_FOUND };
+      }
+    }
+
+    // ✅ Validate category if provided
+    if (categoryId) {
+      const category = await this.productCategoryRespositry.findOneBy({
+        productCategoryId: Number(categoryId),
+        isDeleted: false,
+      });
+      if (!category) {
+        return { message: "Category Not Found", status: STATUSCODES.NOT_FOUND };
+      }
+    }
+    // ✅ Stock validation
+    const totalQty = total_quantity ?? product.total_quantity??0;
+    const totalSold = total_sold ?? product.totalSold ?? 0;
+    const damagedQty = damaged_quantity ?? product.damagedQuantity ?? 0;
+
+    
+
+    if (totalSold + damagedQty > totalQty) {
+      return {
+        message: "Invalid stock data: total sold + damaged quantity exceeds total quantity",
+        status: STATUSCODES.BAD_REQUEST,
+      };
+    }
+
+    // ✅ Build partial update object
+    const updateData: Partial<Products> = {
+        sku: sku ?? product.sku,
+        productName: productName ?? product.productName,
+        brandId: brandId ?? product.brandId,
+        categoryId: categoryId ?? product.categoryId,
+        mrp: mrp ?? product.mrp,
+        rlp: rlp ?? product.rlp,
+        image: image ?? product.image,
+        colour: colour ?? product.colour,
+        caseQty: caseQty ?? product.caseQty,
+        batchNumber: batchNumber ?? product.batchNumber,
+        subcategory: subcategory ?? product.subcategory,
+        shelf_life: shelf_life ?? product.shelf_life,
+        product_state: product_state ?? product.product_state,
+        unitOfMeasure: unitOfMeasure ?? product.unitOfMeasure,
+        total_quantity: totalQty,
+        totalSold: totalSold,
+        damagedQuantity: damagedQty,
+        quantityInStock: quantity_in_stock ?? (totalQty - (totalSold + damagedQty)),
+        reorderLevel: reorderLevel ?? product.reorderLevel,
+        maxStockLevel: maxStockLevel ?? product.maxStockLevel,
+        currency: currency ?? product.currency,
+        purchase_price: purchase_price ?? product.purchase_price,
+        selling_price: selling_price ?? product.selling_price,
+        storage_location: storage_location ?? product.storage_location,
+        storageCondition: storage_condition ?? product.storageCondition,
+        isFocused: isFocused ?? product.isFocused,
+        isActive: isActive ?? product.isActive,
+      };
+
+    // ✅ Dates
+    if (manufacturingDate) updateData.manufacturingDate = new Date(manufacturingDate).toISOString();
+    if (expiryDate) updateData.expiryDate = new Date(expiryDate).toISOString();
+    if (stock_in_date) updateData.stock_in_date = new Date(stock_in_date).toISOString();
+    if (stock_out_date) updateData.stock_out_date = new Date(stock_out_date).toISOString();
+
+    // ✅ SKU Discount
+    if (skuDiscount) {
+      updateData.skuDiscount = {
+        discountType: skuDiscount.discountType,
+        value: skuDiscount.value ?? 0,
+        isActive: skuDiscount.isActive ?? false,
+      };
+    }
+
+    // ✅ RLP validation
+    if (updateData.rlp !== undefined && updateData.mrp !== undefined && updateData.rlp > updateData.mrp) {
+      return { message: "RLP must be <= MRP", status: STATUSCODES.BAD_REQUEST };
+    }
+
+    await this.productRepositry
+    .createQueryBuilder()
+    .update(Products)
+    .set(updateData)
+    .where({ productId: Number(productId) })
+    .execute();
+
+    return { message: "Product updated successfully.", status: STATUSCODES.SUCCESS };
+  } catch (error) {
+    console.error("Error in updateProduct:", error);
+    throw error;
+  }
+}
+
 
     async getById(input: GetProductById): Promise<IApiResponse> {
         try {
@@ -281,86 +532,185 @@ class ProductController {
         }
     }
 
-    async createProducts(inputs: CreateProductRequest[], payload: IUser): Promise<IApiResponse> {
-        try {
-            const { emp_id } = payload;
-            const skippedProducts: string[] = [];  // Store skipped product names
-            const processedProducts: Set<string> = new Set(); // Store unique products to prevent duplicates from the input
+   async createProducts(
+  inputs: CreateProductRequest[],
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const { emp_id } = payload;
+    const skippedProducts: string[] = [];
+    const processedProducts: Set<string> = new Set();
 
-            console.log({ inputs });
+    for (const input of inputs) {
+      const {
+        sku,
+        productName,
+        brandId,
+        categoryId,
+        mrp,
+        rlp,
+        caseQty,
+        skuDiscount,
+        batchNumber,
+        manufacturingDate,
+        expiryDate,
+        subcategory,
+        shelf_life,
+        product_state,
+        unitOfMeasure,
+        total_quantity,
+        total_sold,
+        quantity_in_stock,
+        reorderLevel,
+        maxStockLevel,
+        currency,
+        purchase_price,
+        selling_price,
+        storage_location,
+        storage_condition,
+        stock_in_date,
+        stock_out_date,
+        damaged_quantity,
+        image,
+        colour,
+        isFocused,
+        isActive,
+      } = input;
 
-            // Loop through inputs
-            for (const input of inputs) {
-                const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
+      const productKey = `${productName}-${brandId}-${categoryId}`;
+      if (processedProducts.has(productKey)) {
+        skippedProducts.push(`${productName} (Duplicate in input)`);
+        continue;
+      }
+      processedProducts.add(productKey);
 
-                // Create a unique key to identify each product by name, brand, and category
-                const productKey = `${productName}-${brandId}-${categoryId}`;
+      // Validate brand
+      if (!brandId || isNaN(Number(brandId)) || Number(brandId) <= 0) {
+        skippedProducts.push(`${productName} (Invalid brandId)`);
+        continue;
+      }
+      const parsedBrandId = Number(brandId);
+      const brand: IBrand | null = await this.brandRepository.findOneBy({
+        brandId: parsedBrandId,
+        isDeleted: false,
+      });
+      if (!brand) {
+        skippedProducts.push(`${productName} (Brand not found)`);
+        continue;
+      }
 
-                // In-memory duplicate check (skip if the product is already processed)
-                if (processedProducts.has(productKey)) {
-                    skippedProducts.push(`${productName} (Duplicate in input)`);
-                    continue;  // Skip the duplicate in the input
-                }
-
-                processedProducts.add(productKey);  // Mark this product as processed
-
-                // Check if the brand exists
-                const brand: IBrand | null = await this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-                if (!brand) {
-                    return { message: `Brand Not Found for product: ${productName}.`, status: STATUSCODES.NOT_FOUND };
-                }
-
-                // Check if the product already exists in the database
-                const existingProduct = await this.productRepositry.findOneBy({ productName, brandId, categoryId: Number(categoryId) });
-                if (existingProduct) {
-                    skippedProducts.push(`${productName} (Already exists in database)`);
-                    continue;  // Skip the product if it already exists
-                }
-
-                // Create a new product object
-                const product = new this.productModel();
-                product.productName = productName;
-                product.empId = emp_id;
-                product.brandId = brandId;
-                product.categoryId = categoryId;
-                product.mrp = mrp;
-                product.rlp = rlp;
-                product.caseQty = caseQty;
-                product.image = image;
-                product.isFocused = isFocused;
-                product.isActive = isActive;
-
-                // Add SKU discount if available
-                if (skuDiscount) {
-                    const skuDiscountObj: ISkuDiscount = new SkuDiscount();
-                    skuDiscountObj.discountType = skuDiscount.discountType as DiscountType;
-                    skuDiscountObj.isActive = skuDiscount.isActive ?? false;
-                    skuDiscountObj.value = skuDiscount.value ?? 0;
-                    product.skuDiscount = skuDiscountObj;
-                }
-
-                // Ensure RLP is less than or equal to MRP
-                if (product.rlp > product.mrp) {
-                    return { message: `RLP must be less than or equal to MRP for product: ${productName}.`, status: STATUSCODES.BAD_REQUEST };
-                }
-
-                // Save the product
-                await this.productRepositry.save(product);
-            }
-
-            // Return success message with information about skipped products
-            const message = skippedProducts.length > 0
-                ? `Products created successfully. Skipped products: ${skippedProducts.join(', ')}.`
-                : "All products created successfully.";
-
-            return { message, status: STATUSCODES.SUCCESS };
-        } catch (error) {
-            console.log({ error });
-            throw error;
+      // Validate category
+      if (categoryId) {
+        const category = await this.productCategoryRespositry.findOneBy({
+          productCategoryId: Number(categoryId),
+          isDeleted: false,
+        });
+        if (!category) {
+          skippedProducts.push(`${productName} (Category not found)`);
+          continue;
         }
+      }
+
+      // Stock validation
+      const totalQty = total_quantity ?? 0;
+      const totalSold = total_sold ?? 0;
+      const damagedQty = damaged_quantity ?? 0;
+      const qtyInStock =
+        quantity_in_stock ?? totalQty - (totalSold + damagedQty);
+
+      if (totalSold + damagedQty > totalQty) {
+        skippedProducts.push(
+          `${productName} (totalSold + damagedQuantity exceeds totalQuantity)`
+        );
+        continue;
+      }
+
+      // Check if product already exists
+      const existingProduct = await this.productRepositry.findOneBy({
+        productName,
+        brandId: parsedBrandId,
+        categoryId: Number(categoryId),
+      });
+      if (existingProduct) {
+        skippedProducts.push(`${productName} (Already exists)`);
+        continue;
+      }
+
+      // Create product
+      const product = new this.productModel();
+      product.sku = sku;
+      product.productName = productName;
+      product.empId = emp_id;
+      product.brandId = parsedBrandId;
+      product.categoryId = categoryId;
+      product.mrp = mrp;
+      product.rlp = rlp;
+      product.caseQty = caseQty;
+      product.batchNumber = batchNumber;
+      product.subcategory = subcategory;
+      product.shelf_life = shelf_life;
+      product.product_state = product_state ?? "In stock";
+      product.unitOfMeasure = unitOfMeasure;
+      product.total_quantity = totalQty;
+      product.totalSold = totalSold;
+      product.damagedQuantity = damagedQty;
+      product.quantityInStock = qtyInStock;
+      product.reorderLevel = reorderLevel;
+      product.maxStockLevel = maxStockLevel;
+      product.currency = currency;
+      product.purchase_price = purchase_price;
+      product.selling_price = selling_price;
+      product.storage_location = storage_location;
+      product.storageCondition = storage_condition;
+      product.image = image;
+      product.colour = colour;
+
+      // Dates
+      product.manufacturingDate = manufacturingDate
+        ? new Date(manufacturingDate).toISOString()
+        : undefined;
+      product.expiryDate = expiryDate
+        ? new Date(expiryDate).toISOString()
+        : undefined;
+      product.stock_in_date = stock_in_date
+        ? new Date(stock_in_date).toISOString()
+        : undefined;
+      product.stock_out_date = stock_out_date
+        ? new Date(stock_out_date).toISOString()
+        : undefined;
+
+      // Flags
+      product.isFocused = isFocused ?? false;
+      product.isActive = isActive ?? true;
+
+      // SKU Discount
+      if (skuDiscount) {
+        const skuDiscountObj: ISkuDiscount = new SkuDiscount();
+        skuDiscountObj.discountType = skuDiscount.discountType;
+        skuDiscountObj.isActive = skuDiscount.isActive ?? false;
+        skuDiscountObj.value = skuDiscount.value ?? 0;
+        product.skuDiscount = skuDiscountObj;
+      }
+
+      // RLP validation
+      if (product.rlp !== undefined && product.rlp > product.mrp) {
+        skippedProducts.push(`${productName} (RLP > MRP)`);
+        continue;
+      }
+
+      await this.productRepositry.save(product);
     }
 
+    const message = skippedProducts.length
+      ? `Products created successfully. Skipped: ${skippedProducts.join(", ")}`
+      : "All products created successfully.";
 
+    return { message, status: STATUSCODES.SUCCESS };
+  } catch (error) {
+    console.error("Error in createProducts:", error);
+    throw error;
+  }
+}
 
     async createImportProductCategories(input: CreateProductCategory[], payload: IUser): Promise<IApiResponse> {
         try {
