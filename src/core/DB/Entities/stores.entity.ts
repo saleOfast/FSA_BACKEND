@@ -1,7 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, ManyToOne, JoinColumn, DeleteDateColumn, OneToMany } from "typeorm";
-import { DbConnections } from "../postgresdb";
-import { IOrderValueDiscount, IStore, IStoreFlatDiscount, IStoreVisibilityDiscount } from "../../../core/types/StoreService/StoreService";
-import { StoreCategory } from "./storeCategory.entity";
+import {  IStore} from "../../../core/types/StoreService/StoreService";
+// import { StoreCategory } from "./storeCategory.entity";
 import { User } from "./User.entity";
 import { Activities } from "./activities.entity";
 import { Sessions } from "./sessions.entity";
@@ -12,177 +10,163 @@ import { Workplace } from "./workplace.entity";
 import { Visits } from "./Visit.entity";
 import { RCPA } from "./rcpa.entity";
 import { Gifts } from "./giftDistribution.entity";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  BaseEntity,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  Repository,
+  ManyToOne,
+  JoinColumn,
+  OneToMany
+} from "typeorm";
+import { DbConnections } from "../postgresdb";
 
-@Entity({ name: 'stores' })
-export class Stores extends BaseEntity implements IStore {
-    @PrimaryGeneratedColumn({ name: 'store_id' })
-    storeId: number
+@Entity({ name: "stores" })
+export class Stores extends BaseEntity implements IStore{
+  // StoreId (unique identifier, auto-generated)
+  @PrimaryGeneratedColumn({ name: "store_id" })
+  storeId: number;
 
-    @ManyToOne(() => User, user => user.emp_id)
-    @JoinColumn({ name: 'emp_id' })
-    user?: User;
+@Column({ name: "store_name", type: "varchar", length: 100, nullable: true, unique: true })
+storeName: string;
 
-    @Column({ name: 'emp_id' })
-    empId: number
 
-    @Column({ name: 'retailor_id', nullable: true })
-    retailorId: number
+  // CustomerId (assuming foreign key string/id)
+  @Column({ name: "customer_id", type: "varchar", length: 50, nullable: true })
+  customerId: string | null;
 
-    @Column({ name: 'store_name' })
-    storeName: string
+  // Address fields
+  @Column({ name: "address", type: "varchar", length: 200, nullable: true })
+  address: string |null;
 
-    @Column({ name: 'uid', nullable: true })
-    uid: string
+  @Column({ name: "city", type: "varchar", length: 100, nullable: true })
+  city: string |null;
 
-    @Column({ name: 'store_type', nullable: true })
-    storeType: number;
+  @Column({ name: "state", type: "varchar", length: 100, nullable: true })
+  state: string| null;
 
-    @ManyToOne(() => StoreCategory, { nullable: true })
-    @JoinColumn({ name: 'store_type' })
-    storeCat?: StoreCategory;
+  @Column({ name: "zip", type: "varchar", length: 20, nullable: true })
+  zip: string| null;
 
-    @Column({ name: 'lat', nullable: true })
-    lat: string
+  // Contact Person
+  @Column({ name: "contact_person", type: "varchar", length: 50, nullable: true })
+  contactPerson: string | null;
 
-    @Column({ name: 'long', nullable: true })
-    long: string
+  // Contact Phone
+  @Column({ name: "contact_phone", type: "varchar", length: 50, nullable: true})
+  contactPhone: string | null;
 
-    @Column({ name: 'address_line1' })
-    addressLine1: string
+  // Email
+  @Column({ name: "email", type: "varchar", length: 100, nullable: true })
+  email: string| null;
 
-    @Column({ name: 'address_line2' })
-    addressLine2?: string
+  // Capacity
+  @Column({ name: "capacity", type: "varchar", length: 50, nullable: true })
+  capacity: string| null;
 
-    @Column({ name: 'town_city' })
-    townCity: string
+  // Store Type (Picklist)
+  @Column({
+    name: "store_type",
+    type: "enum",
+    enum: ["Distribution Center", "Cold Storage", "Storage"],
+    nullable: true,
+  })
+  storeType: "Distribution Center" | "Cold Storage" | "Storage"| null;
 
-    @Column()
-    state: string
+  // Operational Hours
+  @Column({ name: "operational_hours", type: "varchar", length: 30, nullable: true })
+  operationalHours: string | null;
 
-    @Column({ nullable: true })
-    district: string
+  @Column({ name: "manager_name", nullable: true })
+  managerId: number | null;
 
-    @Column({ nullable: true })
-    email?: string
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "manager_name" })
+  managerName: User | null;
 
-    @Column({ name: 'pin_code' })
-    pinCode: string
+  @Column({ name: "manager_contact", nullable: true })
+  managerContactId: number | null;
+  // Manager Contact (User Ref → User table)
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "manager_contact" })
+  managerContact: User | null;
 
-    @Column({ name: 'owner_name' })
-    ownerName: string
+  // Status (Active/Inactive picklist, default Active)
+  @Column({
+    name: "status",
+    type: "enum",
+    enum: ["Active", "Inactive"],
+    default: "Active",
+  })
+  status: "Active" | "Inactive";
 
-    @Column({ name: 'mobile_number' })
-    mobileNumber: string
+  // Audit fields
+  @CreateDateColumn({ name: "created_date" })
+  createdDate: Date;
 
-    @Column({ name: 'alter_mobile', nullable: true })
-    alterMobile: string
+  @UpdateDateColumn({ name: "last_updated_date" })
+  lastUpdatedDate: Date;
 
-    @Column({ name: 'opening_time', nullable: true })
-    openingTime: string
+  @Column({ name: "created_by", nullable: true })
+  createdById: number | null;
 
-    @Column({ name: 'closing_time', nullable: true })
-    closingTime: string
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "created_by" })
+  createdBy: User | null;
 
-    @Column({ name: 'opening_time_am_pm', nullable: true })
-    openingTimeAmPm: string
+  @Column({ name: "last_modified_by", nullable: true })
+  lastModifiedById: number | null;
 
-    @Column({ name: 'closing_time_am_pm', nullable: true })
-    closingTimeAmPm: string
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "last_modified_by" })
+  lastModifiedBy: User | null;
 
-    @Column({ name: 'payment_mode', nullable: true })
-    paymentMode: string
+  // Optional soft delete
+@Column({ name: "is_deleted", type: "boolean", default: false })
+deleted: boolean;
 
-    @Column({ default: false, name: 'is_premium_store' })
-    isPremiumStore: boolean
 
-    @Column({ name: 'flat_discount', type: 'json', nullable: true })
-    flatDiscount?: IStoreFlatDiscount
+  @OneToMany(() => Samples, (samples) => samples.store)
+  samples: Samples[];
 
-    @Column({ name: 'visibility_discount', type: 'json', nullable: true })
-    visibilityDiscount?: IStoreVisibilityDiscount
+  @OneToMany(() => Activities, (activity) => activity.store)
+  activities: Activities[];
 
-    @Column({ name: 'order_value_discount', type: 'json', nullable: true })
-    orderValueDiscount?: IOrderValueDiscount[];
+  @OneToMany(() => FeedBack, (feedback) => feedback.store)
+  feedback: FeedBack[];
+  
+  @OneToMany(() => Gifts, (gifts) => gifts.store)
+  gift: Gifts[];
 
-    @Column({ name: 'is_active_order_value_discount', type: 'boolean', nullable: true })
-    isActiveOrderValueDiscount?: boolean;
+  @OneToMany(() => Visits, (visits) => visits.stores)
+  visits: Visits[];
 
-    @Column({ default: false, name: 'is_active' })
-    isActive: boolean
+  @OneToMany(() => RCPA, (rcpa) => rcpa.store)
+  rcpa: RCPA[];
 
-    @Column({ name: 'qualification', nullable: true })
-    qualification?: string
+  @OneToMany(() => Workplace, (workplace) => workplace.store)
+  workplace: Workplace[];
+  
+  @OneToMany(() => Sessions, (sessions) => sessions.store)
+  sessions: Sessions[];
 
-    @Column({ name: 'doctor_code', nullable: true })
-    doctorCode?: string
 
-    @Column({ name: 'chem_reg_number', nullable: true })
-    RegistrationNumber?: string
+//   @Column({ type: "integer", nullable: true })
+// emp_id: number;
 
-    @Column({ name: 'speciality', nullable: true })
-    speciality?: string
+  // Store Category related fields - COMMENTED OUT
+  // @Column({ name: "store_category_id", nullable: true })
+  // storeCategoryId?: number | null;
+  // 
+  // @ManyToOne(() => StoreCategory)
+  // @JoinColumn({ name: "store_category_id" })
+  // storeCategory?: StoreCategory | null;
 
-    @Column({ name: 'language_known', nullable: true })
-    language_known?: string
-
-    @Column({ name: 'territory', nullable: true })
-    territory?: string
-
-    @Column({ name: 'orgName', nullable: true })
-    orgName: string
-
-    @Column({ name: 'DOB', nullable: true })
-    DOB?: string
-
-    @Column({ name: 'clinic_name', nullable: true })
-    clinicName?: string
-
-    @Column({ name: 'date_of_wedding', nullable: true })
-    dateOfWedding?: string
-
-    @Column({ name: 'availability', nullable: true })
-    availability: number
-
-    @Column({ name: 'patient_volume', nullable: true })
-    patientVolume: number
-
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean
-
-    @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
-    createdAt: Date;
-
-    @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' })
-    updatedAt: Date;
-
-    @DeleteDateColumn({ type: 'timestamp', nullable: true })
-    deleted_at: Date;
-
-    @OneToMany(() => Activities, (activity) => activity.store)
-    activities: Activities[];
-
-    @OneToMany(() => Workplace, (workplace) => workplace.store)
-    workplace: Workplace[];
-
-    @OneToMany(() => Sessions, (session) => session.store)
-    sessions: Sessions[];
-
-    @OneToMany(() => FeedBack, (feedback) => feedback.store)
-    feedback: FeedBack[];
-
-    @OneToMany(() => Samples, (samples) => samples.store)
-    samples: Samples[];
-
-    @OneToMany(() => Gifts, (gifts) => gifts.store)
-    gift: Gifts[];
-
-    @OneToMany(() => Visits, (visits) => visits.stores)
-    visits: Visits[];
-
-    @OneToMany(() => RCPA, (rcpa) => rcpa.store)
-    rcpa: RCPA[];
 }
-
 export const StoreRepository = (): Repository<Stores> => {
-    return DbConnections.AppDbConnection.getConnection().getRepository(Stores);
-}
+  return DbConnections.AppDbConnection.getConnection().getRepository(Stores);
+};

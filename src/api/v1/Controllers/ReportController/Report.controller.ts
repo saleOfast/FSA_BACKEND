@@ -3,7 +3,7 @@ import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { DeleteUser, GetUsers, IUser, IUserProfile, UpdateUser } from "../../../../core/types/AuthService/AuthService";
 import { UserRepository } from "../../../../core/DB/Entities/User.entity";
 import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
-import { IStore } from "../../../../core/types/StoreService/StoreService";
+import { IStore } from "../../../../core/types/storeService/StoreService";
 import { Not } from "typeorm";
 
 class ReportController {

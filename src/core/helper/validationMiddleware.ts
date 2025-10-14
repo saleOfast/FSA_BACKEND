@@ -130,19 +130,21 @@ export const ResponseHandler = {
         res.setHeader('Access-Control-Allow-Methods', 'POST');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         // res.setHeader('Access-Control-Expose-Headers', 'access_token');
-        res.status(body.status || 200);
-        res.send(body);
+        res.status(body.status || 200).send(body);
     },
 
     sendErrorResponse: function (res: express.Response, error: any) {
 
-        const body: IApiResponse =
-        {
+        const msg = (error && typeof error === 'object' && (error as any).message)
+            ? (error as any).message
+            : (typeof error === 'string' ? error : JSON.stringify(error));
+
+        const body: IApiResponse = {
             status: 500,
-            message: error,
+            message: msg,
             data: undefined
         };
 
-        res.send(body);
+        res.status(500).send(body);
     }
 }

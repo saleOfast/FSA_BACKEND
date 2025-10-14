@@ -18,7 +18,7 @@ import { BeatRepository } from "../../../../../core/DB/Entities/beat.entity";
 class ProfileController {
     private getUserRepositry = UserRepository();
     private getAttendanceRepositry = AttendanceRepository();
-    private getStoreRepositry = StoreRepository();
+    private getstoreRepositry = StoreRepository();
     private getOrderRepositry = OrdersRepository();
     private getVisitRepository = VisitRepository();
     private getTargetRepository = TargetRepository();
@@ -260,8 +260,8 @@ class ProfileController {
             }
             const preSales = await preOrdersQueryBuilder.getRawOne();
             // ============================================================================
-            const storesQueryBuilder = this.getStoreRepositry.createQueryBuilder('stores')
-                .select("COUNT(stores.storeId)", "totalStoreCount") // Total count
+            const storesQueryBuilder = this.getstoreRepositry.createQueryBuilder('stores')
+                .select("COUNT(stores.storeId)", "totalstoreCount") // Total count
                 .where("stores.storeId IN (:...storeIds)", { storeIds: storeIds });
 
             if (timePeriod.length > 0 && startTimeline && endTimeline) {
@@ -296,16 +296,15 @@ class ProfileController {
             let preOrderCount = await preOrderCountQueryBuilder.getCount()
             // ===========================================================================================
 
-            let currStoreCount = (await this.getStoreRepositry.find({ where: { storeId: In(storeIds), createdAt: Between(startTimeline, endTimeline) } })).length;
-            let preStoreCount = (await this.getStoreRepositry.find({ where: { storeId: In(storeIds), createdAt: Between(startPreTimeline, endPreTimeline) } })).length;
+            let currstoreCount = (await this.getstoreRepositry.find({ where: { storeId: In(storeIds), createdDate: Between(startTimeline, endTimeline) } })).length;
+            let prestoreCount = (await this.getstoreRepositry.find({ where: { storeId: In(storeIds), createdDate: Between(startPreTimeline, endPreTimeline) } })).length;
 
             const orderSubquery = this.getOrderRepositry.createQueryBuilder("orders")
                 .select("orders.storeId", "storeId")
                 // .where("orders.orderStatus != :orderStatus", { orderStatus: OrderStatus.CANCELLED })
                 .getQuery();
 
-            let unBilledStoreCount = (await this.getStoreRepositry.createQueryBuilder('stores')
-                .leftJoinAndSelect("stores.storeCat", "storeCat")
+            let unBilledstoreCount = (await this.getstoreRepositry.createQueryBuilder('stores')
                 .where("stores.storeId IN (:...storeIds)", { storeIds: storeIds })
                 .andWhere(`stores.storeId NOT IN (${orderSubquery})`)
                 .getMany()).length;
@@ -333,7 +332,7 @@ class ProfileController {
             const targets = currTarget.map((data: any) => data.target);
 
             const allTargets = targets.flat(); // Assuming targets is an array of arrays
-            const totalStoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
+            const totalstoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
             const totalCollectionTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.collectionTarget || 0), 0);
             const totalOrderTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.orderTarget || 0), 0);
             //  SKU
@@ -460,8 +459,8 @@ class ProfileController {
                     achieved: orders ? +orders.totalAmount : 0
                 },
                 storeTarget: {
-                    target: totalStoreTarget ? +totalStoreTarget : 0,
-                    achieved: stores ? +stores.totalStoreCount : 0
+                    target: totalstoreTarget ? +totalstoreTarget : 0,
+                    achieved: stores ? +stores.totalstoreCount : 0
                 },
                 collectionTarget: {
                     target: totalCollectionTarget ? +totalCollectionTarget : 0,
@@ -484,12 +483,12 @@ class ProfileController {
                     preOrderCount: preOrderCount ?? 0
                 },
                 storeCount: {
-                    currStoreCount: currStoreCount ?? 0,
-                    preStoreCount: preStoreCount ?? 0
+                    currstoreCount: currstoreCount ?? 0,
+                    prestoreCount: prestoreCount ?? 0
                 },
-                // monthWiseStoreCount: formattedResults,
-                newStoreCount: currStoreCount ? currStoreCount : 0,
-                unBilledStoreCount: unBilledStoreCount ? unBilledStoreCount : 0,
+                // monthWisestoreCount: formattedResults,
+                newstoreCount: currstoreCount ? currstoreCount : 0,
+                unBilledstoreCount: unBilledstoreCount ? unBilledstoreCount : 0,
                 todayVisitCount: todayVisitCount,
                 focusedProductCount: focusedProductCount ?? 0,
                 // bottomSKU,
@@ -682,7 +681,7 @@ class ProfileController {
             const targets = currTarget.map((data: any) => data.target);
 
             const allTargets = targets.flat(); // Assuming targets is an array of arrays
-            // const totalStoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
+            // const totalstoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
             // const totalCollectionTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.collectionTarget || 0), 0);
             const totalOrderTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.orderTarget || 0), 0);
             //  SKU
@@ -916,7 +915,7 @@ class ProfileController {
                 // .where("orders.orderStatus != :orderStatus", { orderStatus: OrderStatus.CANCELLED })
                 .getQuery();
 
-            let unBilledQueryBuilder: any = await this.getStoreRepositry.createQueryBuilder('stores')
+            let unBilledQueryBuilder: any = await this.getstoreRepositry.createQueryBuilder('stores')
                 .leftJoinAndSelect('stores.user', 'user')  // Added this line assuming there is a relation between stores and user
                 .select([
                     'stores.storeId AS store_id',
@@ -930,7 +929,7 @@ class ProfileController {
             if (role === UserRole.RSM) {
                 unBilledQueryBuilder = unBilledQueryBuilder.where("stores.storeId IN (:...storeIds)", { storeIds: storeIds });
             }
-            const unBilledStore: any = await unBilledQueryBuilder.limit(6).getRawMany();
+            const unBilledstore: any = await unBilledQueryBuilder.limit(6).getRawMany();
 
             let PendingApprovalQueryBuilder = await this.getOrderRepositry.createQueryBuilder('orders')
                 .leftJoinAndSelect('orders.user', 'user')
@@ -952,7 +951,7 @@ class ProfileController {
             if (role === UserRole.RSM) {
                 PendingApprovalQueryBuilder = PendingApprovalQueryBuilder.andWhere("orders.storeId IN (:...storeIds)", { storeIds: storeIds });
             }
-            const PendingApprovalStores: any = await PendingApprovalQueryBuilder.limit(6).getRawMany();
+            const PendingApprovalstores: any = await PendingApprovalQueryBuilder.limit(6).getRawMany();
             const performer: any = [];
             let topPerformerQueryBuilder: any = await this.getOrderRepositry.createQueryBuilder("orders")
                 .select("orders.empId", "empId")
@@ -1064,26 +1063,26 @@ class ProfileController {
                 .orderBy("total_sales", "ASC")
                 .limit(5)
                 .getRawMany();
-            // =========================Stores Count================================-
-            let currStoreCountQueryBuilder = await this.getStoreRepositry.createQueryBuilder('stores')
-                .select("COUNT(stores.storeId)", "totalStoreCount")
+            // =========================stores Count================================-
+            let currstoreCountQueryBuilder = await this.getstoreRepositry.createQueryBuilder('stores')
+                .select("COUNT(stores.storeId)", "totalstoreCount")
                 .where("stores.createdAt >= :startDate", { startDate: startTimeline })
                 .andWhere("stores.createdAt <= :endDate", { endDate: endTimeline })
 
             if (role === UserRole.RSM) {
-                currStoreCountQueryBuilder.andWhere("stores.storeId IN (:...storeIds)", { storeIds: storeIds });
+                currstoreCountQueryBuilder.andWhere("stores.storeId IN (:...storeIds)", { storeIds: storeIds });
             }
-            let currStoreCount = await currStoreCountQueryBuilder.getCount();
+            let currstoreCount = await currstoreCountQueryBuilder.getCount();
             // --------------------------------------------------------------------------------------------
-            let preStoreCountQueryBuilder = await this.getStoreRepositry.createQueryBuilder('stores')
-                .select("COUNT(stores.storeId)", "totalStoreCount")
+            let prestoreCountQueryBuilder = await this.getstoreRepositry.createQueryBuilder('stores')
+                .select("COUNT(stores.storeId)", "totalstoreCount")
                 .where("stores.createdAt >= :startDate", { startDate: startPreTimeline })
                 .andWhere("stores.createdAt <= :endDate", { endDate: endPreTimeline })
 
             if (role === UserRole.RSM) {
-                preStoreCountQueryBuilder.andWhere("stores.storeId IN (:...storeIds)", { storeIds: storeIds });
+                prestoreCountQueryBuilder.andWhere("stores.storeId IN (:...storeIds)", { storeIds: storeIds });
             }
-            let preStoreCount = await preStoreCountQueryBuilder.getCount();
+            let prestoreCount = await prestoreCountQueryBuilder.getCount();
             //   ============================================================================================================
 
 
@@ -1151,14 +1150,14 @@ class ProfileController {
             const targets = currTarget.map((data: any) => data.target);
 
             const allTargets = targets.flat(); // Assuming targets is an array of arrays
-            const totalStoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
+            const totalstoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
             const totalCollectionTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.collectionTarget || 0), 0);
             const totalOrderTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.orderTarget || 0), 0);
-            // console.log({empIds, role, totalStoreTarget, totalCollectionTarget, totalOrderTarget });
+            // console.log({empIds, role, totalstoreTarget, totalCollectionTarget, totalOrderTarget });
 
             const response = {
-                unBilledStore,
-                PendingApprovalStores,
+                unBilledstore,
+                PendingApprovalstores,
                 topPerformer,
                 bottomPerformer,
                 topSKU,
@@ -1179,11 +1178,11 @@ class ProfileController {
                     preOrderCount: preOrderCount ?? 0
                 },
                 storeCount: {
-                    currStoreCount: currStoreCount ?? 0,
-                    preStoreCount: preStoreCount ?? 0
+                    currstoreCount: currstoreCount ?? 0,
+                    prestoreCount: prestoreCount ?? 0
                 },
                 storeTarget: {
-                    currStoreTarget: totalStoreTarget ? +totalStoreTarget : 0,
+                    currstoreTarget: totalstoreTarget ? +totalstoreTarget : 0,
                 },
                 salesTarget: {
                     currSalesTarget: totalOrderTarget ? +totalOrderTarget : 0,
@@ -1304,24 +1303,24 @@ class ProfileController {
             const startTimeline = new Date(Date.UTC(currentYear, monthIndex, dayIndex)).toISOString();
             const endTimeline = new Date(Date.UTC(currentYear, monthIndex, dayIndex, 23, 59, 59, 999)).toISOString();
 
-            // const plannedStores = await this.getVisitRepository.count({
+            // const plannedstores = await this.getVisitRepository.count({
             //     where: {
             //         visitDate: Between(startOfDay(new Date()), endOfDay(new Date())),
             //         empId: emp_id
             //     }
             // })
-            const plannedStores = await this.getVisitRepository
+            const plannedstores = await this.getVisitRepository
                 .createQueryBuilder('visits')
                 .where('visits.visitDate BETWEEN :startTimeline AND :endTimeline', { startTimeline, endTimeline })
                 .andWhere('visits.empId = :empId', { empId: emp_id })
                 .getCount();
-            const visitedStores = await this.getVisitRepository.createQueryBuilder('visits')
+            const visitedstores = await this.getVisitRepository.createQueryBuilder('visits')
                 .where('visits.status = :status', { status: VisitStatus.COMPLETE })
                 .andWhere('visits.visitDate BETWEEN :startTimeline AND :endTimeline', { startTimeline, endTimeline })
                 .andWhere('visits.empId = :empId', { empId: emp_id })
                 .getCount();
 
-            const newStores = await this.getStoreRepositry
+            const newstores = await this.getstoreRepositry
                 .createQueryBuilder('stores')
                 .where('stores.createdAt BETWEEN :startTimeline AND :endTimeline', { startTimeline, endTimeline })
                 .andWhere('stores.empId = :empId', { empId: emp_id })
@@ -1354,9 +1353,9 @@ class ProfileController {
                 .andWhere("orders.orderStatus NOT IN (:...statuses)", { statuses: [OrderStatus.CANCELLED, OrderStatus.ORDERSAVED] })
                 .getCount()
             const data = {
-                plannedStores: +plannedStores,
-                visitedStores: +visitedStores,
-                newStores: +newStores,
+                plannedstores: +plannedstores,
+                visitedstores: +visitedstores,
+                newstores: +newstores,
                 totalOrder: +totalOrder,
                 visitOrder: +visitOrder,
                 phoneOrder: +phoneOrder
@@ -1461,7 +1460,7 @@ class ProfileController {
             const targets = currTarget.map((data: any) => data.target);
 
             const allTargets = targets.flat(); // Assuming targets is an array of arrays
-            const totalStoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
+            const totalstoreTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.storeTarget || 0), 0);
             const totalCollectionTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.collectionTarget || 0), 0);
             const totalOrderTarget = allTargets.reduce((acc: number, item: any) => acc + Number(item?.orderTarget || 0), 0);
 
@@ -1480,9 +1479,9 @@ class ProfileController {
             }
             const orders = await ordersQueryBuilder.getRawOne();
 
-            const storesQueryBuilder = this.getStoreRepositry.createQueryBuilder('stores')
+            const storesQueryBuilder = this.getstoreRepositry.createQueryBuilder('stores')
                 .select("stores.empId", "empId")
-                .addSelect("COUNT(stores.storeId)", "totalStoreCount")
+                .addSelect("COUNT(stores.storeId)", "totalstoreCount")
                 .where("stores.empId = :empId", { empId: emp_id })
                 .groupBy("stores.empId");
 
@@ -1497,8 +1496,8 @@ class ProfileController {
                     achieved: orders ? +orders.totalAmount : 0
                 },
                 storeTarget: {
-                    target: totalStoreTarget ? +totalStoreTarget : 0,
-                    achieved: stores ? +stores.totalStoreCount : 0
+                    target: totalstoreTarget ? +totalstoreTarget : 0,
+                    achieved: stores ? +stores.totalstoreCount : 0
                 },
                 collectionTarget: {
                     target: totalCollectionTarget ? +totalCollectionTarget : 0,

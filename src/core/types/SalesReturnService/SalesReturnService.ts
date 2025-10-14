@@ -8,7 +8,7 @@ export class CreateSalesReturn {
 
 	@IsInt()
 	@IsNotEmpty()
-	customerId: number;
+	storeId: number;
 
 	@IsOptional()
 	@IsInt()
@@ -39,7 +39,7 @@ export class UpdateSalesReturn {
 
 	@IsOptional()
 	@IsInt()
-	customerId?: number;
+	storeId?: number;
 
 	@IsOptional()
 	@IsDateString()
@@ -74,7 +74,7 @@ export class ListSalesReturnsFilter {
 
 	@IsOptional()
 	@IsInt()
-	customerId?: number;
+	storeId?: number;
 
 	@IsOptional()
 	@IsInt()

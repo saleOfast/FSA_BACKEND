@@ -10,17 +10,17 @@ import { monthlyFilter, ReportFilter } from "../../../../core/types/AttendanceSe
 import { dayTrackingFilter } from "../../../../core/types/VisitService/VisitService";
 const router = express.Router();
 
-router.post('/create', validateDtoMiddleware(CreateOrder), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: CreateOrder = RequestHandler.Defaults.getBody<CreateOrder>(req, CreateOrder);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const orderService = new OrderService();
-        const data = await orderService.createOrder(input, payload);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.post('/create', validateDtoMiddleware(CreateOrder), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: CreateOrder = RequestHandler.Defaults.getBody<CreateOrder>(req, CreateOrder);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const orderService = new OrderService();
+//         const data = await orderService.createOrder(input, payload);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.get('/getOrderById/:orderId', validateDtoMiddleware(GetOrderById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
     try {
@@ -92,28 +92,28 @@ router.get('/collectionList/:orderId', validateDtoMiddleware(OrderList), AccessT
     }
 });
 
-router.get('/collectionByStore/:storeId', validateDtoMiddleware(CollectionListByStore), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const storeId: string = req.params.storeId;
+// router.get('/collectionByStore/:storeId', validateDtoMiddleware(CollectionListByStore), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const storeId: string = req.params.storeId;
 
-        // Extract query parameters
-        const queryParams: CollectionListByStore = req.query as unknown as CollectionListByStore;
+//         // Extract query parameters
+//         const queryParams: CollectionListByStore = req.query as unknown as CollectionListByStore;
 
-        // Alternatively, you can access individual query parameters like req.query.paramName
+//         // Alternatively, you can access individual query parameters like req.query.paramName
 
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const orderService = new OrderService();
-        const data = await orderService.collectionListByStoreId({ ...queryParams, storeId }, payload);
-        ResponseHandler.sendResponse(res, data);
-        // const input: CollectionListByStore = RequestHandler.Defaults.getParams.getQuery<CollectionListByStore>(req, CollectionListByStore);
-        // const payload: IUser = RequestHandler.Custom.getUser(req);
-        // const orderService = new OrderService();
-        // const data = await orderService.collectionListByStoreId(input, payload);
-        // ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const orderService = new OrderService();
+//         const data = await orderService.collectionListByStoreId({ ...queryParams, storeId }, payload);
+//         ResponseHandler.sendResponse(res, data);
+//         // const input: CollectionListByStore = RequestHandler.Defaults.getParams.getQuery<CollectionListByStore>(req, CollectionListByStore);
+//         // const payload: IUser = RequestHandler.Custom.getUser(req);
+//         // const orderService = new OrderService();
+//         // const data = await orderService.collectionListByStoreId(input, payload);
+//         // ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 // update collection
 router.put('/collection', validateDtoMiddleware(UpdateOrderCollection), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {

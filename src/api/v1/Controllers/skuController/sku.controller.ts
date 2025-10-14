@@ -228,43 +228,66 @@ async getSkuList(input: GetSkuListRequest): Promise<IApiResponse> {
   }
 }
 async getStatus(input: GetStatusRequest, payload: IUser): Promise<IApiResponse> {
-
-    try {
-      if (!input.skuId && !input.skuNumber) {
-        return { status: 400, message: "skuId or skuNumber must be provided", data: [] };
-      }
-
-      const query = this.SkuRepository
-        .createQueryBuilder("sku")
-        .leftJoinAndSelect("sku.product", "product")
-        .leftJoinAndSelect("sku.warehouse", "warehouse");
-
-      if (input.skuId) query.andWhere("sku.id = :skuId", { skuId: input.skuId });
-      if (input.skuNumber) query.andWhere("sku.skuNumber = :skuNumber", { skuNumber: input.skuNumber });
-
-      const sku = await query.getOne();
-
-      if (!sku) return { status: 404, message: "SKU not found", data: [] };
-
+  try {
+    if (!input.status) {
       return {
-        status: 200,
-        message: sku.isActive && !sku.isDeleted ? "SKU is active" :
-                 !sku.isActive && sku.isDeleted ? "SKU is inactive and deleted" :
-                 "SKU exists but has mixed status",
-        data: {
-          skuId: sku.id,
-          skuNumber: sku.skuNumber,
-          isActive: sku.isActive,
-          isDeleted: sku.isDeleted,
-          product: sku.product,
-          warehouse: sku.warehouse
-        }
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Status is required (Active / Inactive)",
+        data: [],
       };
-    } catch (error) {
-      console.error("Error fetching SKU status:", error);
-      return { status: 500, message: "Failed to fetch SKU status", data: [] };
     }
+
+    // Normalize input to lower case
+    const statusLower = input.status.toLowerCase();
+
+    let isActiveFilter: boolean;
+    if (statusLower === "active") {
+      isActiveFilter = true;
+    } else if (statusLower === "inactive") {
+      isActiveFilter = false;
+    } else {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Invalid status. Allowed values: Active, Inactive",
+        data: [],
+      };
+    }
+
+    // Fetch SKUs by isActive
+    const skus = await this.SkuRepository
+      .createQueryBuilder("sku")
+      .leftJoinAndSelect("sku.product", "product")
+      .leftJoinAndSelect("sku.warehouse", "warehouse")
+      .where("sku.isActive = :isActive", { isActive: isActiveFilter })
+      .orderBy("sku.skuNumber", "ASC")
+      .getMany();
+
+    if (!skus.length) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: `No ${statusLower} SKUs found`,
+        data: [],
+      };
+    }
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: `${statusLower} SKUs fetched successfully`,
+      data: skus.map(sku => ({
+        skuId: sku.id,
+        skuNumber: sku.skuNumber,
+        isActive: sku.isActive,
+        product: sku.product,
+        warehouse: sku.warehouse,
+      })),
+    };
+  } catch (error: any) {
+    console.error("Error fetching SKUs by status:", error);
+    throw error;
   }
+}
+
+
 }
 
 

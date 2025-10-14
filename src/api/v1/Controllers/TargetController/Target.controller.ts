@@ -5,12 +5,12 @@ import { CreateTarget, DeleteTarget, GetAllTarget, GetTarget, ITarget, UpdateTar
 import { Target, TargetRepository } from "../../../../core/DB/Entities/target.entity";
 import { UserRepository } from "../../../../core/DB/Entities/User.entity";
 import { OrdersRepository } from "../../../../core/DB/Entities/orders.entity";
-import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
+import { storeRepository } from "../../../../core/DB/Entities/stores.entity";
 class TargetController {
     private target = TargetRepository();
     private userRepositry = UserRepository();
     private getOrderRepositry = OrdersRepository();
-    private getStoreRepositry = StoreRepository();
+    private getstoreRepositry = storeRepository();
     constructor() { }
 
     // async add(input: CreateTarget, payload: IUser): Promise<IApiResponse> {
@@ -192,9 +192,9 @@ class TargetController {
                     .addGroupBy("user.storeTarget")
                     .getRawOne();
 
-                const storesTargetAchieved = await this.getStoreRepositry.createQueryBuilder('stores')
+                const storesTargetAchieved = await this.getstoreRepositry.createQueryBuilder('stores')
                     .select("stores.empId", "empId")
-                    .addSelect("COALESCE(COUNT(stores.storeId), 0)", "totalStoreCount")
+                    .addSelect("COALESCE(COUNT(stores.storeId), 0)", "totalstoreCount")
                     .where("stores.empId = :empId", { empId: targetLists.empId })
                     .andWhere("stores.createdAt >= :startDate", { startDate: startTimeline })
                     .andWhere("stores.createdAt <= :endDate", { endDate: endTimeline })
@@ -222,7 +222,7 @@ class TargetController {
                         totalCollectedAmount: orderTargetAchieved?.totalCollectedAmount ?? 0,
                         allTarget: targetLists?.target ?? [],
                     },
-                    achievedStores: storesTargetAchieved ? +storesTargetAchieved.totalStoreCount : 0
+                    achievedstores: storesTargetAchieved ? +storesTargetAchieved.totalstoreCount : 0
                 });
             }
             return { message: "Success.", status: STATUSCODES.SUCCESS, data: targetData };
@@ -316,16 +316,16 @@ class TargetController {
 
             try {
                 // Fetch store target data
-                storeTargetAchieved = await this.getStoreRepositry.createQueryBuilder('stores')
-                    .select("COALESCE(COUNT(stores.storeId), 0)", "totalStoreCount")
+                storeTargetAchieved = await this.getstoreRepositry.createQueryBuilder('stores')
+                    .select("COALESCE(COUNT(stores.storeId), 0)", "totalstoreCount")
                     .where("stores.empId = :empId", { empId: Number(empId) })
                     .andWhere("stores.createdAt >= :startDate", { startDate: startDateOfYear })
                     .andWhere("stores.createdAt <= :endDate", { endDate: endDateOfYear })
                     .groupBy("stores.empId")
-                    .getRawOne() || { totalStoreCount: 0 };
+                    .getRawOne() || { totalstoreCount: 0 };
             } catch (error) {
                 console.error("Error fetching store target data:", error);
-                storeTargetAchieved = { totalStoreCount: 0 }; // Default value
+                storeTargetAchieved = { totalstoreCount: 0 }; // Default value
             }
 
             try {
@@ -344,15 +344,15 @@ class TargetController {
             }
 
             const amountData = (Number(amountTargetAchieved?.totalAmount) / Number(targets.amountTarget)) * 100;
-            const storeData = (Number(storeTargetAchieved?.totalStoreCount) / Number(targets.storeTarget)) * 100;
+            const storeData = (Number(storeTargetAchieved?.totalstoreCount) / Number(targets.storeTarget)) * 100;
 
             const targetData = {
                 amountData: !isNaN(amountData) ? amountData?.toFixed(2) ?? "" : 0,
                 storeData: !isNaN(storeData) ? storeData?.toFixed(2) ?? "" : 0,
                 achievedAmount: amountTargetAchieved.totalAmount ?? 0,
                 targetAmount: targets.amountTarget ?? 0,
-                achievedStore: storeTargetAchieved.totalStoreCount ?? 0,
-                targetStore: targets.storeTarget ?? 0
+                achievedstore: storeTargetAchieved.totalstoreCount ?? 0,
+                targetstore: targets.storeTarget ?? 0
             };
             return { message: "Success.", status: STATUSCODES.SUCCESS, data: targetData };
         } catch (error) {

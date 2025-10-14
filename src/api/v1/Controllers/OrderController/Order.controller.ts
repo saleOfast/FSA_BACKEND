@@ -1,10 +1,12 @@
-import { AddScreenshot, CollectionListByStore, CollectionListFilter, CreateOrder, GetDiscount, GetOrderById, IOrders, OrderList, OrderListByStore, OrderListByVisit, OrderListFilter, Products, StatusHistoryEntry, UpdateOrderBySpecialDiscountById, UpdateOrderCollection, UpdateOrderTrackStatusById } from "../../../../core/types/OrderService/OrderService";
+import { AddScreenshot, CollectionListFilter, CreateOrder, GetDiscount, GetOrderById, IOrders, OrderList,  OrderListByVisit, OrderListByStore, OrderListFilter, Products, StatusHistoryEntry, UpdateOrderBySpecialDiscountById, UpdateOrderCollection, UpdateOrderTrackStatusById } from "../../../../core/types/OrderService/OrderService";
 import { Orders, OrdersRepository } from "../../../../core/DB/Entities/orders.entity";
 import { DiscountType, DurationEnum, OrderStatus, PaymentStatus, STATUSCODES, TimelineEnum, UserRole } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
-import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
-import { ICollectionResponse, IStore } from "../../../../core/types/StoreService/StoreService";
+import { CustomerRepository } from "../../../../core/DB/Entities/customer.entity";
+import {  ICustomer } from '../../../../core/types/CustomerService/CustomerService';
+import { Customer } from "../../../../core/DB/Entities/customer.entity";
+
 import { dayTrackingFilter, IVisit, UpdateImage } from "../../../../core/types/VisitService/VisitService";
 import { VisitRepository } from "../../../../core/DB/Entities/Visit.entity";
 import { ProductRepository } from "../../../../core/DB/Entities/products.entity";
@@ -20,7 +22,7 @@ import { IBeat } from "core/types/BeatService/Beat";
 
 class OrderController {
     private orderRepositry = OrdersRepository();
-    private storeRepositry = StoreRepository();
+    private CustomerRepositry = CustomerRepository();
     private visitRepositry = VisitRepository();
     private productResposity = ProductRepository();
     private paymentRepositry = PaymentRepository();
@@ -32,11 +34,11 @@ class OrderController {
 
     async createOrder(input: CreateOrder, payload: IUser): Promise<IApiResponse> {
         try {
-            const { orderId, storeId, orderDate, orderAmount, visitId, isCallType, products, orderStatus, isVisibility, netAmount, pieceDiscount } = input;
+            const { orderId, customerId, orderDate, orderAmount, visitId, isCallType, products, orderStatus, isVisibility, netAmount, pieceDiscount } = input;
             const { emp_id } = payload;
-            const store: IStore | null = await this.storeRepositry.findOne({ where: { storeId }, relations: ["storeCat"] });
-            if (!store) {
-                return { message: "Store Not Found.", status: STATUSCODES.NOT_FOUND }
+            const customer: ICustomer | null = await this.CustomerRepositry.findOne({ where: { id:customerId }, relations: ["storeCat"] });
+            if (!customer) {
+                return { message: "customer Not Found.", status: STATUSCODES.NOT_FOUND }
             }
 
             // const visit: IVisit | null = await this.visitRepositry.findOne({ where: { visitId } })
@@ -71,39 +73,39 @@ class OrderController {
                 index++;
             }
 
-            let OrderValueDiscount: number = 0;
-            const flatDiscount = await this.getFlatDiscount(store, orderAmount);
-            OrderValueDiscount = flatDiscount.netAmount;
-            let visibDiscountValue = 0;
-            if (isVisibility) {
-                const visibDiscount = await this.getVisibilityDiscount(store, OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount);
-                OrderValueDiscount = visibDiscount.netAmount;
-                visibDiscountValue = visibDiscount.discountValue;
-            }
+            // let OrderValueDiscount: number = 0;
+            // const flatDiscount = await this.getFlatDiscount(customer, orderAmount);
+            // OrderValueDiscount = flatDiscount.netAmount;
+            // let visibDiscountValue = 0;
+            // if (isVisibility) {
+            //     const visibDiscount = await this.getVisibilityDiscount(customer, OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount);
+            //     OrderValueDiscount = visibDiscount.netAmount;
+            //     visibDiscountValue = visibDiscount.discountValue;
+//             // }
+// // 
+//             let skuDiscountValue = 0;
+//             let discountOnOrderValue = 0;
+//             if (!customer.isPremiumcustomer) {
+//                 const skuDiscount = await this.getSkuDiscount(products, OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount);
+//                 OrderValueDiscount = skuDiscount.netAmount; skuDiscountValue = skuDiscount.discountValue;
+//                 const orderValueDiscount = await this.getOrderValueDiscount(Customer, OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount);
+//                 OrderValueDiscount = orderValueDiscount.netAmount; discountOnOrderValue = orderValueDiscount.discountValue;
+//             }
 
-            let skuDiscountValue = 0;
-            let discountOnOrderValue = 0;
-            if (!store.isPremiumStore) {
-                const skuDiscount = await this.getSkuDiscount(products, OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount);
-                OrderValueDiscount = skuDiscount.netAmount; skuDiscountValue = skuDiscount.discountValue;
-                const orderValueDiscount = await this.getOrderValueDiscount(store, OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount);
-                OrderValueDiscount = orderValueDiscount.netAmount; discountOnOrderValue = orderValueDiscount.discountValue;
-            }
-
-            if (pieceDiscount > 0) {
-                let dis = OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount
-                OrderValueDiscount = dis - pieceDiscount;
-                //  discountOnOrderValue = pieceDiscount
-            }
+            // if (pieceDiscount > 0) {
+            //     let dis = OrderValueDiscount != 0 ? OrderValueDiscount : orderAmount
+            //     OrderValueDiscount = dis - pieceDiscount;
+            //     //  discountOnOrderValue = pieceDiscount
+            // }
             if (orderAmount != totalOrderAmount) {
                 return { message: "Order amount is not correct.", status: STATUSCODES.BAD_REQUEST }
             }
-            const checkNetPrice: number = OrderValueDiscount != 0 ? OrderValueDiscount : 0;
+            // const checkNetPrice: number = OrderValueDiscount != 0 ? OrderValueDiscount : 0;
             // console.log({checkNetPrice,netAmount, pieceDiscount})
 
-            if (checkNetPrice !== netAmount) {
-                return { message: "Net amount is not correct.", status: STATUSCODES.BAD_REQUEST }
-            }
+            // if (checkNetPrice !== netAmount) {
+            //     return { message: "Net amount is not correct.", status: STATUSCODES.BAD_REQUEST }
+            // }
 
             if (orderId) {
 
@@ -113,7 +115,7 @@ class OrderController {
                     return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
                 }
 
-                existingOrder.storeId = storeId;
+                existingOrder.customerId;
                 existingOrder.visitId = visitId;
                 existingOrder.isCallType = isCallType
                 existingOrder.empId = emp_id;
@@ -123,12 +125,12 @@ class OrderController {
                 existingOrder.products = products;
                 existingOrder.orderStatus = orderStatus;
                 existingOrder.netAmount = netAmount;
-                existingOrder.skuDiscountValue = skuDiscountValue;
-                existingOrder.visibilityDiscountValue = visibDiscountValue;
-                existingOrder.flatDiscountValue = flatDiscount.discountValue;
-                existingOrder.orderValueDiscountValue = discountOnOrderValue;
-                existingOrder.pieceDiscount = pieceDiscount;
-                existingOrder.totalDiscountAmount = Number((skuDiscountValue + visibDiscountValue + flatDiscount.discountValue + discountOnOrderValue).toFixed(2))
+                // existingOrder.skuDiscountValue = skuDiscountValue;
+                // existingOrder.visibilityDiscountValue = visibDiscountValue;
+                // existingOrder.flatDiscountValue = flatDiscount.discountValue;
+                // existingOrder.orderValueDiscountValue = discountOnOrderValue;
+                // existingOrder.pieceDiscount = pieceDiscount;
+                // existingOrder.totalDiscountAmount = Number((skuDiscountValue + visibDiscountValue + flatDiscount.discountValue + discountOnOrderValue).toFixed(2))
 
                 await this.orderRepositry.save(existingOrder);
 
@@ -136,7 +138,7 @@ class OrderController {
             }
 
             const newOrder = new Orders();
-            newOrder.storeId = storeId;
+            newOrder.customerId = Number(customerId);
             newOrder.visitId = visitId;
             newOrder.isCallType = isCallType
             newOrder.empId = emp_id;
@@ -146,16 +148,16 @@ class OrderController {
             newOrder.products = products;
             newOrder.orderStatus = orderStatus;
             newOrder.netAmount = netAmount;
-            newOrder.skuDiscountValue = skuDiscountValue;
-            newOrder.visibilityDiscountValue = visibDiscountValue;
-            newOrder.flatDiscountValue = flatDiscount.discountValue;
-            newOrder.orderValueDiscountValue = discountOnOrderValue;
-            newOrder.pieceDiscount = pieceDiscount;
-            newOrder.totalDiscountAmount = Number((skuDiscountValue + visibDiscountValue + flatDiscount.discountValue + discountOnOrderValue).toFixed(2))
+            // newOrder.skuDiscountValue = skuDiscountValue;
+            // newOrder.visibilityDiscountValue = visibDiscountValue;
+            // newOrder.flatDiscountValue = flatDiscount.discountValue;
+            // newOrder.orderValueDiscountValue = discountOnOrderValue;
+            // newOrder.pieceDiscount = pieceDiscount;
+            // newOrder.totalDiscountAmount = Number((skuDiscountValue + visibDiscountValue + flatDiscount.discountValue + discountOnOrderValue).toFixed(2))
 
             const order = await this.orderRepositry.save(newOrder);
             // const inventoryService = new InventoryService();
-            // await inventoryService.saveInventoryByStoreId(products, storeId, emp_id);
+            // await inventoryService.saveInventoryBystoreId(products, storeId, emp_id);
 
 
             return { message: "Success.", status: STATUSCODES.SUCCESS, data: order }
@@ -164,57 +166,57 @@ class OrderController {
         }
     }
 
-    async getOrderValueDiscount(store: IStore, amount: number): Promise<GetDiscount> {
-        try {
-            const { orderValueDiscount, isActiveOrderValueDiscount } = store;
+    // async getOrderValueDiscount(store: ICustomer, amount: number): Promise<GetDiscount> {
+    //     try {
+    //         const { orderValueDiscount, isActiveOrderValueDiscount } = store;
 
-            let orderValueDis: number = 0;
+    //         let orderValueDis: number = 0;
 
-            if (isActiveOrderValueDiscount == true && orderValueDiscount) {
-                for (let item of orderValueDiscount) {
-                    const [min, max] = item.amountRange.split('-').map(Number);
-                    const range = { min, max };
-                    if (amount > range.min && amount < range.max) {
-                        orderValueDis = item.discountType == DiscountType.PERCENTAGE ? (amount * item.value / 100) : item.value
-                    }
-                }
-            }
+    //         if (isActiveOrderValueDiscount == true && orderValueDiscount) {
+    //             for (let item of orderValueDiscount) {
+    //                 const [min, max] = item.amountRange.split('-').map(Number);
+    //                 const range = { min, max };
+    //                 if (amount > range.min && amount < range.max) {
+    //                     orderValueDis = item.discountType == DiscountType.PERCENTAGE ? (amount * item.value / 100) : item.value
+    //                 }
+    //             }
+    //         }
 
-            return { netAmount: amount - orderValueDis, discountValue: orderValueDis };
-        } catch (error) {
-            throw new Error(`Error: when calculating the Order value discount in order.`)
-        }
-    }
+    //         return { netAmount: amount - orderValueDis, discountValue: orderValueDis };
+    //     } catch (error) {
+    //         throw new Error(`Error: when calculating the Order value discount in order.`)
+    //     }
+    // }
 
-    async getFlatDiscount(store: IStore, amount: number): Promise<GetDiscount> {
-        try {
-            const { flatDiscount } = store;
-            let flatDiscountValue: number = 0;
+    // async getFlatDiscount(store: ICustomer, amount: number): Promise<GetDiscount> {
+    //     try {
+    //         const { flatDiscount } = store;
+    //         let flatDiscountValue: number = 0;
 
-            if (flatDiscount && flatDiscount.isActive == true) {
-                flatDiscountValue = flatDiscount.discountType == DiscountType.PERCENTAGE ? (amount * flatDiscount.value / 100) : flatDiscount.value
-            }
+    //         if (flatDiscount && flatDiscount.isActive == true) {
+    //             flatDiscountValue = flatDiscount.discountType == DiscountType.PERCENTAGE ? (amount * flatDiscount.value / 100) : flatDiscount.value
+    //         }
 
-            return { netAmount: amount - flatDiscountValue, discountValue: flatDiscountValue };
-        } catch (error) {
-            throw new Error(`Error: when calculating the Flat discount in order.`)
-        }
-    }
+    //         return { netAmount: amount - flatDiscountValue, discountValue: flatDiscountValue };
+    //     } catch (error) {
+    //         throw new Error(`Error: when calculating the Flat discount in order.`)
+    //     }
+    // }
 
-    async getVisibilityDiscount(store: IStore, amount: number): Promise<GetDiscount> {
-        try {
-            const { visibilityDiscount } = store;
-            let visibDiscount: number = 0;
+    // async getVisibilityDiscount(store: ICustomer, amount: number): Promise<GetDiscount> {
+    //     try {
+    //         const { visibilityDiscount } = store;
+    //         let visibDiscount: number = 0;
 
-            if (visibilityDiscount) {
-                visibDiscount = visibilityDiscount.discountType == DiscountType.PERCENTAGE ? (amount * visibilityDiscount.value / 100) : visibilityDiscount.value
-            }
+    //         if (visibilityDiscount) {
+    //             visibDiscount = visibilityDiscount.discountType == DiscountType.PERCENTAGE ? (amount * visibilityDiscount.value / 100) : visibilityDiscount.value
+    //         }
 
-            return { netAmount: amount - visibDiscount, discountValue: visibDiscount };
-        } catch (error) {
-            throw new Error(`Error: when calculating the visibility discount in order.`);
-        }
-    }
+    //         return { netAmount: amount - visibDiscount, discountValue: visibDiscount };
+    //     } catch (error) {
+    //         throw new Error(`Error: when calculating the visibility discount in order.`);
+    //     }
+    // }
 
     async getSkuDiscount(products: Products[], amount: number): Promise<GetDiscount> {
         try {
@@ -258,7 +260,7 @@ class OrderController {
     async listByStoreId(input: OrderListByStore, payload: any): Promise<IApiResponse> {
         try {
             const { role, emp_id } = payload;
-            const { storeId } = input;
+            const { customerId } = input;
             let fitlerQuery: any = {};
             // if (role === UserRole.RSM) {
             //     const ordersIds: any = await this.orderRepositry.createQueryBuilder("orders")
@@ -281,7 +283,7 @@ class OrderController {
                 .leftJoinAndSelect("orders.store", "store")
                 .leftJoinAndSelect("orders.visit", "visit")
                 .select(["orders.orderId", "orders.orderAmount", "orders.orderDate", "visit.visitDate", "orders.orderStatus", "orders.netAmount", "orders.paymentStatus", "orders.collectedAmount", "orders.products"]) // specify the fields you need
-                .where("orders.storeId = :storeId", { storeId: Number(storeId) })
+                .where("orders.storeId = :storeId", { customerId: Number(customerId) })
 
             // if(role === UserRole.RSM){
             //     queryBuilder.andWhere("orders.orderId IN (:...orderId)", { orderId: fitlerQuery.orderId });
@@ -302,9 +304,9 @@ class OrderController {
 
     async orderListByVisitId(input: OrderListByVisit): Promise<IApiResponse> {
         try {
-            const { visitId, storeId } = input;
+            const { visitId, customerId } = input;
             const order: number | null = await this.orderRepositry.count({
-                where: { visitId: Number(visitId), storeId: Number(storeId) }
+                where: { visitId: Number(visitId), customerId: Number(customerId) }
             })
             return { message: "Success.", status: STATUSCODES.SUCCESS, data: order }
         } catch (error) {
@@ -353,7 +355,7 @@ class OrderController {
                 orderId: Number(orderId),
                 // empId: emp_id
             }
-            const orders: Orders | null = await this.orderRepositry.findOne({ where: queryFilter, relations: ["store", "visit"] });
+            const orders: Orders | null = await this.orderRepositry.findOne({ where: queryFilter, relations: ["visit"] });
 
 
             return { message: "Success.", status: STATUSCODES.SUCCESS, data: orders }
@@ -525,16 +527,14 @@ class OrderController {
             }
 
             let buildQuery: any = await this.orderRepositry.createQueryBuilder("orders")
-                .leftJoinAndSelect("orders.store", "store")
                 .select([
                     "orders.orderId",
+                    "orders.storeId",
                     "orders.collectedAmount",
                     "orders.orderAmount",
                     "orders.netAmount",
                     "orders.updatedAt",
                     "orders.createdAt",
-                    "store.storeId",
-                    "store.storeName",
                 ]).addSelect(`CASE 
                     WHEN orders.netAmount > orders.collectedAmount THEN 'PENDING'
                     ELSE 'PAID'
@@ -562,15 +562,8 @@ class OrderController {
                 const totalCollectedAmount = order.collectedAmount;
                 const totalAmount = order.orderAmount;
                 const netAmount = order.netAmount;
-                const store: any = await this.storeRepositry.findOne({
-                    select: ["storeName", "storeId"],
-                    where: { storeId: order.store.storeId }, relations: ["storeCat"]
-                });
                 collection.push({
                     orderId: order.orderId,
-                    storeId: store!.storeId,
-                    storeName: store!.storeName,
-                    storeType: (store as any).storeCat.categoryName as string,
                     pendingAmount: Number(netAmount) - Number(totalCollectedAmount),
                     totalOrderAmount: Number(totalAmount),
                     totalCollectedAmount: Number(totalCollectedAmount),
@@ -596,72 +589,72 @@ class OrderController {
         }
     }
 
-    async collectionListByStoreId(input: CollectionListByStore, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { emp_id, role } = payload;
-            let { storeId, status } = input;
-            let fitlerQuery: any = {};
-            // if (role === UserRole.RSM) {
-            //     const ordersIds: any = await this.orderRepositry.createQueryBuilder("orders")
-            //         // .leftJoinAndSelect("orders.store", "store")
-            //         .leftJoin("orders.user", "user")
-            //         .where("user.managerId = :managerId", { managerId: emp_id })
-            //         .select("orders.orderId")
-            //         .getMany()
-            //         .then((orders: IOrders[]) => orders.map(order => order.orderId));
+    // async collectionListByStoreId(input: CollectionListByStore, payload: IUser): Promise<IApiResponse> {
+    //     try {
+    //         const { emp_id, role } = payload;
+    //         let { storeId, status } = input;
+    //         let fitlerQuery: any = {};
+    //         // if (role === UserRole.RSM) {
+    //         //     const ordersIds: any = await this.orderRepositry.createQueryBuilder("orders")
+    //         //         // .leftJoinAndSelect("orders.store", "store")
+    //         //         .leftJoin("orders.user", "user")
+    //         //         .where("user.managerId = :managerId", { managerId: emp_id })
+    //         //         .select("orders.orderId")
+    //         //         .getMany()
+    //         //         .then((orders: IOrders[]) => orders.map(order => order.orderId));
 
 
-            //     if (ordersIds.length > 0) {
-            //         fitlerQuery.orderId = ordersIds;
-            //     } else {
-            //         return { message: "No visitIds found for admin user.", status: STATUSCODES.NOT_FOUND };
-            //     }
-            // }
-            let buildQuery: any = this.orderRepositry.createQueryBuilder("orders")
-                .leftJoinAndSelect("orders.store", "store")
-                .where("store.storeId = :storeId", { storeId })
-                .andWhere("orders.orderStatus NOT IN (:...statuses)", { statuses: [OrderStatus.CANCELLED, OrderStatus.ORDERSAVED] })
+    //         //     if (ordersIds.length > 0) {
+    //         //         fitlerQuery.orderId = ordersIds;
+    //         //     } else {
+    //         //         return { message: "No visitIds found for admin user.", status: STATUSCODES.NOT_FOUND };
+    //         //     }
+    //         // }
+    //         let buildQuery: any = this.orderRepositry.createQueryBuilder("orders")
+    //             .leftJoinAndSelect("orders.store", "store")
+    //             .where("store.storeId = :storeId", { storeId })
+    //             .andWhere("orders.orderStatus NOT IN (:...statuses)", { statuses: [OrderStatus.CANCELLED, OrderStatus.ORDERSAVED] })
 
 
-            // if (role === UserRole.RSM) {
-            //     buildQuery.andWhere("orders.orderId IN (:...orderId)", { orderId: fitlerQuery.orderId });
-            // } else if (role === UserRole.SSM) {
-            //     buildQuery.andWhere("orders.empId = :empId", { empId: emp_id });
-            // }
+    //         // if (role === UserRole.RSM) {
+    //         //     buildQuery.andWhere("orders.orderId IN (:...orderId)", { orderId: fitlerQuery.orderId });
+    //         // } else if (role === UserRole.SSM) {
+    //         //     buildQuery.andWhere("orders.empId = :empId", { empId: emp_id });
+    //         // }
 
-            // Execute the query
-            const orders = await buildQuery.getMany();
+    //         // Execute the query
+    //         const orders = await buildQuery.getMany();
 
-            let collection: ICollectionResponse[] = [];
+    //         let collection: ICollectionResponse[] = [];
 
-            for (let order of orders) {
-                const totalCollectedAmount = order.collectedAmount;
-                const totalAmount = order.orderAmount;
-                const netAmount = order.netAmount;
+    //         for (let order of orders) {
+    //             const totalCollectedAmount = order.collectedAmount;
+    //             const totalAmount = order.orderAmount;
+    //             const netAmount = order.netAmount;
 
-                let stores: any = order?.store;
-                const store: IStore | null = await this.storeRepositry.findOne({ where: { storeId: stores.storeId }, relations: ["storeCat"] });
-                collection.push({
-                    orderId: order.orderId,
-                    storeId: store!.storeId,
-                    storeName: store!.storeName,
-                    storeType: (store as any).storeCat.categoryName as string,
-                    pendingAmount: Number(netAmount) - Number(totalCollectedAmount),
-                    totalOrderAmount: Number(totalAmount),
-                    totalCollectedAmount: Number(totalCollectedAmount),
-                    netAmount: Number(netAmount),
-                    status: Number(netAmount) > Number(totalCollectedAmount) ? "PENDING" : "PAID"
-                });
-            }
-            if (status) {
-                collection = collection.filter(e => e.status === status);
-            }
+    //             let stores: any = order?.store;
+    //             const store: IStore | null = await this.storeRepositry.findOne({ where: { storeId: stores.storeId }, relations: ["storeCat"] });
+    //             collection.push({
+    //                 orderId: order.orderId,
+    //                 storeId: store!.storeId,
+    //                 storeName: store!.storeName,
+    //                 storeType: (store as any).storeCat.categoryName as string,
+    //                 pendingAmount: Number(netAmount) - Number(totalCollectedAmount),
+    //                 totalOrderAmount: Number(totalAmount),
+    //                 totalCollectedAmount: Number(totalCollectedAmount),
+    //                 netAmount: Number(netAmount),
+    //                 status: Number(netAmount) > Number(totalCollectedAmount) ? "PENDING" : "PAID"
+    //             });
+    //         }
+    //         if (status) {
+    //             collection = collection.filter(e => e.status === status);
+    //         }
 
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: collection };
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: collection };
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async getAllOrders(input: OrderListFilter, payload: IUser): Promise<IApiResponse> {
         try {
@@ -762,7 +755,7 @@ class OrderController {
             await OrdersRepository().update(orderId, { statusHistory: updatedStatusHistory });
             if (orderStatus === OrderStatus.DELIVERED) {
                 const inventoryService = new InventoryService();
-                await inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
+                await inventoryService.saveInventoryByStoreId(order.products, order.customerId, order.empId);
             }
             return { message: "Success.", status: STATUSCODES.SUCCESS };
         } catch (error) {
@@ -1185,32 +1178,8 @@ class OrderController {
     }
     async getUnbilledStoreReport(payload: IUser): Promise<IApiResponse> {
         try {
-            const { role, emp_id } = payload;
-            const userLists: IUser[] | null = await this.userRepository.find({ where: { managerId: emp_id } });
-            const empIds = userLists.map((data: any) => data.emp_id);
-            const orderSubquery = this.orderRepositry.createQueryBuilder("orders")
-                .select("orders.storeId", "storeId")
-                .getQuery();
-            let unBilledQueryBuilder: any = await this.storeRepositry.createQueryBuilder('stores')
-                .leftJoinAndSelect('stores.user', 'user')  // Added this line assuming there is a relation between stores and user
-                .select('stores.storeName', 'storeName')
-                .addSelect('stores.createdAt', 'createdAt')
-                .addSelect('user.firstname', 'firstname')
-                .addSelect('user.lastname', 'lastname')
-                .addSelect('user.emp_id', 'empId')
-                .where(`stores.storeId NOT IN (${orderSubquery})`)
-                .andWhere('user.firstname IS NOT NULL')
-            // .andWhere("orders.orderStatus != :orderStatus", { orderStatus: OrderStatus.CANCELLED })
-
-
-            if (role === UserRole.RSM) {
-                unBilledQueryBuilder = unBilledQueryBuilder.andWhere("stores.empId IN (:...empIds)", { empIds })
-            }
-            if (role === UserRole.SSM || role === UserRole.RETAILER) {
-                unBilledQueryBuilder.andWhere("stores.empId = :empId", { empId: emp_id })
-            }
-            const unBilledStore: any = await unBilledQueryBuilder.getRawMany();
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: unBilledStore };
+            // Store-free implementation: not supported without store repository
+            return { message: "Success.", status: STATUSCODES.SUCCESS, data: [] };
         } catch (error) {
             throw error;
         }
@@ -1261,9 +1230,8 @@ class OrderController {
             const userLists: IUser[] | null = await this.userRepository.find({ where: { managerId: emp_id } });
             const empIds = userLists.map((data: any) => data.emp_id);
             let queryBuilder = (await this.orderRepositry.createQueryBuilder('orders')
-                .leftJoinAndSelect('orders.store', 'stores')
                 .leftJoinAndSelect('orders.user', 'user')
-                .select("COUNT(stores.storeId)", "newStore")
+                .select("COUNT(orders.orderId)", "newStore")
                 .addSelect('user.firstname', 'firstname')
                 .addSelect('user.lastname', 'lastname')
                 .addSelect('user.emp_id', 'empId')
@@ -1354,17 +1322,11 @@ class OrderController {
             const monthlyProgressReport: any = await queryBuilder.getRawMany();
             let visitList: any[] = [];
             for (let visit of monthlyProgressReport) {
-                const storeDetails: IStore | null = await this.storeRepositry.findOne({ where: { storeId: visit.storeId }, select: ['storeName'] });
-                if (!storeDetails) {
-                    return { message: `Store not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
-                }
-
                 let visitData: any = {
                     firstname: visit.firstname,
                     lastname: visit.lastname,
                     empId: visit.empId,
                     noOrderReason: visit.noOrderReason,
-                    storeName: storeDetails.storeName,
                     updatedAt: visit.updatedAt
                 }
                 visitList.push(visitData);

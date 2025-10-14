@@ -91,7 +91,7 @@ export class User extends BaseEntity implements IUser {
     @Column({ name: 'value_target', nullable: true })
     valueTarget: number
 
-    @Column({ name: 'store_target', nullable: true })
+    @Column({ name: 'storemer_target', nullable: true })
     storeTarget: number
 
     @Column({ name: 'learning_role', nullable: true })

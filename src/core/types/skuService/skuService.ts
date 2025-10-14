@@ -5,7 +5,6 @@ import {
   IsNumber,
   IsOptional,
   IsBoolean,
-  ValidateIf
 } from "class-validator";
 import { Type } from "class-transformer";
 
@@ -156,4 +155,8 @@ export class GetStatusRequest {
   @IsOptional()
   @IsString()
   skuNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: "Active" | "Inactive";
 }

@@ -18,7 +18,7 @@ class SalesReturnController {
 
 
 async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
-  const { orderId, customerId, returnDate, returnValue, creditNoteId, remarks, attachments } = input;
+  const { orderId, storeId, returnDate, returnValue, creditNoteId, remarks, attachments } = input;
   const { emp_id } = payload;
 
   // Check if the order already has a return request
@@ -31,14 +31,14 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
   const order = await this.orderRepo.findOne({ where: { orderId } });
   if (!order) return { status: STATUSCODES.NOT_FOUND, message: "Order not found." };
 
-  // Check if the customer exists
-  const customer = await this.storeRepo.findOne({ where: { storeId: customerId } });
-  if (!customer) return { status: STATUSCODES.NOT_FOUND, message: "Customer not found." };
+  // Check if the store exists
+  const store = await this.storeRepo.findOne({ where: { storeId: storeId } });
+  if (!store) return { status: STATUSCODES.NOT_FOUND, message: "store not found." };
 
   // Create the sales return entity
   const entity = new SalesReturn();
   entity.orderId = orderId;
-  entity.customerId = customerId;
+  entity.storeId = storeId;
   entity.returnDate = returnDate ? new Date(returnDate) : new Date();
   entity.remarks = remarks;
   entity.creditNoteId = creditNoteId ?? null;
@@ -56,16 +56,16 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
 }
 
 	async update(input: UpdateSalesReturn, payload: IUser): Promise<IApiResponse> {
-		const { returnId, customerId, returnDate, creditNoteId, remarks, attachments } = input;
+		const { returnId, storeId, returnDate, creditNoteId, remarks, attachments } = input;
 		const { emp_id } = payload;
 
 		const entity = await this.repo.findOne({ where: { returnId } });
 		if (!entity) return { status: STATUSCODES.NOT_FOUND, message: "Sales return not found." };
 
-		if (customerId) {
-			const customer = await this.storeRepo.findOne({ where: { storeId: customerId } });
-			if (!customer) return { status: STATUSCODES.NOT_FOUND, message: "Customer not found." };
-			entity.customerId = customerId;
+		if (storeId) {
+			const store = await this.storeRepo.findOne({ where: { storeId: storeId } });
+			if (!store) return { status: STATUSCODES.NOT_FOUND, message: "store not found." };
+			entity.storeId = storeId;
 		}
 		if (returnDate) entity.returnDate = new Date(returnDate);
 		if (typeof creditNoteId !== "undefined") entity.creditNoteId = creditNoteId ?? null;
@@ -123,10 +123,10 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
 	}
 
 	async list(filter: ListSalesReturnsFilter): Promise<IApiResponse> {
-		const { orderId, customerId, fromDate, toDate, page = 1, pageSize = 20 } = filter;
+		const { orderId, storeId, fromDate, toDate, page = 1, pageSize = 20 } = filter;
 		const where: FindOptionsWhere<SalesReturn> = {};
 		if (orderId) where.orderId = orderId;
-		if (customerId) where.customerId = customerId;
+		if (storeId) where.storeId = storeId;
 		if (fromDate && toDate) where.returnDate = Between(new Date(fromDate), new Date(toDate));
 
 		const [rows, total] = await this.repo.findAndCount({
@@ -176,7 +176,7 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
 	}
 
 	async getAnalytics(filter: GetSalesReturnAnalytics): Promise<IApiResponse> {
-		const { fromDate, toDate, customerId } = filter;
+		const { fromDate, toDate, storeId } = filter;
 		
 		// Set default date range if not provided (last 30 days)
 		const endDate = toDate ? new Date(toDate) : new Date();
@@ -187,8 +187,8 @@ async create(input: CreateSalesReturn, payload: IUser): Promise<IApiResponse> {
 			returnDate: Between(startDate, endDate)
 		};
 		
-		if (customerId) {
-			whereConditions.customerId = customerId;
+		if (storeId) {
+			whereConditions.storeId = storeId;
 		}
 		
 		// Get all returns in the period

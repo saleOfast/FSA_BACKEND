@@ -10,7 +10,7 @@ export class GetSalesReturnAnalytics {
     toDate?: string;
 
     @IsOptional()
-    customerId?: number;
+    storeId?: number;
 }
 
 export interface SalesReturnAnalyticsResponse {

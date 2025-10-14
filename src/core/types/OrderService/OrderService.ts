@@ -1,6 +1,6 @@
 import { Type } from "class-transformer";
 import { IsArray, IsBoolean, isEnum, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
-import { IStore } from "../StoreService/StoreService";
+// import { IStore } from "../storeService/StoreService";
 import { CallTypeOrders, CollectionStatus, DurationEnum, OrderStatus, PaymentStatus, SpecialDiscountStatus } from "../Constent/common";
 import { ISkuDiscount } from "../ProductService/ProductService";
 
@@ -80,9 +80,9 @@ export class CreateOrder {
     @IsNumber()
     orderId?: number
 
-    @IsNotEmpty()
+    @IsString()
     @IsNumber()
-    storeId: number;
+    customerId: string;
 
     @IsOptional()
     @IsEnum(CallTypeOrders)
@@ -158,7 +158,7 @@ export class CollectionListByStore {
 export class OrderListByStore {
     @IsNotEmpty()
     @IsString()
-    storeId: string;
+    customerId: string;
 }
 
 export class OrderListByVisit {
@@ -168,7 +168,7 @@ export class OrderListByVisit {
 
     @IsNotEmpty()
     @IsString()
-    storeId: string;
+    customerId: string;
 }
 
 export class OrderListFilter {
@@ -234,8 +234,8 @@ export interface IOrders {
     empId: number;
     visitId?: number;
     isCallType?: CallTypeOrders;
-    storeId: number;
-    store?: IStore;
+    // storeId: number;
+    // store?: IStore;
     orderDate: string;
     orderAmount: number;
     collectedAmount: number;

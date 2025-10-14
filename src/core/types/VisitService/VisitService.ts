@@ -1,8 +1,8 @@
 import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { CallType, DurationEnum, VisitStatus } from "../Constent/common";
-import { IStore } from "../StoreService/StoreService";
+// import { IStore } from "../StoreService/StoreService";
 import { User } from "../../../core/DB/Entities/User.entity";
-import { Stores } from "../../../core/DB/Entities/stores.entity";
+// import { Stores } from "../../../core/DB/Entities/stores.entity";
 
 export interface IActivity {
     action: string;
@@ -14,7 +14,7 @@ export interface IVisit {
     visitId: number;
     storeId?: number;
     store: number[];
-    stores?: Stores
+    // stores?: Stores
     user?: User;
     beat: number;
     empId: number;
@@ -53,7 +53,7 @@ export interface IVisitList {
     visitDate: Date,
     visitStatus: VisitStatus,
     beatDetails: BeatDetails,
-    storeDetails: IStore,
+    // storeDetails: IStore,
     image?: string,
     checkIn?: string,
     callType?: CallType

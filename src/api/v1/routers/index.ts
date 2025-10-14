@@ -3,7 +3,7 @@ import { UserRoute } from './AuthRoute/Auth.route';
 import { AttendanceRoute } from "./AttendanceRouter/Attendance.route";
 import { ProfileRoute } from "./AuthRoute/ProfileRouter/Profile.route";
 import { VisitRoute } from "./VisitRoute/Visit.route";
-import { StoreRoute } from "./StoreRouter/Store.route";
+import { StoreRoute } from "./StoreRoute/Store.route";
 import { BeatRoute } from "./BeatRouter/Beat.route";
 import { ProductRoute } from "./ProductRouter/Product.route";
 import { BrandRouter } from "./BrandRouter/Brand.route";
@@ -49,6 +49,10 @@ import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
 import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
 import { DistributorRouter } from "./DistributorRouter/Distributor.route";
 import { SkuRouter } from "./SkuRouter/sku.route";
+import {CustomerRoute } from "./CustomerRoute/customerRoute"
+import{PosmRoute} from "../routers/PosmRouter/Posm.router"
+import{DiscountRoute} from "../routers/DiscountRouter/discountRoute"
+import {AdminRouter} from "../routers/AdminDasRoute/AdminDas.route"
 
 
 const router = express.Router();
@@ -106,5 +110,9 @@ router.use('/salesReturn', SalesReturnRouter);
 router.use('/distributor', DistributorRouter);
 router.use('/inventoryItem',inventoryroute);
 router.use('/sku', SkuRouter);
+router.use('/customer',CustomerRoute )
+router.use('/posm',PosmRoute)
+router.use('/discount',DiscountRoute)
+router.use('/Admin',AdminRouter)
 
 export { router as routes };

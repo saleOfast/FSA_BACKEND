@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, ManyToOne, JoinColumn, BeforeUpdate } from "typeorm";
 import { DbConnections } from "../postgresdb";
 import { IOrders, Products } from "../../../core/types/OrderService/OrderService";
-import { Stores } from "./stores.entity";
+import { Customer } from "./customer.entity";
 import { Visits } from "./Visit.entity";
 import { CallType, CallTypeOrders, OrderStatus, PaymentStatus, SpecialDiscountStatus } from "../../../core/types/Constent/common";
 import { User } from "./User.entity";
@@ -18,12 +18,12 @@ export class Orders extends BaseEntity implements IOrders {
     @JoinColumn({ name: 'emp_id' })
     user?: User;
 
-    @Column({ name: 'store_id' })
-    storeId: number
+    @Column({ name: 'customer_id' })
+    customerId: number
 
-    @ManyToOne(() => Stores)
-    @JoinColumn({ name: 'store_id' })
-    store?: Stores;
+    @ManyToOne(() => Customer)
+    @JoinColumn({ name: 'customer_id' })
+    customer?: Customer;
 
     @Column({ name: 'is_call_type', type: 'enum', enum: CallType, nullable: true })
     isCallType: CallTypeOrders;

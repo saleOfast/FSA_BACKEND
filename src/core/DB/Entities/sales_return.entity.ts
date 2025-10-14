@@ -21,12 +21,12 @@ export class SalesReturn extends BaseEntity {
 	@JoinColumn({ name: 'order_id' })
 	order?: Orders;
 
-	@Column({ name: 'customer_id' })
-	customerId: number;
+	@Column({ name: 'store_id' })
+	storeId: number;
 
 	@ManyToOne(() => Stores, { onDelete: "SET NULL" })
-	@JoinColumn({ name: 'customer_id' })
-	customer?: Stores;
+	@JoinColumn({ name: 'store_id' })
+	store?: Stores;
 
 	@Column({ name: 'credit_note_id', type: 'int', nullable: true })
 	creditNoteId?: number | null;

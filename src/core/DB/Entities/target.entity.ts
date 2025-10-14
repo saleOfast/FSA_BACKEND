@@ -16,7 +16,7 @@ export class Target extends BaseEntity implements ITarget {
     @Column({ name: 'manager_id', nullable: true })
     managerId: number
 
-    @Column({ name: 'store_target', nullable: true })
+    @Column({ name: 'storemer_target', nullable: true })
     storeTarget: number
 
     @Column({ name: 'amount_target', nullable: true })

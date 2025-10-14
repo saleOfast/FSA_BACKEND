@@ -8,11 +8,13 @@ import { OrdersRepository } from "../../../../core/DB/Entities/orders.entity";
 import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
 import moment from "moment";
 import { Between } from "typeorm";
+
 class TargetController {
     private target = TargetRepository();
     private userRepositry = UserRepository();
     private getOrderRepositry = OrdersRepository();
     private getStoreRepositry = StoreRepository();
+
     constructor() { }
 
     async add(input: CreateTarget, payload: IUser): Promise<IApiResponse> {

@@ -5,17 +5,18 @@ import { CheckInRequest, CheckOutRequest, CreateVisit, GetVisitById, IVisit, IVi
 import { CallType, DurationEnum, STATUSCODES, UserRole, VisitStatus } from "../../../../core/types/Constent/common";
 import { endOfDay, startOfDay, subDays } from "date-fns";
 import { Between, In } from "typeorm";
-import { IStore } from "../../../../core/types/StoreService/StoreService";
-import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
+// import { IStore } from "../../../../core/types/StoreService/StoreService";
+// import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
+
 import { BeatRepository } from "../../../../core/DB/Entities/beat.entity";
 import { IBeat } from "../../../../core/types/BeatService/Beat";
 import { AttendanceRepository } from "../../../../core/DB/Entities/attendance.entity";
 import { UserRepository } from "../../../../core/DB/Entities/User.entity";
-import { StoreCategory } from "core/DB/Entities/storeCategory.entity";
+// import { storeCategory } from "core/DB/Entities/storeCategory.entity";
 
 class VisitController {
     private visitRepositry = VisitRepository();
-    private storeRepositry = StoreRepository();
+    // private storeRepositry = StoreRepository();
     private beatRepositry = BeatRepository();
     private attendance = AttendanceRepository();
     private userRepository = UserRepository();
@@ -116,14 +117,9 @@ class VisitController {
 
             let visitList: IVisitList[] = [];
             for (let visit of visits[0]) {
-                const storeDetails: IStore | null = await this.storeRepositry.findOne({ where: { storeId: visit.storeId }, relations: ["storeCat"] });
-                if (!storeDetails) {
-                    return { message: `Store not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
-                }
-
                 const beatDetails: IBeat | null = await this.beatRepositry.findOne({ where: { beatId: visit.beat } });
                 // if (!beatDetails) {
-                //     return { message: `Beat not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
+                //     return { message: `Beat not find for vist: ${visit.visitId} and storeId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
                 // }
 
                 let visitData: IVisitList = {
@@ -136,7 +132,6 @@ class VisitController {
                         beatId: visit.beat ?? null,
                         beatName: beatDetails?.beatName ?? ""
                     },
-                    storeDetails: storeDetails,
                     checkIn: visit.checkIn,
                     checkOut: visit.checkOut,
                     status: visit.status,
@@ -181,14 +176,10 @@ class VisitController {
             if (!visit) {
                 return { message: "Not Found.", status: STATUSCODES.NOT_FOUND }
             }
-            const storeDetails: IStore | null = await this.storeRepositry.findOne({ where: { storeId: visit.storeId }, relations: ["storeCat"] });
-            if (!storeDetails) {
-                return { message: `Store not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
-            }
 
             const beatDetails: IBeat | null = await this.beatRepositry.findOne({ where: { beatId: visit.beat } });
             if (!beatDetails) {
-                return { message: `Beat not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
+                return { message: `Beat not find for vist: ${visit.visitId} and storeId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
             }
 
             let visitData: IVisitList = {
@@ -200,7 +191,6 @@ class VisitController {
                     beatId: visit.beat,
                     beatName: beatDetails.beatName
                 },
-                storeDetails: storeDetails,
                 checkOut: visit.checkOut,
                 checkIn: visit.checkIn,
                 status: visit.status,
@@ -308,29 +298,9 @@ class VisitController {
                 return { message: "Visit not found.", status: STATUSCODES.NOT_FOUND }
             }
 
-            const store: IStore | null = await this.storeRepositry.findOne({ where: { storeId: visit.storeId } });
-
-            if (!store) {
-                return { message: "Store Not Found.", status: STATUSCODES.NOT_FOUND }
-            }
-
-            const storeLatLong: { latitude: string, longitude: string } = {
-                latitude: store.lat!,
-                longitude: store.long!
-            }
-
-            const visitLatLong: { latitude: string, longitude: string } = {
-                latitude: visit.checkInLat!,
-                longitude: visit.checkInLong!
-            }
-
-            const distanse: number = this.haversineDistance(storeLatLong, visitLatLong);
-
-            console.log(distanse, 'distanse==========');
-            let callType: CallType = CallType.TELEVISIT;
-            if (distanse < 100) {
-                callType = CallType.PHYSICAL
-            }
+            // Store-related distance calculation commented out
+            // Default to TELEVISIT to avoid store dependency
+            const callType: CallType = CallType.TELEVISIT;
 
             await this.visitRepositry.createQueryBuilder().update({ checkOut, checkOutLat, checkOutLong, status: VisitStatus.COMPLETE, image, isCallType: callType }).where({ visitId, empId: emp_id }).execute();
 
@@ -441,7 +411,7 @@ class VisitController {
         }
     }
 
-    async getPictureByStoreId(payload: IUser, input: any): Promise<IApiResponse> {
+    async getPictureBystoreId(payload: IUser, input: any): Promise<IApiResponse> {
         try {
             const { role, emp_id } = payload;
             const { storeId } = input;
@@ -460,6 +430,10 @@ class VisitController {
         } catch (error) {
             throw error;
         }
+    }
+
+    async getPictureByStoreId(payload: IUser, input: any): Promise<IApiResponse> {
+        return this.getPictureBystoreId(payload, input);
     }
 
     // async updateActivity(input: UpdateActivityById): Promise<IApiResponse> {
@@ -517,11 +491,10 @@ class VisitController {
         }
     }
 
-
     async visitReport(): Promise<IApiResponse> {
         try {
             const visits = await this.visitRepositry.find({
-                relations: { stores: { storeCat: true }, user: true },
+                relations: { stores: true, user: true },
             });
 
             if (!visits || visits.length === 0) {
@@ -544,7 +517,9 @@ class VisitController {
             for (const visit of visits) {
                 const mrId = String(visit?.user?.emp_id);
                 const mrName = visit?.user?.firstname + ' ' + visit?.user?.lastname;
-                const categoryName = visit.stores?.storeCat?.categoryName?.toLowerCase() || '';
+                // store category functionality commented out
+                // const categoryName = visit.stores?.storeCat?.categoryName?.toLowerCase() || '';
+                const categoryName = '';
 
                 if (!mrVisitMap.has(mrId)) {
                     mrVisitMap.set(mrId, {

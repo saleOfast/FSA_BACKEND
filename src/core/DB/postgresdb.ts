@@ -15,7 +15,7 @@ import { Inventory } from './Entities/inventory.entity';
 import { Orders } from './Entities/orders.entity';
 import { OutletInventory } from './Entities/outlet_inventory.entity';
 import { Products } from './Entities/products.entity';
-import { StoreCategory } from './Entities/storeCategory.entity';
+// import { StoreCategory } from './Entities/storeCategory.entity';
 import { Stores } from './Entities/stores.entity';
 import { Visits } from './Entities/Visit.entity';
 import { Brand } from './Entities/brand.entity';
@@ -65,6 +65,10 @@ import { InventoryItem } from './Entities/inventory';
 import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
 import { Sku } from './Entities/sku.entity';
+import {Customer} from "./Entities/customer.entity"
+import {Posm} from "./Entities/posm.entity"
+import {DiscountList} from "./Entities/discountList.entity"
+import { DiscountItem } from "./Entities/discountItem.entity"
 
 const { userName, password, host, port, dbName, isSynchronize } = envConfig();
 
@@ -117,16 +121,15 @@ class Postgresdb {
 				ssl: isLocal ? false : { rejectUnauthorized: false },
 				entities: [
 					PolicyTypeHead, PolicyHead, ExpenseManagement, User,	
-					Attendance, Beat, CollectPayment, Discount, Distributor,
-					Inventory, Orders, OutletInventory, Products, StoreCategory,
-					Stores, Visits, Brand, ProductCategory, Scheme, CollectAmount,
+					Attendance, Beat, CollectPayment, Discount, Distributor, Inventory, Orders, OutletInventory, Products, 
+					/* StoreCategory, */ Stores, Visits, Brand, ProductCategory, Scheme, CollectAmount,
 					Payment, Course, LearningSession, Quiz, Target, Reason, Colour,
 					Size, Feature, Role, PaymentMode, LeaveHead, LeaveHeadCount,
 					UserTypes, FeedBack, Samples, Activities, JointWork, Sessions,
 					UserLeave, LeaveApplication,
 					ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 					Dar, Edetailing, CompetitorBrand, RCPA, Taxes, Gifts, NewTarget,
-					InventoryItem, Warehouse, SalesReturn,Sku 
+					InventoryItem, Warehouse, SalesReturn, Sku, Customer, Posm, DiscountList, DiscountItem
 				],
 				schema: 'public',
 				extra: {

@@ -2,7 +2,6 @@ import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, U
 import { DbConnections } from "../postgresdb";
 import { ActivityTypeEnum } from "../../types/Constent/common";
 import { JointWork } from "./activities.jointWork.entity";
-import { Stores } from "./stores.entity";
 import { Products } from "./products.entity";
 import { User } from "./User.entity";
 

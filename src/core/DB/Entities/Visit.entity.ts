@@ -85,6 +85,6 @@ export class Visits extends BaseEntity implements IVisit {
     updatedAt: Date;
 }
 
-export const VisitRepository = (): Repository<IVisit> => {
+export const VisitRepository = (): Repository<Visits> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Visits);
 }

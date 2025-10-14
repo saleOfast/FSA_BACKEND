@@ -12,7 +12,7 @@ import { Colour } from '../core/DB/Entities/colour.entity';
 import { Size } from '../core/DB/Entities/size.entity';
 import { Feature } from '../core/DB/Entities/feature.entity';
 import { Reason } from '../core/DB/Entities/reason.entity';
-import { StoreCategory } from '../core/DB/Entities/storeCategory.entity';
+// import { StoreCategory } from '../core/DB/Entities/storeCategory.entity';
 import { Brand } from '../core/DB/Entities/brand.entity';
 import { ProductCategory } from '../core/DB/Entities/productCategory.entity';
 import { Products } from '../core/DB/Entities/products.entity';
@@ -158,20 +158,21 @@ async function seedReasons(ds: DataSource): Promise<void> {
 	}
 }
 
-async function seedStoreCategories(ds: DataSource): Promise<StoreCategory[]> {
-	const repo = ds.getRepository(StoreCategory);
-	const items = [
-		{ categoryName: 'Pharmacy', empId: 0, isDeleted: false },
-		{ categoryName: 'Clinic', empId: 0, isDeleted: false }
-	];
-    const saved: StoreCategory[] = [];
-	for (const item of items) {
-        let row = await repo.findOne({ where: { categoryName: item.categoryName } });
-        if (!row) row = await repo.save(repo.create(item as any));
-        saved.push(row as StoreCategory);
-	}
-	return saved;
-}
+// StoreCategory seeding commented out
+// async function seedStoreCategories(ds: DataSource): Promise<StoreCategory[]> {
+//   const repo = ds.getRepository(StoreCategory);
+//   const items = [
+//     { categoryName: 'Pharmacy', empId: 0, isDeleted: false },
+//     { categoryName: 'Clinic', empId: 0, isDeleted: false }
+//   ];
+//   const saved: StoreCategory[] = [];
+//   for (const item of items) {
+//     let row = await repo.findOne({ where: { categoryName: item.categoryName } });
+//     if (!row) row = await repo.save(repo.create(item as any));
+//     saved.push(row as StoreCategory);
+//   }
+//   return saved;
+// }
 
 async function seedBrands(ds: DataSource): Promise<Brand[]> {
 	const repo = ds.getRepository(Brand);
@@ -179,11 +180,11 @@ async function seedBrands(ds: DataSource): Promise<Brand[]> {
 		{ name: 'Brand A', empId: 0, isDeleted: false },
 		{ name: 'Brand B', empId: 0, isDeleted: false }
 	];
-    const saved: Brand[] = [];
+	const saved: Brand[] = [];
 	for (const item of items) {
-        let row = await repo.findOne({ where: { name: item.name } });
-        if (!row) row = await repo.save(repo.create(item as any));
-        saved.push(row as Brand);
+		let row = await repo.findOne({ where: { name: item.name } });
+		if (!row) row = await repo.save(repo.create(item as any));
+		saved.push(row as Brand);
 	}
 	return saved;
 }
@@ -194,11 +195,11 @@ async function seedProductCategories(ds: DataSource): Promise<ProductCategory[]>
 		{ name: 'OTC', empId: 0, isActive: true, isDeleted: false },
 		{ name: 'Rx', empId: 0, isActive: true, isDeleted: false }
 	];
-    const saved: ProductCategory[] = [];
+	const saved: ProductCategory[] = [];
 	for (const item of items) {
-        let row = await repo.findOne({ where: { name: item.name } });
-        if (!row) row = await repo.save(repo.create(item as any));
-        saved.push(row as ProductCategory);
+		let row = await repo.findOne({ where: { name: item.name } });
+		if (!row) row = await repo.save(repo.create(item as any));
+		saved.push(row as ProductCategory);
 	}
 	return saved;
 }
@@ -217,31 +218,30 @@ async function seedUsers(ds: DataSource): Promise<User[]> {
 			city: 'City', state: 'State', pincode: '000000', address: 'Address', orgName: 'Org'
 		}
 	];
-    const saved: User[] = [];
+	const saved: User[] = [];
 	for (const u of users) {
-        let row = await repo.findOne({ where: { email: u.email as string } });
-        if (!row) row = await repo.save(repo.create(u as any));
-        saved.push(row as User);
+		let row = await repo.findOne({ where: { email: u.email as string } });
+		if (!row) row = await repo.save(repo.create(u as any));
+		saved.push(row as User);
 	}
 	return saved;
 }
 
-async function seedStores(ds: DataSource, users: User[], categories: StoreCategory[]): Promise<Stores[]> {
+async function seedStores(ds: DataSource, users: User[]): Promise<Stores[]> {
 	const repo = ds.getRepository(Stores);
 	const owner = users[1] || users[0];
-	const cat = categories[0];
 	const items: Array<Partial<Stores>> = [
 		{
-			empId: owner.emp_id, retailorId: 1, storeName: 'Health Plus Store', uid: 'S001', storeType: cat?.storeCategoryId,
+			empId: owner.emp_id, retailorId: 1, storeName: 'Health Plus Store', uid: 'S001', storeType: null as any,
 			lat: '28.61', long: '77.20', addressLine1: '123 Main St', addressLine2: 'Block A', townCity: 'New Delhi', state: 'Delhi',
 			district: 'Central', pinCode: '110001', ownerName: 'Mr. Kumar', mobileNumber: '9123456789', isPremiumStore: false, isActive: true
 		}
 	];
-    const saved: Stores[] = [];
+	const saved: Stores[] = [];
 	for (const item of items) {
-        let row = await repo.findOne({ where: { storeName: item.storeName as string } });
-        if (!row) row = await repo.save(repo.create(item as any));
-        saved.push(row as Stores);
+		let row = await repo.findOne({ where: { storeName: item.storeName as string } });
+		if (!row) row = await repo.save(repo.create(item as any));
+		saved.push(row as Stores);
 	}
 	return saved;
 }
@@ -256,11 +256,11 @@ async function seedProducts(ds: DataSource, brands: Brand[], categories: Product
 			mrp: 100, rlp: 90, caseQty: 10, isFocused: true, isActive: true, isDeleted: false, image: 'no-image.png'
 		}
 	];
-    const saved: Products[] = [];
+	const saved: Products[] = [];
 	for (const item of items) {
-        let row = await repo.findOne({ where: { productName: item.productName as string } });
-        if (!row) row = await repo.save(repo.create(item as any));
-        saved.push(row as Products);
+		let row = await repo.findOne({ where: { productName: item.productName as string } });
+		if (!row) row = await repo.save(repo.create(item as any));
+		saved.push(row as Products);
 	}
 	return saved;
 }
@@ -281,7 +281,7 @@ async function seedVisits(ds: DataSource, user: User, store: Stores): Promise<Vi
 			visitDate: new Date(), status: 1 as any, isCallType: CallType.PHYSICAL
 		} as any));
 	}
-    return row as Visits;
+	return row as Visits;
 }
 
 async function seedBeat(ds: DataSource, user: User, store: Stores): Promise<void> {
@@ -310,7 +310,7 @@ async function seedOrders(ds: DataSource, user: User, store: Stores, product: Pr
 			statusHistory: []
 		} as any));
 	}
-    return row as Orders;
+	return row as Orders;
 }
 
 async function seedPayments(ds: DataSource, user: User, order: Orders): Promise<void> {
@@ -345,12 +345,12 @@ async function seedCollectPayments(ds: DataSource, order: Orders): Promise<void>
 async function seedPolicy(ds: DataSource): Promise<{ head: PolicyHead; type: PolicyTypeHead; }> {
 	const headRepo = ds.getRepository(PolicyHead);
 	const typeRepo = ds.getRepository(PolicyTypeHead);
-    let head = await headRepo.findOne({ where: { policy_code: 'TRVL' } });
-    if (!head) head = await headRepo.save(headRepo.create({ policy_name: 'Travel Policy', policy_code: 'TRVL', is_travel: true } as any));
-    const ensuredHead = head as PolicyHead;
-    let type = await typeRepo.findOne({ where: { policy_type_name: 'Daily Allowance' } });
-    if (!type) type = await typeRepo.save(typeRepo.create({ policy_type_name: 'Daily Allowance', policy_id: ensuredHead.policy_id, claim_type: ExpenseReportClaimType.DA, cost_per_km: 0 } as any));
-    return { head: ensuredHead, type: type as PolicyTypeHead };
+	let head = await headRepo.findOne({ where: { policy_code: 'TRVL' } });
+	if (!head) head = await headRepo.save(headRepo.create({ policy_name: 'Travel Policy', policy_code: 'TRVL', is_travel: true } as any));
+	const ensuredHead = head as PolicyHead;
+	let type = await typeRepo.findOne({ where: { policy_type_name: 'Daily Allowance' } });
+	if (!type) type = await typeRepo.save(typeRepo.create({ policy_type_name: 'Daily Allowance', policy_id: ensuredHead.policy_id, claim_type: ExpenseReportClaimType.DA, cost_per_km: 0 } as any));
+	return { head: ensuredHead, type: type as PolicyTypeHead };
 }
 
 async function seedLeaves(ds: DataSource, user: User): Promise<{ head: LeaveHead; headCount: LeaveHeadCount; userLeave: UserLeave; app: LeaveApplication; }> {
@@ -358,17 +358,17 @@ async function seedLeaves(ds: DataSource, user: User): Promise<{ head: LeaveHead
 	const cntRepo = ds.getRepository(LeaveHeadCount);
 	const userLeaveRepo = ds.getRepository(UserLeave);
 	const appRepo = ds.getRepository(LeaveApplication);
-    let head = await headRepo.findOne({ where: { head_leave_code: 'CL' } });
-    if (!head) head = await headRepo.save(headRepo.create({ head_leave_code: 'CL', head_leave_short_name: 'Casual', head_leave_name: 'Casual Leave', status: true } as any));
-    const ensuredHead = head as LeaveHead;
-    let headCount = await cntRepo.findOne({ where: { headLeaveId: ensuredHead.head_leave_id } });
-    if (!headCount) headCount = await cntRepo.save(cntRepo.create({ headLeaveId: ensuredHead.head_leave_id, status: true, financialStart: new Date(), financialEnd: new Date(), totalHeadLeave: 12 } as any));
-    const ensuredHeadCount = headCount as LeaveHeadCount;
-    let userLeave = await userLeaveRepo.findOne({ where: { user_id: user.emp_id, head_leave_id: ensuredHead.head_leave_id } });
-    if (!userLeave) userLeave = await userLeaveRepo.save(userLeaveRepo.create({ user_id: user.emp_id, head_leave_id: ensuredHead.head_leave_id, head_leave_cnt_id: ensuredHeadCount.headLeaveCntId, left_leave: 12, extra_leaves: 0 } as any));
-    let app = await appRepo.findOne({ where: { emp_id: user.emp_id } });
-    if (!app) app = await appRepo.save(appRepo.create({ emp_id: user.emp_id, manager_id: user.managerId, head_leave_id: ensuredHead.head_leave_id, head_leave_cnt_id: ensuredHeadCount.headLeaveCntId, leave_type: 'CL', reason: 'Personal', no_of_days: 1, from_date: new Date(), to_date: new Date(), leave_app_status: 'pending' } as any));
-    return { head: ensuredHead, headCount: ensuredHeadCount, userLeave: userLeave as UserLeave, app: app as LeaveApplication };
+	let head = await headRepo.findOne({ where: { head_leave_code: 'CL' } });
+	if (!head) head = await headRepo.save(headRepo.create({ head_leave_code: 'CL', head_leave_short_name: 'Casual', head_leave_name: 'Casual Leave', status: true } as any));
+	const ensuredHead = head as LeaveHead;
+	let headCount = await cntRepo.findOne({ where: { headLeaveId: ensuredHead.head_leave_id } });
+	if (!headCount) headCount = await cntRepo.save(cntRepo.create({ headLeaveId: ensuredHead.head_leave_id, status: true, financialStart: new Date(), financialEnd: new Date(), totalHeadLeave: 12 } as any));
+	const ensuredHeadCount = headCount as LeaveHeadCount;
+	let userLeave = await userLeaveRepo.findOne({ where: { user_id: user.emp_id, head_leave_id: ensuredHead.head_leave_id } });
+	if (!userLeave) userLeave = await userLeaveRepo.save(userLeaveRepo.create({ user_id: user.emp_id, head_leave_id: ensuredHead.head_leave_id, head_leave_cnt_id: ensuredHeadCount.headLeaveCntId, left_leave: 12, extra_leaves: 0 } as any));
+	let app = await appRepo.findOne({ where: { emp_id: user.emp_id } });
+	if (!app) app = await appRepo.save(appRepo.create({ emp_id: user.emp_id, manager_id: user.managerId, head_leave_id: ensuredHead.head_leave_id, head_leave_cnt_id: ensuredHeadCount.headLeaveCntId, leave_type: 'CL', reason: 'Personal', no_of_days: 1, from_date: new Date(), to_date: new Date(), leave_app_status: 'pending' } as any));
+	return { head: ensuredHead, headCount: ensuredHeadCount, userLeave: userLeave as UserLeave, app: app as LeaveApplication };
 }
 
 async function seedHoliday(ds: DataSource, user: User): Promise<void> {
@@ -382,7 +382,7 @@ async function seedCompetitorBrand(ds: DataSource): Promise<CompetitorBrand> {
 	const repo = ds.getRepository(CompetitorBrand);
 	let row = await repo.findOne({ where: { name: 'Competitor X' } });
 	if (!row) row = await repo.save(repo.create({ name: 'Competitor X', empId: 0, isDeleted: false } as any));
-    return row as CompetitorBrand;
+	return row as CompetitorBrand;
 }
 
 async function seedRCPAEntry(ds: DataSource, user: User, store: Stores, product: Products, competitor: CompetitorBrand): Promise<void> {
@@ -398,14 +398,14 @@ async function seedLearning(ds: DataSource, user: User, product: Products): Prom
 	const courseRepo = ds.getRepository(Course);
 	const quizRepo = ds.getRepository(Quiz);
 	const sessionRepo = ds.getRepository(LearningSession);
-    let course = await courseRepo.findOne({ where: { courseName: 'Onboarding' } });
-    if (!course) course = await courseRepo.save(courseRepo.create({ empId: user.emp_id, courseName: 'Onboarding', description: 'Welcome course', isActive: true } as any));
-    const ensuredCourse = course as Course;
-    let quiz = await quizRepo.findOne({ where: { courseId: ensuredCourse.courseId } });
-    if (!quiz) quiz = await quizRepo.save(quizRepo.create({ courseId: ensuredCourse.courseId, question: 'Q1', marks: 1, option1: 'A', option2: 'B', option3: 'C', option4: 'D', answer: 'A' } as any));
-    let session = await sessionRepo.findOne({ where: { courseId: ensuredCourse.courseId, userId: user.emp_id } });
-    if (!session) session = await sessionRepo.save(sessionRepo.create({ courseId: ensuredCourse.courseId, userId: user.emp_id } as any));
-    return { course: ensuredCourse, quiz: quiz as Quiz, session: session as LearningSession };
+	let course = await courseRepo.findOne({ where: { courseName: 'Onboarding' } });
+	if (!course) course = await courseRepo.save(courseRepo.create({ empId: user.emp_id, courseName: 'Onboarding', description: 'Welcome course', isActive: true } as any));
+	const ensuredCourse = course as Course;
+	let quiz = await quizRepo.findOne({ where: { courseId: ensuredCourse.courseId } });
+	if (!quiz) quiz = await quizRepo.save(quizRepo.create({ courseId: ensuredCourse.courseId, question: 'Q1', marks: 1, option1: 'A', option2: 'B', option3: 'C', option4: 'D', answer: 'A' } as any));
+	let session = await sessionRepo.findOne({ where: { courseId: ensuredCourse.courseId, userId: user.emp_id } });
+	if (!session) session = await sessionRepo.save(sessionRepo.create({ courseId: ensuredCourse.courseId, userId: user.emp_id } as any));
+	return { course: ensuredCourse, quiz: quiz as Quiz, session: session as LearningSession };
 }
 
 async function seedFeedback(ds: DataSource, user: User, store: Stores, product: Products): Promise<void> {
@@ -507,7 +507,7 @@ async function main(): Promise<void> {
 		await seedActivityConfigs(ds);
 
 		// Hierarchical catalog data
-		const storeCategories = await seedStoreCategories(ds);
+		// const storeCategories = await seedStoreCategories(ds);
 		const brands = await seedBrands(ds);
 		const productCategories = await seedProductCategories(ds);
 
@@ -516,7 +516,7 @@ async function main(): Promise<void> {
 		const owner = users[1] || users[0];
 
 		// Stores and products
-		const stores = await seedStores(ds, users, storeCategories);
+		const stores = await seedStores(ds, users);
 		const store = stores[0];
 		const products = await seedProducts(ds, brands, productCategories);
 		const product = products[0];

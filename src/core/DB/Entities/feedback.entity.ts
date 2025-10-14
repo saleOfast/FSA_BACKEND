@@ -3,6 +3,8 @@ import { DbConnections } from "../postgresdb";
 import { Stores } from "./stores.entity";
 import { User } from "./User.entity";
 import { Products } from "./products.entity";
+import { Samples } from "./samples.entity";
+// import {sessions} from "./sessions.entity";
 
 @Entity({ name: 'feedback' })
 export class FeedBack extends BaseEntity {

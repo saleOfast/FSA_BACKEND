@@ -54,6 +54,6 @@ export class Beat extends BaseEntity implements IBeat {
     updatedAt: Date;
 }
 
-export const BeatRepository = (): Repository<IBeat> => {
+export const BeatRepository = (): Repository<Beat> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Beat);
 }

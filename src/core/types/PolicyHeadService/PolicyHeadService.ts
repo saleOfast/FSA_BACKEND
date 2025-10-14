@@ -1,6 +1,6 @@
 import { IsArray, IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { CallType, DurationEnum, VisitStatus } from "../Constent/common";
-import { IStore } from "../StoreService/StoreService";
+import { IStore } from "../storeService/StoreService";
 
 export interface IPolicyHead {
     policy_id: number;

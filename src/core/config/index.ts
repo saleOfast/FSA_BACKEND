@@ -2,12 +2,31 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 export const config = () => {
+	// Try to load .env.local first, then fall back to .env
+	const envLocalPath = path.resolve(process.cwd(), '.env.local');
 	const envPath = process.env.ENV_PATH || path.resolve(process.cwd(), '.env');
-	dotenv.config({ path: envPath });
+	
+	// Load .env.local if it exists, otherwise use the default .env path
+	const fs = require('fs');
+	if (fs.existsSync(envLocalPath)) {
+		console.log('Loading environment from .env.local');
+		dotenv.config({ path: envLocalPath });
+	} else {
+		console.log('Loading environment from', envPath);
+		dotenv.config({ path: envPath });
+	}
 
 	const environment = process.env.NODE_ENV || 'production';
 	console.log('NODE_ENV detected:', environment);
-	console.log('All environment variables:', process.env);
+	console.log('ENV_PATH:', process.env.ENV_PATH || 'default .env');
+	console.log('Database environment variables:', {
+		LOCAL_DBUSERNAME: process.env.LOCAL_DBUSERNAME,
+		LOCAL_DBPASSWORD: process.env.LOCAL_DBPASSWORD ? '***' : 'undefined',
+		LOCAL_DBHOST: process.env.LOCAL_DBHOST,
+		LOCAL_DBPORT: process.env.LOCAL_DBPORT,
+		LOCAL_DBNAME: process.env.LOCAL_DBNAME,
+		LOCAL_IS_SYNCHRONIZE: process.env.LOCAL_IS_SYNCHRONIZE
+	});
 	
 	// Environment-based database configuration
 	let dbConfig: {

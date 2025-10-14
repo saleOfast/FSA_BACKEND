@@ -89,11 +89,25 @@ router.get(
   AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
   async (req: Request, res: Response) => {
     try {
-      // Extract query params
-      const input: GetStatusRequest = {
-        skuId: req.query.skuId ? Number(req.query.skuId) : undefined,
-        skuNumber: req.query.skuNumber as string | undefined
-      };
+     const rawStatus = req.query.status as string | undefined;
+
+let status: "Active" | "Inactive" | undefined;
+
+if (rawStatus) {
+  const normalized = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+  if (normalized === "Active" || normalized === "Inactive") {
+    status = normalized;
+  } else {
+    status = undefined; // will trigger validation in service
+  }
+}
+
+const input: GetStatusRequest = {
+  skuId: req.query.skuId ? Number(req.query.skuId) : undefined,
+  skuNumber: req.query.skuNumber as string | undefined,
+  status // ✅ now TypeScript knows this is "Active" | "Inactive" | undefined
+};
+
 
       const payload: IUser = RequestHandler.Custom.getUser(req);
       const sku = new skuController();
@@ -105,6 +119,7 @@ router.get(
     }
   }
 );
+
 
 
 export { router as SkuRouter }

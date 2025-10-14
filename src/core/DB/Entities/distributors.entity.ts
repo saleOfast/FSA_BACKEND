@@ -35,6 +35,6 @@ export class Distributor extends BaseEntity implements IDistributor {
     updatedAt: Date;
 }
 
-export const DistributorRepository = (): Repository<IDistributor> => {
+export const DistributorRepository = (): Repository<Distributor> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Distributor);
 }

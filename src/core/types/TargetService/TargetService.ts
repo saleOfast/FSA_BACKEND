@@ -1,7 +1,7 @@
 import { UserRole } from "../../../core/types/Constent/common";
 import { IsArray, IsDateString, IsNotEmpty, isNumber, IsNumber, IsOptional, IsString } from "class-validator";
 export interface IUserTarget {
-    storeTarget: number,
+    storemerTarget: number,
     amountTarget: number,
     collectionTarget: boolean,
     month: Date
