@@ -13,6 +13,7 @@ import { StoreCategory } from "./storeCategory.entity";
 import { Stores } from "./stores.entity";
 import { Warehouse } from "./warehouse.entity";
 import { SalesReturn } from "./sales_return.entity";
+import { Customer } from "./customer.entity";
 import { ObjectEntity } from "./object.entity";
 import { ObjectPermission } from "./ObjectPermission.entity";
 import { Tab } from "./Tab.entity";
@@ -35,6 +36,7 @@ const dbentities = [
   Visits, 
   Warehouse, 
   SalesReturn, 
+  Customer,
   ObjectEntity,
   ObjectPermission,
   Tab,
