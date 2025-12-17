@@ -165,8 +165,8 @@ export class Customer extends BaseEntity implements ICustomer {
   @Column({ name: 'outstanding_amount', type: 'decimal', nullable: true, default: 0 })
   outstandingAmount?: number;
 
-  @Column({ name: 'discount_eligibility', nullable: true })
-  discountEligibility?: string;
+  @Column({ name: 'discount_eligibility', type: 'boolean', nullable: true })
+  discountEligibility?: boolean;
 
   // Audit Fields
   @Column({ name: 'created_by', type: 'jsonb', nullable: false })

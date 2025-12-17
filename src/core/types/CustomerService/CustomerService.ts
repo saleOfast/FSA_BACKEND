@@ -62,7 +62,7 @@ export interface ICustomer {
   lastPaymentDate?: Date;
   averageMonthlySales?: number;
   outstandingAmount?: number;
-  discountEligibility?: string;
+  discountEligibility?: boolean;
   // Audit Fields
   createdBy: IUserReference;
   createdDate: Date;
@@ -249,8 +249,8 @@ export class CreateCustomer {
   outstandingAmount?: number;
 
   @IsOptional()
-  @IsString()
-  discountEligibility?: string;
+  @IsBoolean()
+  discountEligibility?: boolean;
 }
 
 export class UpdateCustomer {
@@ -434,8 +434,8 @@ export class UpdateCustomer {
   outstandingAmount?: number;
 
   @IsOptional()
-  @IsString()
-  discountEligibility?: string;
+  @IsBoolean()
+  discountEligibility?: boolean;
 }
 
 export class GetCustomerById {
