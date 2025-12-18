@@ -49,6 +49,7 @@ import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
 import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
 import { DistributorRouter } from "./DistributorRouter/Distributor.route";
 import { CustomerRoute } from "./CustomerRouter/Customer.route";
+import { CustomerTypeRoute } from "./CustomerTypeRouter/CustomerType.route";
 
 
 const router = express.Router();
@@ -105,5 +106,6 @@ router.use('/salesReturn', SalesReturnRouter);
 router.use('/distributor', DistributorRouter);
 router.use('/inventoryItem',inventoryroute);
 router.use('/customer', CustomerRoute);
+router.use('/customerType', CustomerTypeRoute);
 
 export { router as routes };

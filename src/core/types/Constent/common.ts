@@ -156,3 +156,10 @@ export enum StockLevelComparison {
     SAME = 'SAME',
     HIGHER = 'HIGHER',
 }
+
+export enum InventoryVisibilityScope {
+    SELF = 'Self',
+    CHILD = 'Child',
+    FULL = 'Full',
+    NONE = 'None',
+}
