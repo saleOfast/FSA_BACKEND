@@ -50,6 +50,9 @@ import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
 import { DistributorRouter } from "./DistributorRouter/Distributor.route";
 import { CustomerRoute } from "./CustomerRouter/Customer.route";
 import { CustomerTypeRoute } from "./CustomerTypeRouter/CustomerType.route";
+import { CountryRoute } from "./CountryRouter/Country.route";
+import { StateRoute } from "./StateRouter/State.route";
+import { DistrictRoute } from "./DistrictRouter/District.route";
 
 
 const router = express.Router();
@@ -107,5 +110,8 @@ router.use('/distributor', DistributorRouter);
 router.use('/inventoryItem',inventoryroute);
 router.use('/customer', CustomerRoute);
 router.use('/customerType', CustomerTypeRoute);
+router.use('/country', CountryRoute);
+router.use('/state', StateRoute);
+router.use('/district', DistrictRoute);
 
 export { router as routes };

@@ -70,6 +70,9 @@ import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
 import { Customer } from './Entities/customer.entity';
 import { CustomerType } from './Entities/customerType.entity';
+import { Country } from './Entities/country.entity';
+import { State } from './Entities/state.entity';
+import { District } from './Entities/district.entity';
 import { Tab } from './Entities/Tab.entity';
 import { TabPermission } from './Entities/TabPermission.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
@@ -130,7 +133,7 @@ class Postgresdb {
 				UserLeave, LeaveApplication,
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-				InventoryItem, Warehouse, SalesReturn, Customer, CustomerType, Profile, ObjectPermission, Tab, TabPermission, SystemPermission
+				InventoryItem, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission
 			];
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',

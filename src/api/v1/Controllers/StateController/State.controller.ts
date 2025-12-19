@@ -1,0 +1,211 @@
+import { STATUSCODES } from "../../../../core/types/Constent/common";
+import { IApiResponse } from "../../../../core/types/Constent/commonService";
+import { IUser } from "../../../../core/types/AuthService/AuthService";
+import {
+  CreateState,
+  UpdateState,
+  DeleteStateById,
+  GetStateById,
+  StateListFilter,
+  IState
+} from "../../../../core/types/StateService/StateService";
+import { State, StateRepository } from "../../../../core/DB/Entities/state.entity";
+import { CountryRepository } from "../../../../core/DB/Entities/country.entity";
+import { IsNull } from "typeorm";
+
+class StateController {
+  private stateRepository = StateRepository();
+  private countryRepository = CountryRepository();
+
+  constructor() { }
+
+  async createState(input: CreateState, payload: IUser): Promise<IApiResponse> {
+    try {
+      const { stateName, countryId } = input;
+
+      // Validate country exists
+      const country = await this.countryRepository.findOne({
+        where: { countryId, deletedAt: IsNull() }
+      });
+
+      if (!country) {
+        return { message: "Country not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      // Check for duplicate state name in the same country
+      const existingState = await this.stateRepository.findOne({
+        where: { stateName, countryId }
+      });
+
+      if (existingState) {
+        return { message: "State with this name already exists in the selected country", status: STATUSCODES.BAD_REQUEST };
+      }
+
+      const newState = new State();
+      newState.stateName = stateName;
+      newState.countryId = countryId;
+
+      const savedState = await this.stateRepository.save(newState);
+
+      // Load country relation for response
+      const stateWithCountry = await this.stateRepository.findOne({
+        where: { stateId: savedState.stateId },
+        relations: ['country']
+      });
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "State created successfully.",
+        data: stateWithCountry
+      };
+    } catch (error) {
+      console.error("Create State Error:", error);
+      throw error;
+    }
+  }
+
+  async updateState(input: UpdateState, payload: IUser): Promise<IApiResponse> {
+    try {
+      const { stateId, stateName, countryId } = input;
+
+      const state = await this.stateRepository.findOne({
+        where: { stateId: Number(stateId) }
+      });
+
+      if (!state) {
+        return { message: "State not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      // Validate country exists
+      const country = await this.countryRepository.findOne({
+        where: { countryId, deletedAt: IsNull() }
+      });
+
+      if (!country) {
+        return { message: "Country not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      // Check for duplicate state name in the same country (excluding current state)
+      if (stateName !== state.stateName || countryId !== state.countryId) {
+        const existingState = await this.stateRepository.findOne({
+          where: { stateName, countryId }
+        });
+        if (existingState && existingState.stateId !== Number(stateId)) {
+          return { message: "State with this name already exists in the selected country", status: STATUSCODES.BAD_REQUEST };
+        }
+      }
+
+      state.stateName = stateName;
+      state.countryId = countryId;
+      const updatedState = await this.stateRepository.save(state);
+
+      // Load country relation for response
+      const stateWithCountry = await this.stateRepository.findOne({
+        where: { stateId: updatedState.stateId },
+        relations: ['country']
+      });
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "State updated successfully.",
+        data: stateWithCountry
+      };
+    } catch (error) {
+      console.error("Update State Error:", error);
+      throw error;
+    }
+  }
+
+  async deleteState(input: DeleteStateById): Promise<IApiResponse> {
+    try {
+      const { stateId } = input;
+
+      const state = await this.stateRepository.findOne({
+        where: { stateId: Number(stateId) }
+      });
+
+      if (!state) {
+        return { message: "State not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      await this.stateRepository.remove(state);
+
+      return { message: "State deleted successfully", status: STATUSCODES.SUCCESS };
+    } catch (error) {
+      console.error("Delete State Error:", error);
+      throw error;
+    }
+  }
+
+  async getStateById(input: GetStateById): Promise<IApiResponse> {
+    try {
+      const { stateId } = input;
+
+      const state = await this.stateRepository.findOne({
+        where: { stateId: Number(stateId) },
+        relations: ['country']
+      });
+
+      if (!state) {
+        return { message: "State not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "Success.",
+        data: state
+      };
+    } catch (error) {
+      console.error("Get State Error:", error);
+      throw error;
+    }
+  }
+
+  async stateList(input: StateListFilter, payload: IUser): Promise<IApiResponse> {
+    try {
+      const { search, countryId, pageNumber, pageSize } = input;
+
+      const queryBuilder = this.stateRepository.createQueryBuilder('state')
+        .leftJoinAndSelect('state.country', 'country')
+        .where('country.deletedAt IS NULL');
+
+      if (search) {
+        queryBuilder.andWhere(
+          `(LOWER(state.stateName) LIKE LOWER(:search) OR 
+           LOWER(country.countryName) LIKE LOWER(:search) OR
+           CAST(state.stateId AS TEXT) LIKE :search)`,
+          { search: `%${search}%` }
+        );
+      }
+
+      if (countryId !== undefined && countryId !== null) {
+        queryBuilder.andWhere('state.countryId = :countryId', { countryId });
+      }
+
+      queryBuilder.orderBy('state.createdAt', 'DESC')
+        .skip((+pageNumber - 1) * +pageSize)
+        .take(+pageSize);
+
+      const [states, total] = await queryBuilder.getManyAndCount();
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "Success.",
+        data: {
+          states,
+          pagination: {
+            pageNumber: +pageNumber,
+            pageSize: +pageSize,
+            totalRecords: total
+          }
+        }
+      };
+    } catch (error) {
+      console.error("State List Error:", error);
+      throw error;
+    }
+  }
+}
+
+export { StateController as StateService };
+
