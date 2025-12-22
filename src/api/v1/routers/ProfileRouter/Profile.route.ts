@@ -1,9 +1,11 @@
 import express, { Request, Response } from "express";
+import catchAsync from '../../../../core/utils/catch-async';
 import { AccessTokenService, ResponseHandler } from "../../../../core/helper/validationMiddleware";
 import { RequestHandler } from "../../../../core/helper/RequestHander";
 import { JwtTokenTypes } from "../../../../core/types/Constent/common";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
 import ProfileController from "../../Controllers/profileController/profile.controller";
+import { profileService } from "../../Controllers/AuthController/ProfileController/Profile.Controller";
 
 const router = express.Router();
 
@@ -17,6 +19,18 @@ router.post('/create', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes
     ResponseHandler.sendErrorResponse(res, error);
   }
 });
+
+// Get user profile by emp_id from token - must be defined before :profileId route
+router.get('/get', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), catchAsync(async (req: Request, res: Response) => {
+  try {
+    const payload: IUser = RequestHandler.Custom.getUser(req);
+    const profileController = new profileService();
+    const data = await profileController.getProfile(payload);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+}));
 
 // Get all profiles with pagination - must be defined before :profileId route
 router.get('/all', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
