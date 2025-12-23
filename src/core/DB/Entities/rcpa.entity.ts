@@ -26,12 +26,12 @@ export class RCPA extends BaseEntity {
     @Column({ name: 'added_by', nullable: true })
     addedBy: number;
 
-    @ManyToOne(() => Products, (product) => product.rcpa, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'product_id' })
-    product?: Products;
+    // @ManyToOne(() => Products, (product) => product.rcpa, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'product_id' })
+    // product?: Products;
 
-    @Column({ name: 'product_id' })
-    productId: number;
+    // @Column({ name: 'product_id' })
+    // productId: number;
 
     @Column({ name: 'quantity_sold', nullable: true })
     quantitySold: number;

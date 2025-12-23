@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StockLevelComparison = exports.SessionTypeEnum = exports.WorkplaceTypeEnum = exports.ActivityTypeEnum = exports.PracticeTypeEnum = exports.ExpenseReportStatus = exports.HolidayType = exports.ExpenseReportClaimType = exports.TimelineEnum = exports.StoreBilling = exports.CollectionStatus = exports.DurationEnum = exports.OrderStatus = exports.PaymentStatus = exports.DiscountType = exports.StoreTypeFilter = exports.SpecialDiscountStatus = exports.VisitStatus = exports.CallTypeOrders = exports.CallType = exports.UserRole = exports.ExpressExtendedRequestParams = exports.JwtTokenTypes = exports.STATUSCODES = void 0;
+exports.InventoryVisibilityScope = exports.StockLevelComparison = exports.SessionTypeEnum = exports.WorkplaceTypeEnum = exports.ActivityTypeEnum = exports.PracticeTypeEnum = exports.ExpenseReportStatus = exports.HolidayType = exports.ExpenseReportClaimType = exports.TimelineEnum = exports.StoreBilling = exports.CollectionStatus = exports.DurationEnum = exports.OrderStatus = exports.PaymentStatus = exports.DiscountType = exports.StoreTypeFilter = exports.SpecialDiscountStatus = exports.VisitStatus = exports.CallTypeOrders = exports.CallType = exports.UserRole = exports.ExpressExtendedRequestParams = exports.JwtTokenTypes = exports.STATUSCODES = void 0;
 var STATUSCODES;
 (function (STATUSCODES) {
     STATUSCODES[STATUSCODES["BAD_REQUEST"] = 400] = "BAD_REQUEST";
@@ -160,3 +160,10 @@ var StockLevelComparison;
     StockLevelComparison["SAME"] = "SAME";
     StockLevelComparison["HIGHER"] = "HIGHER";
 })(StockLevelComparison = exports.StockLevelComparison || (exports.StockLevelComparison = {}));
+var InventoryVisibilityScope;
+(function (InventoryVisibilityScope) {
+    InventoryVisibilityScope["SELF"] = "Self";
+    InventoryVisibilityScope["CHILD"] = "Child";
+    InventoryVisibilityScope["FULL"] = "Full";
+    InventoryVisibilityScope["NONE"] = "None";
+})(InventoryVisibilityScope = exports.InventoryVisibilityScope || (exports.InventoryVisibilityScope = {}));

@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
+import { IsBoolean, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
 import { DiscountType } from "../Constent/common";
 import { Type } from "class-transformer";
 
@@ -8,24 +8,75 @@ export interface ISkuDiscount {
     isActive: boolean
 }
 export interface IProducts {
+    // Product ID - Auto (Primary key)
     productId: number;
-    empId: number;
+    
+    // Product Type - Pick List (FG / POSM)
+    productType?: 'FG' | 'POSM';
+    
+    // Product Name - Text
     productName: string;
-    mrp: number;
-    rlp: number;
-    caseQty: number;
+    
+    // Product Code - Auto
+    productCode?: string;
+    
+    // Category - Pick List (references categories table)
     categoryId: number;
-    brandId: number;
-    image: string | null;
-    colour: string | null;
-    skuDiscount: ISkuDiscount;
-    isFocused: boolean;
-    isActive: boolean;
+    
+    // Sub Category - Pick List (optional, references subcategories table)
+    subCategoryId?: number;
+    
+    // Description - TEXT
+    description?: string;
+    
+    // Status - Pick List (Active/Inactive)
+    status: 'Active' | 'Inactive';
+    
+    // Launch Date - DATE
+    launchDate?: Date;
+    
+    // Discontinue Date - DATE
+    discontinueDate?: Date;
+    
+    // Vol. - Pick List (Default unit of measure e.g., 'Piece', 'Pack')
+    vol?: string;
+    
+    // Tax Category - Lookup (references Tax Table)
+    taxCategoryId?: number;
+    
+    // HSN Code - Lookup (references Tax Table)
+    hsnCode?: string;
+    
+    // Image - VARCHAR(255)
+    image?: string;
+    
+    // Created Date - TIMESTAMP
+    createdDate: Date;
+    
+    // Updated Date - TIMESTAMP
+    updatedDate: Date;
+    
+    // Market Segment - Pick List (Urban, Rural, General Trade, Modern Trade)
+    marketSegment?: string;
+    
+    // Product Life Cycle Stage - Pick List (new, growth, mature, decline)
+    productLifeCycleStage?: string;
+    
+    // Storage Condition - Pick List (e.g., 'Cool Dry')
+    storageCondition?: string;
+    
+    // Scheme - Lookup (references Scheme & Discount Table)
+    schemeId?: number;
+    
+    // Discount - Lookup (references Scheme & Discount Table)
+    discountId?: number;
+    
+    // Soft delete flag
     isDeleted: boolean;
+    
+    // Legacy fields for backward compatibility
     createdAt: Date;
     updatedAt: Date;
-    // brand?: string | null;
-    // category?: string | null;
 }
 
 export interface IProductCategory {
@@ -54,50 +105,95 @@ export class SkuDiscount {
 }
 
 export class CreateProductRequest {
+    // Product Type - Pick List (FG / POSM)
+    @IsOptional()
+    @IsEnum(['FG', 'POSM'])
+    productType?: 'FG' | 'POSM';
+
+    // Product Name - Text
     @IsNotEmpty()
     @IsString()
     productName: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    mrp: number;
+    // Product Code - Auto
+    @IsOptional()
+    @IsString()
+    productCode?: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    rlp: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    caseQty: number;
-
+    // Category - Pick List (references categories table)
     @IsNotEmpty()
     @IsNumber()
     categoryId: number;
 
-    @IsNotEmpty()
+    // Sub Category - Pick List (optional, references subcategories table)
+    @IsOptional()
     @IsNumber()
-    brandId: number;
+    subCategoryId?: number;
 
+    // Description - TEXT
     @IsOptional()
     @IsString()
-    image: string;
+    description?: string;
 
-    
+    // Status - Pick List (Active/Inactive)
+    @IsOptional()
+    @IsEnum(['Active', 'Inactive'])
+    status?: 'Active' | 'Inactive';
+
+    // Launch Date - DATE
+    @IsOptional()
+    @IsDateString()
+    launchDate?: string;
+
+    // Discontinue Date - DATE
+    @IsOptional()
+    @IsDateString()
+    discontinueDate?: string;
+
+    // Vol. - Pick List (Default unit of measure e.g., 'Piece', 'Pack')
     @IsOptional()
     @IsString()
-    colour: string;
+    vol?: string;
 
+    // Tax Category - Lookup (references Tax Table)
     @IsOptional()
-    @IsObject()
-    skuDiscount: SkuDiscount
+    @IsNumber()
+    taxCategoryId?: number;
 
-    @IsNotEmpty()
-    @IsBoolean()
-    isFocused: boolean;
+    // HSN Code - Lookup (references Tax Table)
+    @IsOptional()
+    @IsString()
+    hsnCode?: string;
 
-    @IsNotEmpty()
-    @IsBoolean()
-    isActive: boolean;
+    // Image - VARCHAR(255)
+    @IsOptional()
+    @IsString()
+    image?: string;
+
+    // Market Segment - Pick List (Urban, Rural, General Trade, Modern Trade)
+    @IsOptional()
+    @IsString()
+    marketSegment?: string;
+
+    // Product Life Cycle Stage - Pick List (new, growth, mature, decline)
+    @IsOptional()
+    @IsString()
+    productLifeCycleStage?: string;
+
+    // Storage Condition - Pick List (e.g., 'Cool Dry')
+    @IsOptional()
+    @IsString()
+    storageCondition?: string;
+
+    // Scheme - Lookup (references Scheme & Discount Table)
+    @IsOptional()
+    @IsNumber()
+    schemeId?: number;
+
+    // Discount - Lookup (references Scheme & Discount Table)
+    @IsOptional()
+    @IsNumber()
+    discountId?: number;
 }
 
 export class UpdateProductRequest {
@@ -105,51 +201,95 @@ export class UpdateProductRequest {
     @IsNumber()
     productId: number
 
-    @IsNotEmpty()
+    // Product Type - Pick List (FG / POSM)
+    @IsOptional()
+    @IsEnum(['FG', 'POSM'])
+    productType?: 'FG' | 'POSM';
+
+    // Product Name - Text
+    @IsOptional()
     @IsString()
-    productName: string;
+    productName?: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    mrp: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    rlp: number;
-
-    // @IsNotEmpty()
-    // @IsNumber()
-    // rlpValue: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    caseQty: number;
-
-    // @IsNotEmpty()
-    // @IsNumber()
-    // packetQty: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    categoryId: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    brandId: number;
-
+    // Product Code - Auto
     @IsOptional()
-    @IsObject()
-    // @ValidateNested({ each: true })
-    @Type(() => SkuDiscount)
-    skuDiscount: SkuDiscount
+    @IsString()
+    productCode?: string;
 
+    // Category - Pick List (references categories table)
     @IsOptional()
-    @IsBoolean()
-    isFocused: boolean;
+    @IsNumber()
+    categoryId?: number;
 
+    // Sub Category - Pick List (optional, references subcategories table)
     @IsOptional()
-    @IsBoolean()
-    isActive: boolean;
+    @IsNumber()
+    subCategoryId?: number;
+
+    // Description - TEXT
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    // Status - Pick List (Active/Inactive)
+    @IsOptional()
+    @IsEnum(['Active', 'Inactive'])
+    status?: 'Active' | 'Inactive';
+
+    // Launch Date - DATE
+    @IsOptional()
+    @IsDateString()
+    launchDate?: string;
+
+    // Discontinue Date - DATE
+    @IsOptional()
+    @IsDateString()
+    discontinueDate?: string;
+
+    // Vol. - Pick List (Default unit of measure e.g., 'Piece', 'Pack')
+    @IsOptional()
+    @IsString()
+    vol?: string;
+
+    // Tax Category - Lookup (references Tax Table)
+    @IsOptional()
+    @IsNumber()
+    taxCategoryId?: number;
+
+    // HSN Code - Lookup (references Tax Table)
+    @IsOptional()
+    @IsString()
+    hsnCode?: string;
+
+    // Image - VARCHAR(255)
+    @IsOptional()
+    @IsString()
+    image?: string;
+
+    // Market Segment - Pick List (Urban, Rural, General Trade, Modern Trade)
+    @IsOptional()
+    @IsString()
+    marketSegment?: string;
+
+    // Product Life Cycle Stage - Pick List (new, growth, mature, decline)
+    @IsOptional()
+    @IsString()
+    productLifeCycleStage?: string;
+
+    // Storage Condition - Pick List (e.g., 'Cool Dry')
+    @IsOptional()
+    @IsString()
+    storageCondition?: string;
+
+    // Scheme - Lookup (references Scheme & Discount Table)
+    @IsOptional()
+    @IsNumber()
+    schemeId?: number;
+
+    // Discount - Lookup (references Scheme & Discount Table)
+    @IsOptional()
+    @IsNumber()
+    discountId?: number;
 }
 
 export class GetProductById {

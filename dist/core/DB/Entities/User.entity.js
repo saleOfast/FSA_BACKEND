@@ -126,6 +126,15 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "learningRole", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'profile_id', nullable: true }),
+    __metadata("design:type", Number)
+], User.prototype, "profileId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => profile_entity_1.Profile, (profile) => profile.users, { eager: true, nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'profile_id' }),
+    __metadata("design:type", profile_entity_1.Profile)
+], User.prototype, "profile", void 0);
+__decorate([
     (0, typeorm_1.Column)({
         type: 'enum',
         enum: common_1.UserRole,
@@ -145,10 +154,6 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' }),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
-__decorate([
-    (0, typeorm_1.OneToOne)(() => profile_entity_1.Profile, profile => profile.user, { cascade: true }),
-    __metadata("design:type", profile_entity_1.Profile)
-], User.prototype, "profile", void 0);
 __decorate([
     (0, typeorm_1.DeleteDateColumn)({ type: 'timestamp', nullable: true }),
     __metadata("design:type", Date)

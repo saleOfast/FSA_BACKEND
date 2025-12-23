@@ -1,56 +1,90 @@
-import { IBrand } from "../../../../core/types/BrandService/BrandService";
-import { BrandRepository } from "../../../../core/DB/Entities/brand.entity";
 import { ProductRepository, Products } from "../../../../core/DB/Entities/products.entity";
-import { DiscountType, STATUSCODES, UserRole } from "../../../../core/types/Constent/common";
+import { STATUSCODES, UserRole } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
-import { CreateProductCategory, CreateProductRequest, DeleteCategoryById, DeleteProductById, GetCategoryById, GetProductById, GetProductListRequest, IProductCategory, IProducts, ISkuDiscount, SkuDiscount, UpdateCategoryById, UpdateProductRequest } from "../../../../core/types/ProductService/ProductService";
+import { CreateProductCategory, CreateProductRequest, DeleteCategoryById, DeleteProductById, GetCategoryById, GetProductById, GetProductListRequest, IProductCategory, IProducts, UpdateCategoryById, UpdateProductRequest } from "../../../../core/types/ProductService/ProductService";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
 import { ProductCategory, ProductCategoryRepository } from "../../../../core/DB/Entities/productCategory.entity";
-import { FindOptionsWhere } from "typeorm";
+import { TaxesRepository } from "../../../../core/DB/Entities/tax.entity";
+import { getSchemeRepository } from "../../../../core/DB/Entities/scheme.entity";
+import { DiscountRepository } from "../../../../core/DB/Entities/discount.entity";
 
 class ProductController {
     private productRepositry = ProductRepository();
     private productModel = Products;
-    private brandRepository = BrandRepository();
     private productCategoryRespositry = ProductCategoryRepository();
+    private taxesRepository = TaxesRepository();
+    private schemeRepository = getSchemeRepository();
+    private discountRepository = DiscountRepository();
 
     constructor() { }
 
     async createProduct(input: CreateProductRequest, payload: IUser): Promise<IApiResponse> {
         try {
-            const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
-            const { emp_id } = payload;
+            const { 
+                productCode, productType, productName, categoryId, subCategoryId, 
+                description, status, launchDate, discontinueDate, vol, 
+                taxCategoryId, hsnCode, image, marketSegment, 
+                productLifeCycleStage, storageCondition, schemeId, discountId
+            } = input;
 
-            const brand: IBrand | null = await this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-            if (!brand) {
-                return { message: "Brand Not Found.", status: STATUSCODES.NOT_FOUND }
+            // Validate category
+            const category = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
+            if (!category) {
+                return { message: "Category Not Found.", status: STATUSCODES.NOT_FOUND }
             }
+
+            // Validate subcategory if provided
+            if (subCategoryId) {
+                const subCategory = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(subCategoryId), isDeleted: false });
+                if (!subCategory) {
+                    return { message: "Sub Category Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate tax category if provided
+            if (taxCategoryId) {
+                const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+                if (!taxCategory) {
+                    return { message: "Tax Category Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate scheme if provided
+            if (schemeId) {
+                const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+                if (!scheme) {
+                    return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate discount if provided
+            if (discountId) {
+                const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
+                if (!discount) {
+                    return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
             const product = new this.productModel();
+            product.productCode = productCode;
+            product.productType = productType;
             product.productName = productName;
-            product.empId = emp_id;
-            product.brandId = brandId;
             product.categoryId = categoryId;
-            product.mrp = mrp;
-            product.rlp = rlp;
-            product.caseQty = caseQty;
+            product.subCategoryId = subCategoryId;
+            product.description = description;
+            product.status = status || 'Active';
+            product.launchDate = launchDate ? new Date(launchDate) : undefined;
+            product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
+            product.vol = vol;
+            product.taxCategoryId = taxCategoryId;
+            product.hsnCode = hsnCode;
             product.image = image;
-            product.isFocused = isFocused;
-            product.isActive = isActive
-
-            if (skuDiscount) {
-                // Validate skuDiscount if provided
-                const skuDiscountObj: ISkuDiscount = new SkuDiscount();
-                skuDiscountObj.discountType = skuDiscount.discountType as DiscountType;
-                skuDiscountObj.isActive = skuDiscount.isActive ?? false; // Default to false if not provided
-                skuDiscountObj.value = skuDiscount.value ?? 0; // Default to 0 if not provided
-
-                // Save skuDiscount to product
-                product.skuDiscount = skuDiscountObj;
-            }
-
-            if (product.rlp > product.mrp) {
-                return { message: "RLP must be less than or equal to MRP", status: STATUSCODES.BAD_REQUEST }
-            }
+            product.marketSegment = marketSegment;
+            product.productLifeCycleStage = productLifeCycleStage;
+            product.storageCondition = storageCondition;
+            product.schemeId = schemeId;
+            product.discountId = discountId;
+            
             await this.productRepositry.save(product)
 
             return { message: "Success.", status: STATUSCODES.SUCCESS }
@@ -61,7 +95,12 @@ class ProductController {
 
     async updateProduct(input: UpdateProductRequest, payload: IUser): Promise<IApiResponse> {
         try {
-            const { productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive } = input;
+            const { 
+                productId, productCode, productType, productName, categoryId, subCategoryId,
+                description, status, launchDate, discontinueDate, vol, 
+                taxCategoryId, hsnCode, image, marketSegment, 
+                productLifeCycleStage, storageCondition, schemeId, discountId
+            } = input;
 
             const product: IProducts | null = await this.productRepositry.findOne({
                 where: { productId: Number(productId), isDeleted: false }
@@ -71,10 +110,72 @@ class ProductController {
                 return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND }
             }
 
+            // Validate category if provided
+            if (categoryId) {
+                const category = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
+                if (!category) {
+                    return { message: "Category Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate subcategory if provided
+            if (subCategoryId) {
+                const subCategory = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(subCategoryId), isDeleted: false });
+                if (!subCategory) {
+                    return { message: "Sub Category Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate tax category if provided
+            if (taxCategoryId) {
+                const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+                if (!taxCategory) {
+                    return { message: "Tax Category Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate scheme if provided
+            if (schemeId) {
+                const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+                if (!scheme) {
+                    return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Validate discount if provided
+            if (discountId) {
+                const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
+                if (!discount) {
+                    return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND }
+                }
+            }
+
+            // Build update object with only provided fields
+            const updateData: any = {};
+            if (productCode !== undefined) updateData.productCode = productCode;
+            if (productType !== undefined) updateData.productType = productType;
+            if (productName !== undefined) updateData.productName = productName;
+            if (categoryId !== undefined) updateData.categoryId = categoryId;
+            if (subCategoryId !== undefined) updateData.subCategoryId = subCategoryId;
+            if (description !== undefined) updateData.description = description;
+            if (status !== undefined) updateData.status = status;
+            if (launchDate !== undefined) updateData.launchDate = launchDate ? new Date(launchDate) : null;
+            if (discontinueDate !== undefined) updateData.discontinueDate = discontinueDate ? new Date(discontinueDate) : null;
+            if (vol !== undefined) updateData.vol = vol;
+            if (taxCategoryId !== undefined) updateData.taxCategoryId = taxCategoryId;
+            if (hsnCode !== undefined) updateData.hsnCode = hsnCode;
+            if (image !== undefined) updateData.image = image;
+            if (marketSegment !== undefined) updateData.marketSegment = marketSegment;
+            if (productLifeCycleStage !== undefined) updateData.productLifeCycleStage = productLifeCycleStage;
+            if (storageCondition !== undefined) updateData.storageCondition = storageCondition;
+            if (schemeId !== undefined) updateData.schemeId = schemeId;
+            if (discountId !== undefined) updateData.discountId = discountId;
+
             await this.productRepositry
                 .createQueryBuilder()
-                .update({ productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive })
-                .where({ productId }).execute()
+                .update(updateData)
+                .where({ productId: Number(productId) })
+                .execute()
 
             return { message: "Success.", status: STATUSCODES.SUCCESS }
         } catch (error) {
@@ -88,7 +189,7 @@ class ProductController {
 
             const product: IProducts | null = await this.productRepositry.findOne({
                 where: { productId: Number(productId), isDeleted: false },
-                relations: ["brand", "category"]
+                relations: ["category", "subCategory", "taxCategory", "scheme", "discount"]
             });
 
             if (!product) {
@@ -144,36 +245,31 @@ class ProductController {
 
             // Initialize the QueryBuilder
             const queryBuilder = this.productRepositry.createQueryBuilder('product')
-                .leftJoinAndSelect('product.brand', 'brand')
                 .leftJoinAndSelect('product.category', 'category')
+                .leftJoinAndSelect('product.subCategory', 'subCategory')
+                .leftJoinAndSelect('product.taxCategory', 'taxCategory')
+                .leftJoinAndSelect('product.scheme', 'scheme')
+                .leftJoinAndSelect('product.discount', 'discount')
                 .where('product.isDeleted = :isDeleted', { isDeleted: false });
 
             // Add conditions dynamically
-
-            if (isFocused === 'true') {
-                queryBuilder.andWhere('product.isFocused = :isFocused', { isFocused: true });
-            }
             if (role === UserRole.SSM || role === UserRole.RETAILER) {
-                queryBuilder.andWhere('product.isActive = :isActive', { isActive: true });
+                queryBuilder.andWhere('product.status = :status', { status: 'Active' });
             }
             if (isActive === 'true') {
-                queryBuilder.andWhere('product.isActive = :isActive', { isActive: true });
-            }
-            if (Number(brand) > 0) {
-                queryBuilder.andWhere('brand.brandId = :brandId', { brandId: brand });
+                queryBuilder.andWhere('product.status = :status', { status: 'Active' });
             }
             if (Number(category) > 0) {
                 queryBuilder.andWhere('category.productCategoryId = :productCategoryId', { productCategoryId: category });
             }
             if (search) {
-                queryBuilder.andWhere('product.name LIKE :search', { search: `%${search}%` });
+                queryBuilder.andWhere('product.productName LIKE :search', { search: `%${search}%` });
             }
 
             // Add ordering
-            queryBuilder.orderBy('product.isActive', 'DESC')
-                .addOrderBy('product.isFocused', 'DESC')
+            queryBuilder.orderBy('product.status', 'DESC')
                 .addOrderBy('product.productName', 'ASC')
-                .addOrderBy('product.createdAt', 'DESC');
+                .addOrderBy('product.createdDate', 'DESC');
 
             // Execute the query and get the results
             const products = await queryBuilder.getMany();
@@ -184,29 +280,29 @@ class ProductController {
         }
     }
 
-    async deleteProduct(input: DeleteProductById): Promise<IApiResponse> {
-        try {
-            const { productId } = input;
+  async deleteProduct(input: DeleteProductById): Promise<IApiResponse> {
+    try {
+        const { productId } = input;
 
-            const product: IProducts | null = await this.productRepositry.findOne({
-                where: { productId: Number(productId) },
-                relations: ["brand", "category"]
-            });
+        const product: IProducts | null = await this.productRepositry.findOne({
+            where: { productId: Number(productId), isDeleted: false },
+            // Remove relations - brand doesn't exist anymore, and we don't need category for deletion
+        });
 
-            if (!product) {
-                return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND }
-            }
-
-            await this.productRepositry.createQueryBuilder()
-                .update({ isDeleted: true })
-                .where({ productId: Number(productId) })
-                .execute()
-
-            return { message: "Success.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
+        if (!product) {
+            return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND }
         }
+
+        await this.productRepositry.createQueryBuilder()
+            .update({ isDeleted: true })
+            .where({ productId: Number(productId) })
+            .execute()
+
+        return { message: "Success.", status: STATUSCODES.SUCCESS }
+    } catch (error) {
+        throw error;
     }
+}
 
     /**
      * Product Category Controller
@@ -283,7 +379,6 @@ class ProductController {
 
     async createProducts(inputs: CreateProductRequest[], payload: IUser): Promise<IApiResponse> {
         try {
-            const { emp_id } = payload;
             const skippedProducts: string[] = [];  // Store skipped product names
             const processedProducts: Set<string> = new Set(); // Store unique products to prevent duplicates from the input
 
@@ -291,10 +386,15 @@ class ProductController {
 
             // Loop through inputs
             for (const input of inputs) {
-                const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
+                const { 
+                    productCode, productType, productName, categoryId, subCategoryId,
+                    description, status, launchDate, discontinueDate, vol, 
+                    taxCategoryId, hsnCode, image, marketSegment, 
+                    productLifeCycleStage, storageCondition, schemeId, discountId
+                } = input;
 
-                // Create a unique key to identify each product by name, brand, and category
-                const productKey = `${productName}-${brandId}-${categoryId}`;
+                // Create a unique key to identify each product by name and category
+                const productKey = `${productName}-${categoryId}`;
 
                 // In-memory duplicate check (skip if the product is already processed)
                 if (processedProducts.has(productKey)) {
@@ -304,14 +404,51 @@ class ProductController {
 
                 processedProducts.add(productKey);  // Mark this product as processed
 
-                // Check if the brand exists
-                const brand: IBrand | null = await this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-                if (!brand) {
-                    return { message: `Brand Not Found for product: ${productName}.`, status: STATUSCODES.NOT_FOUND };
+                // Validate category
+                const category = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
+                if (!category) {
+                    skippedProducts.push(`${productName} (Category Not Found)`);
+                    continue;
+                }
+
+                // Validate subcategory if provided
+                if (subCategoryId) {
+                    const subCategory = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(subCategoryId), isDeleted: false });
+                    if (!subCategory) {
+                        skippedProducts.push(`${productName} (Sub Category Not Found)`);
+                        continue;
+                    }
+                }
+
+                // Validate tax category if provided
+                if (taxCategoryId) {
+                    const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+                    if (!taxCategory) {
+                        skippedProducts.push(`${productName} (Tax Category Not Found)`);
+                        continue;
+                    }
+                }
+
+                // Validate scheme if provided
+                if (schemeId) {
+                    const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+                    if (!scheme) {
+                        skippedProducts.push(`${productName} (Scheme Not Found)`);
+                        continue;
+                    }
+                }
+
+                // Validate discount if provided
+                if (discountId) {
+                    const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
+                    if (!discount) {
+                        skippedProducts.push(`${productName} (Discount Not Found)`);
+                        continue;
+                    }
                 }
 
                 // Check if the product already exists in the database
-                const existingProduct = await this.productRepositry.findOneBy({ productName, brandId, categoryId: Number(categoryId) });
+                const existingProduct = await this.productRepositry.findOneBy({ productName, categoryId: Number(categoryId) });
                 if (existingProduct) {
                     skippedProducts.push(`${productName} (Already exists in database)`);
                     continue;  // Skip the product if it already exists
@@ -319,30 +456,24 @@ class ProductController {
 
                 // Create a new product object
                 const product = new this.productModel();
+                product.productCode = productCode;
+                product.productType = productType;
                 product.productName = productName;
-                product.empId = emp_id;
-                product.brandId = brandId;
                 product.categoryId = categoryId;
-                product.mrp = mrp;
-                product.rlp = rlp;
-                product.caseQty = caseQty;
+                product.subCategoryId = subCategoryId;
+                product.description = description;
+                product.status = status || 'Active';
+                product.launchDate = launchDate ? new Date(launchDate) : undefined;
+                product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
+                product.vol = vol;
+                product.taxCategoryId = taxCategoryId;
+                product.hsnCode = hsnCode;
                 product.image = image;
-                product.isFocused = isFocused;
-                product.isActive = isActive;
-
-                // Add SKU discount if available
-                if (skuDiscount) {
-                    const skuDiscountObj: ISkuDiscount = new SkuDiscount();
-                    skuDiscountObj.discountType = skuDiscount.discountType as DiscountType;
-                    skuDiscountObj.isActive = skuDiscount.isActive ?? false;
-                    skuDiscountObj.value = skuDiscount.value ?? 0;
-                    product.skuDiscount = skuDiscountObj;
-                }
-
-                // Ensure RLP is less than or equal to MRP
-                if (product.rlp > product.mrp) {
-                    return { message: `RLP must be less than or equal to MRP for product: ${productName}.`, status: STATUSCODES.BAD_REQUEST };
-                }
+                product.marketSegment = marketSegment;
+                product.productLifeCycleStage = productLifeCycleStage;
+                product.storageCondition = storageCondition;
+                product.schemeId = schemeId;
+                product.discountId = discountId;
 
                 // Save the product
                 await this.productRepositry.save(product);

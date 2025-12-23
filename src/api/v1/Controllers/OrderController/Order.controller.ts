@@ -218,22 +218,22 @@ class OrderController {
 
     async getSkuDiscount(products: Products[], amount: number): Promise<GetDiscount> {
         try {
-            const productIds = products.map((item) => item.productId);
-            const productList: IProducts[] | null = await this.productResposity.find({ where: { productId: In(productIds) } });
-
+            // Use products from the order array instead of fetching from database
             let totalSkuDiscount: number = 0
-            let index: number = 0;
-            for (let item of productList) {
-                for (let product of products) {
-                    if (item.skuDiscount && item.skuDiscount.isActive == true && item.productId === product.productId) {
-                        const totalNumberOfPiece = ((product.noOfCase * item.caseQty) + product.noOfPiece);
-                        const totalProductAmount = (item.rlp * totalNumberOfPiece);
-                        const discountPerItem: number = item.skuDiscount.discountType == DiscountType.PERCENTAGE ? totalProductAmount * item.skuDiscount.value / 100 : item.skuDiscount.discountType == DiscountType.VALUE ? (item.skuDiscount.value * totalNumberOfPiece) : 0;
-                        totalSkuDiscount = totalSkuDiscount + discountPerItem;
-                    }
+            
+            for (let product of products) {
+                if (product.skuDiscount && product.skuDiscount.isActive == true) {
+                    const totalNumberOfPiece = ((product.noOfCase * product.caseQty) + product.noOfPiece);
+                    const totalProductAmount = (product.rlp * totalNumberOfPiece);
+                    const discountPerItem: number = product.skuDiscount.discountType == DiscountType.PERCENTAGE 
+                        ? totalProductAmount * product.skuDiscount.value / 100 
+                        : product.skuDiscount.discountType == DiscountType.VALUE 
+                            ? (product.skuDiscount.value * totalNumberOfPiece) 
+                            : 0;
+                    totalSkuDiscount = totalSkuDiscount + discountPerItem;
                 }
-                index++
             }
+            
             return { netAmount: amount - totalSkuDiscount, discountValue: totalSkuDiscount };
         } catch (error) {
             throw new Error(`Error: when calculating the sku discount in order.`);

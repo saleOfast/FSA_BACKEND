@@ -60,6 +60,11 @@ export class Products {
 
     @IsNotEmpty()
     @IsNumber()
+    caseQty: number  // ADD THIS LINE
+
+
+    @IsNotEmpty()
+    @IsNumber()
     noOfCase: number
 
     @IsNotEmpty()

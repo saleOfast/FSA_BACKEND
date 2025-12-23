@@ -38,6 +38,8 @@ const course_entity_1 = require("./Entities/LearningModule/course.entity");
 const learningSession_entity_1 = require("./Entities/LearningModule/learningSession.entity");
 const quiz_entity_1 = require("./Entities/LearningModule/quiz.entity");
 const target_entity_1 = require("./Entities/target.entity");
+const object_entity_1 = require("./Entities/object.entity");
+const ObjectPermission_entity_1 = require("./Entities/ObjectPermission.entity");
 const reason_entity_1 = require("./Entities/reason.entity");
 const colour_entity_1 = require("./Entities/colour.entity");
 const size_entity_1 = require("./Entities/size.entity");
@@ -71,6 +73,11 @@ const new_target_entity_1 = require("./Entities/new.target.entity");
 const inventory_1 = require("./Entities/inventory");
 const warehouse_entity_1 = require("./Entities/warehouse.entity");
 const sales_return_entity_1 = require("./Entities/sales_return.entity");
+const customer_entity_1 = require("./Entities/customer.entity");
+const customerType_entity_1 = require("./Entities/customerType.entity");
+const Tab_entity_1 = require("./Entities/Tab.entity");
+const TabPermission_entity_1 = require("./Entities/TabPermission.entity");
+const systemPermission_entity_1 = require("./Entities/systemPermission.entity");
 const { userName, password, host, port, dbName, isSynchronize } = (0, config_1.config)();
 const dbConfig = { userName, password, host, port, dbName, isSynchronize };
 class Postgresdb {
@@ -96,25 +103,26 @@ class Postgresdb {
                 const { postgresDBUrl, environment } = (0, config_1.config)();
                 const env = (environment || '').toLowerCase();
                 const isLocal = env === 'local' || this.dbConfig.host === 'localhost' || this.dbConfig.host === '127.0.0.1';
+                const entities = [
+                    policyHead_entity_1.PolicyHead, policyHeadType_entity_1.PolicyTypeHead, expenseManagement_entity_1.ExpenseManagement,
+                    User_entity_1.User, attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor, inventory_entity_1.Inventory,
+                    orders_entity_1.Orders, outlet_inventory_entity_1.OutletInventory, products_entity_1.Products, storeCategory_entity_1.StoreCategory, stores_entity_1.Stores, Visit_entity_1.Visits, brand_entity_1.Brand,
+                    brand_competitor_entity_1.CompetitorBrand, productCategory_entity_1.ProductCategory, scheme_entity_1.Scheme, collected_amount_entity_1.CollectAmount, payment_entity_1.Payment, course_entity_1.Course,
+                    learningSession_entity_1.LearningSession, quiz_entity_1.Quiz, target_entity_1.Target, object_entity_1.ObjectEntity, reason_entity_1.Reason, colour_entity_1.Colour,
+                    size_entity_1.Size, feature_entity_1.Feature, role_entity_1.Role, paymentMode_entity_1.PaymentMode, Leave_entity_1.LeaveHead, LeaveCount_entity_1.LeaveHeadCount,
+                    userType_entity_1.UserTypes, feedback_entity_1.FeedBack, samples_entity_1.Samples, activities_entity_1.Activities, activities_jointWork_entity_1.JointWork, sessions_entity_1.Sessions,
+                    userLeave_entity_1.UserLeave, userLeaveApplication_entity_1.LeaveApplication,
+                    activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
+                    dar_entity_1.Dar, eDetailing_entity_1.Edetailing, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
+                    inventory_1.InventoryItem, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, customer_entity_1.Customer, customerType_entity_1.CustomerType, profile_entity_1.Profile, ObjectPermission_entity_1.ObjectPermission, Tab_entity_1.Tab, TabPermission_entity_1.TabPermission, systemPermission_entity_1.SystemPermission
+                ];
                 const dbConn = new typeorm_1.DataSource({
                     type: 'postgres',
                     url: this.connectionUrl,
                     synchronize: JSON.parse(this.isSync),
                     logging: true,
                     ssl: isLocal ? false : { rejectUnauthorized: false },
-                    entities: [
-                        policyHeadType_entity_1.PolicyTypeHead, policyHead_entity_1.PolicyHead, expenseManagement_entity_1.ExpenseManagement, User_entity_1.User,
-                        attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor,
-                        inventory_entity_1.Inventory, orders_entity_1.Orders, outlet_inventory_entity_1.OutletInventory, products_entity_1.Products, storeCategory_entity_1.StoreCategory,
-                        stores_entity_1.Stores, Visit_entity_1.Visits, brand_entity_1.Brand, productCategory_entity_1.ProductCategory, scheme_entity_1.Scheme, collected_amount_entity_1.CollectAmount,
-                        payment_entity_1.Payment, course_entity_1.Course, learningSession_entity_1.LearningSession, quiz_entity_1.Quiz, target_entity_1.Target, reason_entity_1.Reason, colour_entity_1.Colour,
-                        size_entity_1.Size, feature_entity_1.Feature, role_entity_1.Role, paymentMode_entity_1.PaymentMode, Leave_entity_1.LeaveHead, LeaveCount_entity_1.LeaveHeadCount,
-                        userType_entity_1.UserTypes, feedback_entity_1.FeedBack, samples_entity_1.Samples, activities_entity_1.Activities, activities_jointWork_entity_1.JointWork, sessions_entity_1.Sessions,
-                        userLeave_entity_1.UserLeave, userLeaveApplication_entity_1.LeaveApplication,
-                        activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
-                        dar_entity_1.Dar, eDetailing_entity_1.Edetailing, brand_competitor_entity_1.CompetitorBrand, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
-                        inventory_1.InventoryItem, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, profile_entity_1.Profile
-                    ],
+                    entities,
                     schema: 'public',
                     extra: {
                         keepAlive: true,

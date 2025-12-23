@@ -44,7 +44,9 @@ class SamplesService {
         try {
             const SamplesList = await this.SamplesRepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true, product: true },
+                relations: { store: true, user: true
+                    // , product: true 
+                    },
                 order: { createdAt: "DESC" },
             });
             return { status: STATUSCODES.SUCCESS, message: "Samples list retrieved successfully.", data: SamplesList };

@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -16,23 +27,44 @@ exports.userController = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const verifyToken_1 = require("../../../../core/helper/verifyToken");
 const User_entity_1 = require("../../../../core/DB/Entities/User.entity");
+const profile_entity_1 = require("../../../../core/DB/Entities/profile.entity");
 const common_1 = require("../../../../core/types/Constent/common");
 const salt = bcryptjs_1.default.genSaltSync(10);
 const userController = {
     login: (input) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            const { phone, password } = input;
-            const user = yield (0, User_entity_1.UserRepository)().findOne({ where: { phone, isDeleted: false } });
+            const { phone: inputPhone, password: inputPassword } = input;
+            const user = yield (0, User_entity_1.UserRepository)().findOne({ where: { phone: inputPhone, isDeleted: false } });
             if (!user) {
                 return { status: common_1.STATUSCODES.NOT_FOUND, message: "User Not Found." };
             }
-            console.log({ user });
-            const isMatch = yield bcryptjs_1.default.compare(password, user.password);
+            const isMatch = yield bcryptjs_1.default.compare(inputPassword, user.password);
             if (!isMatch) {
                 return { status: common_1.STATUSCODES.BAD_REQUEST, message: "Invalid Password" };
             }
-            const token = yield (0, verifyToken_1.generateToken)(JSON.parse(JSON.stringify({ id: user.emp_id, email: user.email, role: user.role })));
-            return { status: common_1.STATUSCODES.SUCCESS, message: "Success.", data: { accessToken: token } };
+            // Get user with profile details
+            const userWithProfile = yield (0, User_entity_1.UserRepository)().findOne({
+                where: { emp_id: user.emp_id },
+                relations: ['profile'] // This will load the profile relation
+            });
+            if (!userWithProfile) {
+                return { status: common_1.STATUSCODES.NOT_FOUND, message: "User not found" };
+            }
+            const token = yield (0, verifyToken_1.generateToken)(JSON.parse(JSON.stringify({
+                id: user.emp_id,
+                email: user.email,
+                role: user.role
+            })));
+            // Extract only necessary user data to return
+            const { password: _ } = userWithProfile, userData = __rest(userWithProfile, ["password"]);
+            return {
+                status: common_1.STATUSCODES.SUCCESS,
+                message: "Success.",
+                data: {
+                    accessToken: token,
+                    user: userData
+                }
+            };
         }
         catch (error) {
             throw error;
@@ -61,6 +93,13 @@ const userController = {
                 newUser.managerId = managerId;
                 newUser.role = role;
                 newUser.learningRole = learningRole;
+                // Set profile if profileId is provided
+                if (input.profileId) {
+                    const profile = yield (0, User_entity_1.UserRepository)().manager.findOne(profile_entity_1.Profile, { where: { profileId: input.profileId } });
+                    if (profile) {
+                        newUser.profile = profile;
+                    }
+                }
                 yield (0, User_entity_1.UserRepository)().save(newUser);
                 return { message: "Success.", status: common_1.STATUSCODES.SUCCESS };
             }
@@ -77,7 +116,7 @@ const userController = {
             const processedPhones = new Set(); // Track unique phone numbers in input
             // Validate and map each input to a User entity
             for (const input of inputs) {
-                const { email, password, firstname, lastname, age, phone, address, zone, joining_date, dob, managerId, role, learningRole } = input;
+                const { email, password, firstname, lastname, age, phone, address, zone, joining_date, dob, managerId, role, learningRole, profileId } = input;
                 // Hash the password
                 const hashPassword = bcryptjs_1.default.hashSync(password, salt);
                 // Check for in-memory duplicates
@@ -92,6 +131,14 @@ const userController = {
                 if (existingUser) {
                     skippedUsers.push(`User with phone ${phone} (Already exists in database)`);
                     continue; // Skip the user if they already exist in the database
+                }
+                // Check if profile exists
+                if (profileId) {
+                    const profile = yield (0, User_entity_1.UserRepository)().manager.findOne(profile_entity_1.Profile, { where: { profileId } });
+                    if (!profile) {
+                        skippedUsers.push(`User with phone ${phone} (Profile not found)`);
+                        continue;
+                    }
                 }
                 // Create new user entity
                 const newUser = new User_entity_1.User();
@@ -108,6 +155,13 @@ const userController = {
                 newUser.managerId = managerId;
                 newUser.role = role;
                 newUser.learningRole = learningRole;
+                // Only assign profile if profileId is provided
+                if (profileId !== undefined) {
+                    const profile = yield (0, User_entity_1.UserRepository)().manager.findOne(profile_entity_1.Profile, { where: { profileId } });
+                    if (profile) {
+                        newUser.profile = profile;
+                    }
+                }
                 newUsers.push(newUser); // Add the new user to the list of users to be saved
             }
             try {

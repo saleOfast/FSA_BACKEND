@@ -16,12 +16,12 @@ export class Gifts extends BaseEntity {
     @Column({ name: 'store_id', nullable: true }) // Store ID column
     storeId?: number;
 
-    @ManyToOne(() => Products, (product) => product.gift, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'product_id' })
-    product?: Products;
+    // @ManyToOne(() => Products, (product) => product.gift, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'product_id' })
+    // product?: Products;
 
-    @Column({ name: 'product_id', nullable: true })
-    productId: number;
+    // @Column({ name: 'product_id', nullable: true })
+    // productId: number;
 
     @Column({ name: 'date', nullable: true })
     date: Date;
