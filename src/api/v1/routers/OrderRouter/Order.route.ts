@@ -139,16 +139,16 @@ router.get('/signedUrl', validateDtoMiddleware(UploadFile), AccessTokenService.v
     }
 });
 
-router.put('/update/orderStatus', validateDtoMiddleware(UpdateOrderTrackStatusById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: UpdateOrderTrackStatusById = RequestHandler.Defaults.getBody<UpdateOrderTrackStatusById>(req, UpdateOrderTrackStatusById);
-        const orderService = new OrderService();
-        const data = await orderService.updateOrderTrackStatus(input);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.put('/update/orderStatus', validateDtoMiddleware(UpdateOrderTrackStatusById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: UpdateOrderTrackStatusById = RequestHandler.Defaults.getBody<UpdateOrderTrackStatusById>(req, UpdateOrderTrackStatusById);
+//         const orderService = new OrderService();
+//         const data = await orderService.updateOrderTrackStatus(input);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.put('/update/special-discount', validateDtoMiddleware(UpdateOrderBySpecialDiscountById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
     try {

@@ -10,13 +10,14 @@ import { VisitRepository } from "../../../../core/DB/Entities/Visit.entity";
 import { ProductRepository } from "../../../../core/DB/Entities/products.entity";
 import { FindOptionsWhere, In } from "typeorm";
 import { IProducts } from "../../../../core/types/ProductService/ProductService";
-import { InventoryService } from "../InventoryController/Inventory.controller";
+// import { InventoryService } from "../../../../core/types/InventoryService/InventoryService";
 import { endOfDay, startOfDay, subDays } from "date-fns";
 import { PaymentRepository } from "../../../../core/DB/Entities/payment.entity";
 import { UserRepository } from "../../../../core/DB/Entities/User.entity";
 import { monthlyFilter, ReportFilter } from "core/types/AttendanceService/AttendanceService";
 import { BeatRepository } from "../../../../core/DB/Entities/beat.entity";
 import { IBeat } from "core/types/BeatService/Beat";
+import  {InventoryService} from "../../Controllers/inventory/inventory"
 
 class OrderController {
     private orderRepositry = OrdersRepository();
@@ -743,32 +744,32 @@ class OrderController {
         }
     }
 
-    async updateOrderTrackStatus(input: UpdateOrderTrackStatusById): Promise<IApiResponse> {
-        try {
-            const { orderId, orderStatus } = input;
-            const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
+    // async updateOrderTrackStatus(input: UpdateOrderTrackStatusById): Promise<IApiResponse> {
+    //     try {
+    //         const { orderId, orderStatus } = input;
+    //         const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
 
-            if (!order) {
-                return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
-            }
+    //         if (!order) {
+    //             return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
+    //         }
 
-            const previousStatus: OrderStatus = order.orderStatus;
-            await OrdersRepository().update(orderId, { orderStatus });
-            const newStatusEntry: StatusHistoryEntry = {
-                status: orderStatus,
-                timestamp: new Date().toISOString()
-            };
-            const updatedStatusHistory: StatusHistoryEntry[] = [...order.statusHistory, newStatusEntry];
-            await OrdersRepository().update(orderId, { statusHistory: updatedStatusHistory });
-            if (orderStatus === OrderStatus.DELIVERED) {
-                const inventoryService = new InventoryService();
-                await inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
-            }
-            return { message: "Success.", status: STATUSCODES.SUCCESS };
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         const previousStatus: OrderStatus = order.orderStatus;
+    //         await OrdersRepository().update(orderId, { orderStatus });
+    //         const newStatusEntry: StatusHistoryEntry = {
+    //             status: orderStatus,
+    //             timestamp: new Date().toISOString()
+    //         };
+    //         const updatedStatusHistory: StatusHistoryEntry[] = [...order.statusHistory, newStatusEntry];
+    //         await OrdersRepository().update(orderId, { statusHistory: updatedStatusHistory });
+    //         if (orderStatus === OrderStatus.DELIVERED) {
+    //             const inventoryService = new InventoryService();
+    //             await inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
+    //         }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS };
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async updateOrderBySpecialDiscount(input: UpdateOrderBySpecialDiscountById): Promise<IApiResponse> {
         try {

@@ -3,98 +3,170 @@ import {
   PrimaryGeneratedColumn,
   Column,
   BaseEntity,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Unique,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Repository,
 } from "typeorm";
 
 import { Products } from "../Entities/products.entity";
+import { Taxes } from "../Entities/tax.entity";
 
-export enum InventoryStatus {
-  ACTIVE = "Active",
-  INACTIVE = "Inactive",
+import { Warehouse } from "../Entities/warehouse.entity";
+
+import { DbConnections } from "../postgresdb";
+
+
+export interface IInventory {
+  // Primary key
+  inventoryId: number;
+
+  // Relations (store IDs, not full objects)
+  productId?: number; // optional now
+  skuId?: number; // Foreign key, derived from SKU relation
+  warehouseId?: number;
+
+  // Stock (source of truth)
+  stockQuantity: number;
+  reservedQuantity: number;
+
+  // Optional tracking
+  batchNumber?: string;
+  expiryDate?: Date;
+  reorderLevel?: number;
+  stockInDate?: Date;
+  stockOutDate?: Date;
+
+  // Optional references
+  taxId?: number;
+  schemeId?: number;
+  discountId?: number;
+
+  // 🔹 Derived / Formula based (NOT stored in DB)
+  availableQuantity?: number;      // stockQuantity - reservedQuantity
+  isExpired?: boolean;
+  isBelowReorderLevel?: boolean;
+  daysToExpiry?: number | null;
+  shelfLife?: number | null;
+
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-@Entity({ name: "inventory_item" })
-@Unique(["product", "warehouseId"]) // unique per product per warehouse
-export class InventoryItem extends BaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
 
-  @ManyToOne(() => Products, { eager: true })
-  @JoinColumn({ name: "product_id" })
-  product: Products;
 
-  @Column({ name: "batch_number", type: "varchar", length: 50, nullable: true })
-  batchNumber: string | null;
 
-  @Column({ type: "int", nullable: false })
-  warehouseId: number;
+@Entity({ name: "inventory" })
+export class Inventory extends BaseEntity implements IInventory {
 
-  @Column({ name: "serial_number", type: "varchar", length: 50, nullable: true })
-  serialNumber: string | null;
+  @PrimaryGeneratedColumn({ name: "inventory_id" })
+  inventoryId: number;
 
-  @Column({ name: "quantity_on_hand", type: "int", default: 0 })
-  quantityOnHand: number;
+@Column({ name: "sku_id", nullable: true })
+skuId?: number;
 
-  @Column({ name: "quantity_reserved", type: "int", default: 0 })
-  quantityReserved: number;
+// @ManyToOne(() => sku, { nullable: true })
+// @JoinColumn({ name: "sku_id" })
+// sku?: sku;
 
-  @Column({ name: "quantity_available", type: "int", default: 0 })
-  quantityAvailable: number;
+@Column({ name: "product_id", nullable: true })
+productId?: number;
 
-  @Column({ name: "reorder_level", type: "int", nullable: true })
-  reorderLevel: number | null;
+@ManyToOne(() => Products, { nullable: true })
+@JoinColumn({ name: "product_id" })
+product?: Products;
 
-  @Column({ name: "date_received", type: "date", nullable: true })
-  dateReceived: Date | null;
+
+
+  @Column({ name: "warehouse_id", nullable: true })
+  warehouseId?: number;
+
+
+  @ManyToOne(() => Warehouse, { nullable: true })
+  @JoinColumn({ name: "warehouse_id" })
+  warehouse?: Warehouse;
+
+
+  @Column({ name: "stock_quantity", type: "int", default: 0 })
+  stockQuantity: number;
+
+  @Column({ name: "reserved_quantity", type: "int", default: 0 })
+  reservedQuantity: number;
+
+  @Column({ name: "batch_number", nullable: true })
+  batchNumber?: string;
 
   @Column({ name: "expiry_date", type: "date", nullable: true })
-  expiryDate: Date | null;
+  expiryDate?: Date;
 
-  @Column({
-    name: "cost_price",
-    type: "decimal",
-    precision: 10,
-    scale: 2,
-    nullable: true,
-    transformer: {
-      to: (value: number | null) => value,
-      from: (value: string | null) => (value !== null ? parseFloat(value) : null),
-    },
-  })
-  costPrice: number | null;
+  @Column({ name: "reorder_level", type: "int", nullable: true })
+  reorderLevel?: number;
 
-  @Column({
-    name: "average_cost",
-    type: "decimal",
-    precision: 10,
-    scale: 2,
-    nullable: true,
-    transformer: {
-      to: (value: number | null) => value,
-      from: (value: string | null) => (value !== null ? parseFloat(value) : null),
-    },
-  })
-  averageCost: number | null;
+  @Column({ name: "stock_in_date", type: "date", nullable: true })
+  stockInDate?: Date;
 
-  @Column({ name: "unit_of_measure", type: "varchar", length: 50, nullable: true })
-  unitOfMeasure: string | null;
+  @Column({ name: "stock_out_date", type: "date", nullable: true })
+  stockOutDate?: Date;
 
-  @Column({ type: "enum", enum: InventoryStatus, default: InventoryStatus.ACTIVE })
-  status: InventoryStatus;
+ @Column({ name: "tax_id", nullable: true })
+taxId?: number;
 
-  @CreateDateColumn({ name: "created_at", type: "timestamp with time zone" })
+@ManyToOne(() => Taxes, { nullable: true })
+@JoinColumn({ name: "tax_id" })
+tax?: Taxes;
+
+  @Column({ name: "scheme_id", type: "int", nullable: true })
+schemeId?: number;
+
+@Column({ name: "discount_id", type: "int", nullable: true })
+discountId?: number;
+
+
+  // Available = Stock - Reserved
+  get availableQuantity(): number {
+    return this.stockQuantity - this.reservedQuantity;
+  }
+
+  // Is stock below reorder level?
+  get isBelowReorderLevel(): boolean {
+    if (this.reorderLevel == null) return false;
+    return this.stockQuantity <= this.reorderLevel;
+  }
+
+  // Is product expired?
+  get isExpired(): boolean {
+    if (!this.expiryDate) return false;
+    return new Date(this.expiryDate) < new Date();
+  }
+
+  // Days to expiry
+  get daysToExpiry(): number | null {
+    if (!this.expiryDate) return null;
+    const diff =
+      new Date(this.expiryDate).getTime() - new Date().getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  // Shelf life (derived if stock_in_date exists)
+  get shelfLife(): number | null {
+    if (!this.stockInDate || !this.expiryDate) return null;
+    const diff =
+      new Date(this.expiryDate).getTime() -
+      new Date(this.stockInDate).getTime();
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }
+
+  @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: "updated_at", type: "timestamp with time zone" })
+  @UpdateDateColumn({ name: "updated_at" })
   updatedAt: Date;
-
-  @Column({ name: "created_by", type: "varchar", length: 100, nullable: true })
-  createdBy: string | null;
-
-  @Column({ name: "last_modified_by", type: "varchar", length: 100, nullable: true })
-  lastModifiedBy: string | null;
 }
+
+export const InventoryRepository = (): Repository<Inventory> => {
+  return DbConnections.AppDbConnection
+    .getConnection()
+    .getRepository(Inventory);
+};
