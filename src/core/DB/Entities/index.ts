@@ -20,6 +20,7 @@ import { ObjectPermission } from "./ObjectPermission.entity";
 import { Tab } from "./Tab.entity";
 import { TabPermission } from "./TabPermission.entity";
 import { SystemPermission } from "./systemPermission.entity";
+import { Sku } from "./sku.entity";
 
 const dbentities = [ 
   User, 
@@ -43,7 +44,8 @@ const dbentities = [
   ObjectPermission,
   Tab,
   TabPermission,
-  SystemPermission
+  SystemPermission,
+  Sku
 ];
 
 export { dbentities }
