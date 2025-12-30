@@ -7,6 +7,7 @@ import {
   DeleteDistrictById,
   GetDistrictById,
   DistrictListFilter,
+  GetDistrictsByStateId,
   IDistrict
 } from "../../../../core/types/DistrictService/DistrictService";
 import { District, DistrictRepository } from "../../../../core/DB/Entities/district.entity";
@@ -240,6 +241,37 @@ class DistrictController {
       };
     } catch (error) {
       console.error("District List Error:", error);
+      throw error;
+    }
+  }
+
+  async getDistrictsByStateId(input: GetDistrictsByStateId): Promise<IApiResponse> {
+    try {
+      const { stateId } = input;
+
+      // Validate state exists
+      const state = await this.stateRepository.findOne({
+        where: { stateId: Number(stateId) }
+      });
+
+      if (!state) {
+        return { message: "State not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      // Get all districts for the state
+      const districts = await this.districtRepository.find({
+        where: { stateId: Number(stateId) },
+        relations: ['state', 'country'],
+        order: { districtName: 'ASC' }
+      });
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "Success.",
+        data: districts
+      };
+    } catch (error) {
+      console.error("Get Districts By State ID Error:", error);
       throw error;
     }
   }

@@ -7,6 +7,7 @@ import {
   DeleteStateById,
   GetStateById,
   StateListFilter,
+  GetStatesByCountryId,
   IState
 } from "../../../../core/types/StateService/StateService";
 import { State, StateRepository } from "../../../../core/DB/Entities/state.entity";
@@ -202,6 +203,37 @@ class StateController {
       };
     } catch (error) {
       console.error("State List Error:", error);
+      throw error;
+    }
+  }
+
+  async getStatesByCountryId(input: GetStatesByCountryId): Promise<IApiResponse> {
+    try {
+      const { countryId } = input;
+
+      // Validate country exists
+      const country = await this.countryRepository.findOne({
+        where: { countryId: Number(countryId), deletedAt: IsNull() }
+      });
+
+      if (!country) {
+        return { message: "Country not found", status: STATUSCODES.NOT_FOUND };
+      }
+
+      // Get all states for the country
+      const states = await this.stateRepository.find({
+        where: { countryId: Number(countryId) },
+        relations: ['country'],
+        order: { stateName: 'ASC' }
+      });
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "Success.",
+        data: states
+      };
+    } catch (error) {
+      console.error("Get States By Country ID Error:", error);
       throw error;
     }
   }

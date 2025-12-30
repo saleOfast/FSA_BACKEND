@@ -8,7 +8,8 @@ import {
   UpdateState,
   DeleteStateById,
   GetStateById,
-  StateListFilter
+  StateListFilter,
+  GetStatesByCountryId
 } from "../../../../core/types/StateService/StateService";
 import { StateService } from "../../Controllers/StateController/State.controller";
 
@@ -66,6 +67,17 @@ router.get('/list', validateDtoMiddleware(StateListFilter), AccessTokenService.v
     const payload: IUser = RequestHandler.Custom.getUser(req);
     const stateService = new StateService();
     const data = await stateService.stateList(input, payload);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+router.get('/getByCountryId/:countryId', validateDtoMiddleware(GetStatesByCountryId), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const input: GetStatesByCountryId = RequestHandler.Defaults.getParams<GetStatesByCountryId>(req, GetStatesByCountryId);
+    const stateService = new StateService();
+    const data = await stateService.getStatesByCountryId(input);
     ResponseHandler.sendResponse(res, data);
   } catch (error) {
     ResponseHandler.sendErrorResponse(res, error);

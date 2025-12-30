@@ -80,3 +80,9 @@ export class DistrictListFilter {
   pageSize!: string;
 }
 
+export class GetDistrictsByStateId {
+  @IsNotEmpty()
+  @IsString()
+  stateId!: string;
+}
+

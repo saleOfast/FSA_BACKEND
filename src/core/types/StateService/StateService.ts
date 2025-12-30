@@ -67,3 +67,9 @@ export class StateListFilter {
   pageSize!: string;
 }
 
+export class GetStatesByCountryId {
+  @IsNotEmpty()
+  @IsString()
+  countryId!: string;
+}
+

@@ -54,6 +54,7 @@ import { CountryRoute } from "./CountryRouter/Country.route";
 import { StateRoute } from "./StateRouter/State.route";
 import { DistrictRoute } from "./DistrictRouter/District.route";
 import { SkuRoute } from "./SkuRouter/Sku.route";
+import { DiscountRoute } from "./DiscountRouter/Discount.route";
 
 
 const router = express.Router();
@@ -115,5 +116,6 @@ router.use('/country', CountryRoute);
 router.use('/state', StateRoute);
 router.use('/district', DistrictRoute);
 router.use('/sku', SkuRoute);
+router.use('/discount', DiscountRoute);
 
 export { router as routes };

@@ -8,7 +8,8 @@ import {
   UpdateDistrict,
   DeleteDistrictById,
   GetDistrictById,
-  DistrictListFilter
+  DistrictListFilter,
+  GetDistrictsByStateId
 } from "../../../../core/types/DistrictService/DistrictService";
 import { DistrictService } from "../../Controllers/DistrictController/District.controller";
 
@@ -66,6 +67,17 @@ router.get('/list', validateDtoMiddleware(DistrictListFilter), AccessTokenServic
     const payload: IUser = RequestHandler.Custom.getUser(req);
     const districtService = new DistrictService();
     const data = await districtService.districtList(input, payload);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+router.get('/getByStateId/:stateId', validateDtoMiddleware(GetDistrictsByStateId), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const input: GetDistrictsByStateId = RequestHandler.Defaults.getParams<GetDistrictsByStateId>(req, GetDistrictsByStateId);
+    const districtService = new DistrictService();
+    const data = await districtService.getDistrictsByStateId(input);
     ResponseHandler.sendResponse(res, data);
   } catch (error) {
     ResponseHandler.sendErrorResponse(res, error);
