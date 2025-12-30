@@ -16,12 +16,12 @@ export class FeedBack extends BaseEntity {
     @Column({ name: 'store_id', nullable: true }) // Store ID column
     storeId?: number;
 
-    @ManyToOne(() => Products, (product) => product.feedBack, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'product_id' })
-    product?: Products;
+    // @ManyToOne(() => Products, (product) => product.feedBack, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'product_id' })
+    // product?: Products;
 
-    @Column({ name: 'product_id' })
-    productId: number;
+    // @Column({ name: 'product_id' })
+    // productId: number;
 
     @Column({ name: 'date', nullable: true })
     date: Date;

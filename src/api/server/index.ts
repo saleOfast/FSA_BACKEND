@@ -1,5 +1,4 @@
 
-import { initExpressApp } from './init-app';
 import { close, postgresdb, start as startResource } from '../../core/DB';
 import setupSystemSignals from './system-signals';
 
@@ -59,6 +58,11 @@ const start = async () => {
         console.log('Connecting to resources');
         await startResource();
         console.log('PostgresDB Status', postgresdb.isConnected);
+
+        // IMPORTANT: defer importing routes/controllers until AFTER DB init,
+        // otherwise repositories that call getConnection() during module-load will crash.
+        const { initExpressApp } = await import('./init-app');
+
         app = express();
         await initExpressApp(app);
         app.set('view engine', 'ejs');

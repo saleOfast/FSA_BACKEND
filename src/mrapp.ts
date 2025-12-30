@@ -1,3 +1,6 @@
+
+import dotenv from 'dotenv';
+dotenv.config();
 import "reflect-metadata"
 import { validateConfig } from './core/config';
 import * as server from './api/server';

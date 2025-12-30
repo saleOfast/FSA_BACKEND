@@ -30,7 +30,8 @@ class FeedbackService {
         try {
             const FeedbackList = await this.FeedbackRepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true, product: true },
+                relations: { store: true, user: true},
+                    //  product: true },
                 order: { createdAt: "DESC" },
             });
             return { status: STATUSCODES.SUCCESS, message: "Feedback list retrieved successfully.", data: FeedbackList };

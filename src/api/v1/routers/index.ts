@@ -44,7 +44,7 @@ import { EDetailingRouter } from "./EDetailing/eDetailing.route";
 import { HolidayRouter } from "./HolidayRouter/HolidayRouter";
 
 import { RCPARouter } from "./RCPARouter/RCPA.route";
-import inventoryroute from "./inventoryroute/inventoryRoute";
+// import { InventoryRouter } from "../routers/InventoryRouter/Inventory.route";
 import { WarehouseRouter } from "./warehouseRoutes/warehouse.route";
 import { SalesReturnRouter } from "./SalesReturnRouter/SalesReturn.routes";
 import { DistributorRouter } from "./DistributorRouter/Distributor.route";
@@ -53,6 +53,7 @@ import { CustomerTypeRoute } from "./CustomerTypeRouter/CustomerType.route";
 import { CountryRoute } from "./CountryRouter/Country.route";
 import { StateRoute } from "./StateRouter/State.route";
 import { DistrictRoute } from "./DistrictRouter/District.route";
+import {PosmRoute} from "./POSMRoute/POSMRoute"
 import { SkuRoute } from "./SkuRouter/Sku.route";
 import { DiscountRoute } from "./DiscountRouter/Discount.route";
 
@@ -109,12 +110,13 @@ router.use('/rcpa', RCPARouter);
 router.use('/warehouse', WarehouseRouter);
 router.use('/salesReturn', SalesReturnRouter);  
 router.use('/distributor', DistributorRouter);
-router.use('/inventoryItem',inventoryroute);
+router.use('/inventoryItem',InventoryRouter);
 router.use('/customer', CustomerRoute);
 router.use('/customerType', CustomerTypeRoute);
 router.use('/country', CountryRoute);
 router.use('/state', StateRoute);
 router.use('/district', DistrictRoute);
+router.use('/posm', PosmRoute);
 router.use('/sku', SkuRoute);
 router.use('/discount', DiscountRoute);
 

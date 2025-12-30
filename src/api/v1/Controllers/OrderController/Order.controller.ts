@@ -10,13 +10,14 @@ import { VisitRepository } from "../../../../core/DB/Entities/Visit.entity";
 import { ProductRepository } from "../../../../core/DB/Entities/products.entity";
 import { FindOptionsWhere, In } from "typeorm";
 import { IProducts } from "../../../../core/types/ProductService/ProductService";
-import { InventoryService } from "../InventoryController/Inventory.controller";
+// import { InventoryService } from "../../../../core/types/InventoryService/InventoryService";
 import { endOfDay, startOfDay, subDays } from "date-fns";
 import { PaymentRepository } from "../../../../core/DB/Entities/payment.entity";
 import { UserRepository } from "../../../../core/DB/Entities/User.entity";
 import { monthlyFilter, ReportFilter } from "core/types/AttendanceService/AttendanceService";
 import { BeatRepository } from "../../../../core/DB/Entities/beat.entity";
 import { IBeat } from "core/types/BeatService/Beat";
+import  {InventoryService} from "../../Controllers/inventory/inventory"
 
 class OrderController {
     private orderRepositry = OrdersRepository();
@@ -218,22 +219,22 @@ class OrderController {
 
     async getSkuDiscount(products: Products[], amount: number): Promise<GetDiscount> {
         try {
-            const productIds = products.map((item) => item.productId);
-            const productList: IProducts[] | null = await this.productResposity.find({ where: { productId: In(productIds) } });
-
+            // Use products from the order array instead of fetching from database
             let totalSkuDiscount: number = 0
-            let index: number = 0;
-            for (let item of productList) {
-                for (let product of products) {
-                    if (item.skuDiscount && item.skuDiscount.isActive == true && item.productId === product.productId) {
-                        const totalNumberOfPiece = ((product.noOfCase * item.caseQty) + product.noOfPiece);
-                        const totalProductAmount = (item.rlp * totalNumberOfPiece);
-                        const discountPerItem: number = item.skuDiscount.discountType == DiscountType.PERCENTAGE ? totalProductAmount * item.skuDiscount.value / 100 : item.skuDiscount.discountType == DiscountType.VALUE ? (item.skuDiscount.value * totalNumberOfPiece) : 0;
-                        totalSkuDiscount = totalSkuDiscount + discountPerItem;
-                    }
+            
+            for (let product of products) {
+                if (product.skuDiscount && product.skuDiscount.isActive == true) {
+                    const totalNumberOfPiece = ((product.noOfCase * product.caseQty) + product.noOfPiece);
+                    const totalProductAmount = (product.rlp * totalNumberOfPiece);
+                    const discountPerItem: number = product.skuDiscount.discountType == DiscountType.PERCENTAGE 
+                        ? totalProductAmount * product.skuDiscount.value / 100 
+                        : product.skuDiscount.discountType == DiscountType.VALUE 
+                            ? (product.skuDiscount.value * totalNumberOfPiece) 
+                            : 0;
+                    totalSkuDiscount = totalSkuDiscount + discountPerItem;
                 }
-                index++
             }
+            
             return { netAmount: amount - totalSkuDiscount, discountValue: totalSkuDiscount };
         } catch (error) {
             throw new Error(`Error: when calculating the sku discount in order.`);
@@ -743,32 +744,32 @@ class OrderController {
         }
     }
 
-    async updateOrderTrackStatus(input: UpdateOrderTrackStatusById): Promise<IApiResponse> {
-        try {
-            const { orderId, orderStatus } = input;
-            const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
+    // async updateOrderTrackStatus(input: UpdateOrderTrackStatusById): Promise<IApiResponse> {
+    //     try {
+    //         const { orderId, orderStatus } = input;
+    //         const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
 
-            if (!order) {
-                return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
-            }
+    //         if (!order) {
+    //             return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
+    //         }
 
-            const previousStatus: OrderStatus = order.orderStatus;
-            await OrdersRepository().update(orderId, { orderStatus });
-            const newStatusEntry: StatusHistoryEntry = {
-                status: orderStatus,
-                timestamp: new Date().toISOString()
-            };
-            const updatedStatusHistory: StatusHistoryEntry[] = [...order.statusHistory, newStatusEntry];
-            await OrdersRepository().update(orderId, { statusHistory: updatedStatusHistory });
-            if (orderStatus === OrderStatus.DELIVERED) {
-                const inventoryService = new InventoryService();
-                await inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
-            }
-            return { message: "Success.", status: STATUSCODES.SUCCESS };
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         const previousStatus: OrderStatus = order.orderStatus;
+    //         await OrdersRepository().update(orderId, { orderStatus });
+    //         const newStatusEntry: StatusHistoryEntry = {
+    //             status: orderStatus,
+    //             timestamp: new Date().toISOString()
+    //         };
+    //         const updatedStatusHistory: StatusHistoryEntry[] = [...order.statusHistory, newStatusEntry];
+    //         await OrdersRepository().update(orderId, { statusHistory: updatedStatusHistory });
+    //         if (orderStatus === OrderStatus.DELIVERED) {
+    //             const inventoryService = new InventoryService();
+    //             await inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
+    //         }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS };
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async updateOrderBySpecialDiscount(input: UpdateOrderBySpecialDiscountById): Promise<IApiResponse> {
         try {

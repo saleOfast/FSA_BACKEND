@@ -163,3 +163,50 @@ export enum InventoryVisibilityScope {
     FULL = 'Full',
     NONE = 'None',
 }
+
+// POSM Type
+export enum PosmTypeEnum {
+  POSTER = "Poster",
+  SHELF_STRIP = "Shelf Strip",
+  WOBBLER = "Wobbler",
+  COOLER = "Cooler",
+  DISPLAY_UNIT = "Display Unit",
+  DIGITAL_SCREEN = "Digital Screen",
+}
+
+// POSM Category
+export enum PosmCategoryEnum {
+  PERMANENT = "Permanent",
+  SEMI_PERMANENT = "Semi-Permanent",
+  TEMPORARY = "Temporary",
+}
+
+// Material Type
+export enum POSMMaterialTypeEnum {
+  CARDBOARD = "Cardboard",
+  PLASTIC = "Plastic",
+  METAL = "Metal",
+  DIGITAL = "Digital",
+}
+
+// Channel Target
+export enum POSMChannelTargetEnum {
+  GT = "GT",
+  MT = "MT",
+  ECOM = "E-COM",
+}
+
+// Allocation Target
+export enum POSMAllocationTargetEnum {
+  DISTRIBUTOR = "Distributor",
+  RETAILER = "Retailer",
+  KEY_ACCOUNT = "Key Account",
+}
+
+// POSM Status
+export enum PosmStatusEnum {
+  ACTIVE = "Active",
+  INACTIVE = "Inactive",
+  RETURNED = "Returned",
+  LOST = "Lost",
+}

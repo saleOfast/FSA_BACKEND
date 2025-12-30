@@ -1,360 +1,151 @@
-import { Request, Response } from "express";
-import { InventoryItem, InventoryStatus } from "../../../../core/DB/Entities/inventory";
-import { Products } from "../../../../core/DB/Entities/products.entity";
-import { RequestHandler } from "../../../../core/helper/RequestHander";
-import { ILike } from "typeorm";
+import { Inventory, InventoryRepository } from "../../../../core/DB/Entities/inventory";
+// import { Sku } from "../Entities/sku.entity";
+import { Warehouse } from "../../../../core/DB/Entities/warehouse.entity";
+import { 
+GetInventoryList,  
+CreateInventoryDto ,
+DeleteInventoryDto,  
+InventoryItemDto ,
+UpdateInventoryDto 
+} from "../../../../core/types/InventoryService/InventoryService";
+import {  STATUSCODES} from "../../../../core/types/Constent/common";
+import { IApiResponse } from "../../../../core/types/Constent/commonService";
+import { IUser } from "../../../../core/types/AuthService/AuthService";
 
-export class InventoryController {
- async create(req: Request, res: Response) {
-    try {
-      const {
-        productId,
-        warehouseId,
-        batchNumber,
-        serialNumber,
-        quantityOnHand,
-        quantityReserved,
-        reorderLevel,
-        costPrice,
-        unitOfMeasure,
-        status,
-        dateReceived,
-        expiryDate,
-        averageCost,
-      } = req.body;
+class InventoryService {
+  private inventoryRepo = InventoryRepository();
 
-      const user = RequestHandler.Custom.getUser(req);
-      const createdBy = user?.emp_id ? String(user.emp_id) : null;
-
-      // Validate product
-      const product = await Products.findOneBy({ productId });
-      if (!product) return res.status(400).json({ error: "Invalid productId. Product not found." });
-
-      // Safe numeric parsing
-      const parsedWarehouseId = warehouseId !== undefined ? Number(warehouseId) : null;
-      if (parsedWarehouseId === null || !Number.isFinite(parsedWarehouseId)) {
-        return res.status(400).json({ error: "warehouseId is required and must be a valid number" });
-      }
-
-      const onHand = quantityOnHand !== undefined ? Number(quantityOnHand) : 0;
-      const reserved = quantityReserved !== undefined ? Number(quantityReserved) : 0;
-      const reorder = reorderLevel !== undefined ? Number(reorderLevel) : null;
-      const cost = costPrice !== undefined ? Number(costPrice) : null;
-      const avgCost = averageCost !== undefined ? Number(averageCost) : null;
-
-      if (!Number.isFinite(onHand) || !Number.isFinite(reserved) || (reorder !== null && !Number.isFinite(reorder))) {
-        return res.status(400).json({ error: "Numeric fields must be valid numbers" });
-      }
-
-      // Check uniqueness per product + warehouse
-      const existingItem = await InventoryItem.findOne({
-        where: { warehouseId: parsedWarehouseId, product: { productId } },
-      });
-      if (existingItem) return res.status(400).json({ error: "Inventory item for this product in this warehouse already exists" });
-
-      const available = onHand - reserved;
-
-      const newItem = InventoryItem.create({
-        product,
-        warehouseId: parsedWarehouseId,
-        batchNumber: batchNumber || null,
-        serialNumber: serialNumber || null,
-        quantityOnHand: onHand,
-        quantityReserved: reserved,
-        quantityAvailable: available,
-        reorderLevel: reorder,
-        dateReceived: dateReceived || null,
-        expiryDate: expiryDate || null,
-        costPrice: cost,
-        averageCost: avgCost,
-        unitOfMeasure: unitOfMeasure || null,
-        status: status || InventoryStatus.ACTIVE,
-        createdBy,
-        lastModifiedBy: createdBy,
-      } as Partial<InventoryItem>);
-
-      const savedItem = await InventoryItem.save(newItem);
-
-      const plainItem = JSON.parse(JSON.stringify(savedItem));
-      delete plainItem.product;
-
-      return res.status(201).json({
-        productId: product.productId,
-        productName: product.productName,
-        ...plainItem,
-      });
-
-    } catch (err: any) {
-      console.error("Error creating inventory item:", err?.message || err);
-      return res.status(500).json({ error: "Error creating inventory item", message: err?.message || "Unknown error" });
-    }
-  }
-
-async getAll(req: Request, res: Response) {
-    try {
-      const { productId, productName, batchNumber } = req.query;
-      const where: any = {};
-      const productWhere: any = {};
-      
-
-      // productId filter
-      if (productId) {
-        const pid = Number(productId);
-        if (!Number.isFinite(pid)) {
-          return res.status(400).json({ error: "productId must be a number" });
-        }
-        productWhere.productId = pid;
-      }
-
-      // productName filter
-      if (productName && String(productName).trim() !== "") {
-        productWhere.productName = ILike(`%${String(productName).trim()}%`);
-      }
-
-      // batchNumber filter
-      if (batchNumber && String(batchNumber).trim() !== "") {
-        where.batchNumber = ILike(`%${String(batchNumber).trim()}%`);
-      }
-
-      // Add product filters if exist
-      if (Object.keys(productWhere).length > 0) {
-        where.product = productWhere;
-      }
-
-      // Fetch data
-      const items = Object.keys(where).length > 0
-        ? await InventoryItem.find({ where })
-        : await InventoryItem.find();
-
-      const response = items.map((i) => {
-        const plain = JSON.parse(JSON.stringify(i));
-        delete plain.product;
-        return {
-          productId: i.product?.productId,
-          productName: i.product?.productName,
-          ...plain,
-        };
-      });
-      return res.json(response);
-    } catch (err: any) {
-      return res.status(500).json({
-        error: "Error fetching inventory items",
-        message: err?.message || "Unknown error",
-      });
-    }
-  }
+  constructor() {}
 
 
-  async getById(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      const item = await InventoryItem.findOneBy({ id });
-
-      if (!item) {
-        return res.status(404).json({ error: "Inventory item not found" });
-      }
-      const plain = JSON.parse(JSON.stringify(item));
-      delete plain.product;
-
-      return res.json({
-        productId: item.product?.productId,
-        productName: item.product?.productName,
-         ...plain
-      });
-    } catch (err) {
-      return res.status(500).json({ error: "Error fetching inventory item" });
-    }
-  }
-
-  async update(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      const item = await InventoryItem.findOneBy({ id });
-
-      if (!item) {
-        return res.status(404).json({ error: "Inventory item is not found" });
-      }
-
-      const user = RequestHandler.Custom.getUser(req);
-      const lastModifiedBy = user?.emp_id ? String(user.emp_id) : null;
-      let didChange = false;
-
-      // Optional: validate incoming warehouseId/serialNumber on update
-      if (req.body.warehouseId !== undefined) {
-        const parsed = Number(req.body.warehouseId);
-        if (!Number.isFinite(parsed)) {
-          return res.status(400).json({ error: "warehouseId must be a number" });
-        }
-        if (parsed !== item.warehouseId) {
-          const exists = await InventoryItem.findOne({ where: { warehouseId: parsed } });
-          if (exists) {
-            return res.status(400).json({ error: "warehouseId already exists" });
-          }
-          item.warehouseId = parsed;
-          didChange = true;
-        }
-      }
-
-      
-
-      // Merge other fields
-      const {
-        productId,
-        batchNumber,
-        quantityOnHand,
-        quantityReserved,
-        reorderLevel,
-        costPrice,
-        unitOfMeasure,
-        status,
-        dateReceived,
-        expiryDate,
-        averageCost,
-      serialNumber,
-      } = req.body;
-
-      // Update product relation when productId is provided
-      if (productId !== undefined) {
-        const product = await Products.findOneBy({ productId });
-        if (!product) {
-          return res.status(400).json({ error: "Invalid productId. Product not found." });
-        }
-        if (item.product?.productId !== product.productId) {
-          item.product = product;
-          didChange = true;
-        }
-      }
-
-      if (batchNumber !== undefined && batchNumber !== item.batchNumber) { item.batchNumber = batchNumber; didChange = true; }
-      if (quantityOnHand !== undefined && quantityOnHand !== item.quantityOnHand) { item.quantityOnHand = quantityOnHand; didChange = true; }
-      if (quantityReserved !== undefined && quantityReserved !== item.quantityReserved) { item.quantityReserved = quantityReserved; didChange = true; }
-      if (reorderLevel !== undefined && reorderLevel !== item.reorderLevel) { item.reorderLevel = reorderLevel; didChange = true; }
-      if (costPrice !== undefined && costPrice !== item.costPrice) { item.costPrice = costPrice; didChange = true; }
-      if (unitOfMeasure !== undefined && unitOfMeasure !== item.unitOfMeasure) { item.unitOfMeasure = unitOfMeasure; didChange = true; }
-      if (status !== undefined && status !== item.status) { item.status = status; didChange = true; }
-      if (dateReceived !== undefined && dateReceived !== item.dateReceived) { item.dateReceived = dateReceived; didChange = true; }
-      if (expiryDate !== undefined && expiryDate !== item.expiryDate) { item.expiryDate = expiryDate; didChange = true; }
-      if (averageCost !== undefined && averageCost !== item.averageCost) { item.averageCost = averageCost; didChange = true; }
-      if(serialNumber !== undefined && serialNumber !== item.serialNumber) { item.serialNumber = serialNumber; didChange = true; }
-      // if (supplierId !== undefined && supplierId !== item.supplierId) { item.supplierId = supplierId; didChange = true; }
-
-      // Recompute available
-      const newAvailable =
-        typeof item.quantityOnHand === "number" && typeof item.quantityReserved === "number"
-          ? item.quantityOnHand - item.quantityReserved
-          : item.quantityAvailable || 0;
-      if (newAvailable !== item.quantityAvailable) {
-        item.quantityAvailable = newAvailable;
-        didChange = true;
-      }
-
-      if (didChange) {
-        item.lastModifiedBy = lastModifiedBy;
-      }
-
-      const updateItem = await InventoryItem.save(item);
-
-      const plain = JSON.parse(JSON.stringify(updateItem));
-      delete plain.product;
-
-      return res.json({
-        ...plain,
-        productId: item.product?.productId,
-        productName: item.product?.productName,
-      });
-    } catch (err) {
-      return res.status(500).json({ error: "Error updating inventory item" });
-    }
-  }
-
-  async delete(req: Request, res: Response) {
-    try {
-      const id = parseInt(req.params.id);
-      const item = await InventoryItem.findOneBy({ id });
-
-      if (!item) {
-        return res.status(404).json({ error: "Inventory item not found" });
-      }
-
-      await InventoryItem.remove(item);
-      return res.json({ message: "Inventory item deleted successfully" });
-    } catch (err) {
-      return res.status(500).json({ error: "Error deleting inventory item" });
-    }
-  }
-
-  
-  async getSummary(req: Request, res: Response) {
-    try {
-      // Fetch all items
-      const items = await InventoryItem.find();
-
-      const totalItems = items.length;
-
-      const lowStockItems = items.filter(
-        (i) =>
-          typeof i.quantityOnHand === "number" &&
-          typeof i.reorderLevel === "number" &&
-          i.reorderLevel !== null &&
-          i.quantityOnHand <= i.reorderLevel
-      ).length;
-
-      const activeItems = items.filter(
-        (i) => i.status === InventoryStatus.ACTIVE
-      ).length;
-
-      const totalValue = items.reduce((sum, i) => {
-        if (i.costPrice !== null && typeof i.quantityOnHand === "number") {
-          return sum + Number(i.costPrice) * i.quantityOnHand;
-        }
-        return sum;
-      }, 0);
-
-      return res.json({
-        totalItems,
-        lowStockItems,
-        activeItems,
-        totalValue,
-      });
-    } catch (err: any) {
-      console.error("Error generating inventory summary:", err);
-      return res.status(500).json({
-        error: "Error generating inventory summary",
-        message: err?.message || "Unknown error",
-      });
-    }
-  }
-  async getLowStock(req: Request, res: Response) {
+async createInventory(input: CreateInventoryDto, payload: IUser): Promise<IApiResponse> {
   try {
-    // Fetch all inventory items with product relation
-    const items = await InventoryItem.find({ relations: ["product"] });
+    const inventories: Inventory[] = [];
 
-    // Filter items that are low stock
-    const lowStockItems = items
-      .filter(
-        (i) =>
-          i.reorderLevel !== null &&
-          typeof i.quantityOnHand === "number" &&
-          i.quantityOnHand <= i.reorderLevel
-      )
-      .map((i) => ({
-        productName: i.product?.productName || "Unknown",
-        available: i.quantityOnHand,
-        reorderLevel: i.reorderLevel,
-      }));
+    for (const item of input.inventory) {
+      if (!item.productId && !item.skuId) {
+        throw new Error(`Either productId or skuId is required for warehouse ${item.warehouseId}`);
+      }
 
-    return res.json({
-      lowStockItems,
-    });
+      // ✅ Directly create Inventory instance
+      const inventory = new Inventory();
+
+     inventory.productId = item.productId ?? undefined;
+inventory.skuId = item.skuId ?? undefined;
+inventory.batchNumber = item.batchNumber ?? undefined;
+inventory.expiryDate = item.expiryDate ? new Date(item.expiryDate) : undefined;
+inventory.reorderLevel = item.reorderLevel ?? undefined;
+inventory.stockInDate = item.stockInDate ? new Date(item.stockInDate) : undefined;
+inventory.stockOutDate = item.stockOutDate ? new Date(item.stockOutDate) : undefined;
+inventory.taxId = item.taxId ?? undefined;
+inventory.schemeId = item.schemeId ?? undefined;
+inventory.discountId = item.discountId ?? undefined;
+inventory.warehouseId = item.warehouseId ?? undefined;
+
+      inventories.push(inventory);
+    }
+
+    // ✅ Save all inventories at once
+    const savedInventories = await this.inventoryRepo.save(inventories);
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Inventory created successfully",
+      data: savedInventories,
+    };
   } catch (err: any) {
-    console.error("Error fetching low stock items:", err);
-    return res.status(500).json({
-      error: "Error fetching low stock items",
-      message: err?.message || "Unknown error",
-    });
+    console.error("Create Inventory error:", err);
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: err.message || "Failed to create inventory",
+    };
   }
 }
+
+
+
+  // =======================
+  // 2️⃣ UPDATE INVENTORY
+  // =======================
+  async updateInventory(input: UpdateInventoryDto, payload: IUser): Promise<IApiResponse> {
+    try {
+      const updatedItems: Inventory[] = [];
+
+      for (const item of input.inventory) {
+        if (!item.inventoryId) return { status: STATUSCODES.BAD_REQUEST, message: "inventoryId is required for update" };
+
+        const existing = await this.inventoryRepo.findOne({ where: { inventoryId: item.inventoryId } });
+        if (!existing) return { status: STATUSCODES.NOT_FOUND, message: `Inventory not found with id ${item.inventoryId}` };
+
+        // Update only provided fields
+        Object.assign(existing, {
+          stockQuantity: item.stockQuantity,
+          reservedQuantity: item.reservedQuantity ?? existing.reservedQuantity,
+          batchNumber: item.batchNumber ?? existing.batchNumber,
+          expiryDate: item.expiryDate ?? existing.expiryDate,
+          reorderLevel: item.reorderLevel ?? existing.reorderLevel,
+          stockInDate: item.stockInDate ?? existing.stockInDate,
+          stockOutDate: item.stockOutDate ?? existing.stockOutDate,
+          taxId: item.taxId ?? existing.tax,
+          schemeId: item.schemeId ?? existing.schemeId,
+          discountId: item.discountId ?? existing.discountId,
+        });
+
+        const saved = await this.inventoryRepo.save(existing);
+        updatedItems.push(saved);
+      }
+
+      return { status: STATUSCODES.SUCCESS, message: "Inventory updated successfully", data: updatedItems };
+    } catch (err: any) {
+      console.error("Update Inventory error:", err);
+      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to update inventory", data: err?.message || err };
+    }
+  }
+
+  // =======================
+  // 3️⃣ DELETE INVENTORY
+  // =======================
+  async deleteInventory(input: DeleteInventoryDto, payload: IUser): Promise<IApiResponse> {
+    try {
+      const { inventoryIds } = input;
+
+      const existingItems = await this.inventoryRepo.findByIds(inventoryIds);
+      if (!existingItems || existingItems.length === 0) return { status: STATUSCODES.BAD_REQUEST, message: "Inventory items not found" };
+
+      await this.inventoryRepo
+        .createQueryBuilder()
+        .update(Inventory)
+        .set({ /* optionally mark as deleted */ })
+        .whereInIds(inventoryIds)
+        .execute();
+
+      return { status: STATUSCODES.SUCCESS, message: `${existingItems.length} inventory item(s) deleted successfully` };
+    } catch (err: any) {
+      console.error("Delete Inventory error:", err);
+      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to delete inventory", data: err?.message || err };
+    }
+  }
+
+  // =======================
+  // 4️⃣ GET INVENTORY BY WAREHOUSE
+  // =======================
+  async getInventory(input: GetInventoryList, payload: IUser): Promise<IApiResponse> {
+    try {
+      const { warehouseId } = input;
+
+      const inventories = await this.inventoryRepo.find({
+        where: { warehouseId },
+        relations: ["sku", "product", "warehouse", "tax"],
+      });
+
+      if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };
+
+      return { status: STATUSCODES.SUCCESS, message: "Inventory fetched successfully", data: inventories };
+    } catch (err: any) {
+      console.error("Get Inventory error:", err);
+      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to fetch inventory", data: err?.message || err };
+    }
+  }
 }
 
-const inventoryController = new InventoryController();
-export default inventoryController;
+export { InventoryService };

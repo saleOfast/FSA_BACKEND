@@ -9,12 +9,16 @@ const path_1 = __importDefault(require("path"));
 const config = () => {
     const envPath = process.env.ENV_PATH || path_1.default.resolve(process.cwd(), '.env');
     dotenv_1.default.config({ path: envPath });
-    const environment = process.env.NODE_ENV || 'production';
+    // Normalize NODE_ENV since .env values sometimes contain trailing spaces
+    const environment = (process.env.NODE_ENV || 'production').trim();
+    const envKey = environment.toLowerCase();
     console.log('NODE_ENV detected:', environment);
-    console.log('All environment variables:', process.env);
+    if (process.env.DEBUG_ENV === 'true') {
+        console.log('All environment variables:', process.env);
+    }
     // Environment-based database configuration
     let dbConfig;
-    switch (environment) {
+    switch (envKey) {
         case 'local':
             console.log('local');
             dbConfig = {
@@ -54,7 +58,12 @@ const config = () => {
             break;
     }
     console.log(`Connecting to ${environment} database: ${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}`);
-    return Object.assign(Object.assign({ environment, postgresDBUrl: process.env.POSTGRESDB_URL || '' }, dbConfig), { privateKey: process.env.PRIVATEKEY, expiry: process.env.EXPIRY, accessKey: process.env.AWSACCESSKEY, secretKey: process.env.AWSSECRETKEY, region: process.env.AWSREGION, bucketName: process.env.AWSBUCKETNAME });
+    // Support both POSTGRESDB_URL and legacy postgresDBUrl keys (some setups export camelCase)
+    const envMap = process.env;
+    const postgresDBUrl = envMap.POSTGRESDB_URL || envMap.postgresDBUrl || '';
+    // If still missing, fall back to a constructed URL so validateConfig doesn't fail unnecessarily.
+    const postgresUrlFallback = postgresDBUrl || `postgresql://${dbConfig.userName}:${dbConfig.password}@${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}`;
+    return Object.assign(Object.assign({ environment, postgresDBUrl: postgresUrlFallback }, dbConfig), { privateKey: process.env.PRIVATEKEY, expiry: process.env.EXPIRY, accessKey: process.env.AWSACCESSKEY, secretKey: process.env.AWSSECRETKEY, region: process.env.AWSREGION, bucketName: process.env.AWSBUCKETNAME });
 };
 exports.config = config;
 const validateConfig = () => {

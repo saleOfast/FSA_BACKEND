@@ -52,6 +52,8 @@ const inventoryRoute_1 = __importDefault(require("./inventoryroute/inventoryRout
 const warehouse_route_1 = require("./warehouseRoutes/warehouse.route");
 const SalesReturn_routes_1 = require("./SalesReturnRouter/SalesReturn.routes");
 const Distributor_route_1 = require("./DistributorRouter/Distributor.route");
+const Customer_route_1 = require("./CustomerRouter/Customer.route");
+const CustomerType_route_1 = require("./CustomerTypeRouter/CustomerType.route");
 const router = express_1.default.Router();
 exports.routes = router;
 /* Auth ROutes */
@@ -102,3 +104,5 @@ router.use('/warehouse', warehouse_route_1.WarehouseRouter);
 router.use('/salesReturn', SalesReturn_routes_1.SalesReturnRouter);
 router.use('/distributor', Distributor_route_1.DistributorRouter);
 router.use('/inventoryItem', inventoryRoute_1.default);
+router.use('/customer', Customer_route_1.CustomerRoute);
+router.use('/customerType', CustomerType_route_1.CustomerTypeRoute);

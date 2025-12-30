@@ -34,12 +34,12 @@ export class Activities extends BaseEntity {
     @Column({ name: 'added_by' })
     addedBy: number;
 
-    @ManyToOne(() => Products, (product) => product.activities, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'product_id' })
-    product?: Products;
+    // @ManyToOne(() => Products, (product) => product.activities, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'product_id' })
+    // product?: Products;
 
-    @Column({ name: 'product_id' })
-    productId: number;
+    // @Column({ name: 'product_id' })
+    // productId: number;
 
     @Column({ name: 'remarks' })
     remarks: string;

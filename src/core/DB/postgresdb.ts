@@ -11,7 +11,7 @@ import { Beat } from './Entities/beat.entity';
 import { CollectPayment } from './Entities/collect_payment.entity';
 import { Discount } from './Entities/discount.entity';
 import { Distributor } from './Entities/distributors.entity';
-import { Inventory } from './Entities/inventory.entity';
+import { Inventory } from './Entities/inventory';
 import { Orders } from './Entities/orders.entity';
 import { OutletInventory } from './Entities/outlet_inventory.entity';
 import { Products } from './Entities/products.entity';
@@ -65,7 +65,6 @@ import { RCPA } from './Entities/rcpa.entity';
 import { Taxes } from './Entities/tax.entity';
 
 import { NewTarget } from './Entities/new.target.entity';
-import { InventoryItem } from './Entities/inventory';
 import { Warehouse } from './Entities/warehouse.entity';
 import { SalesReturn } from './Entities/sales_return.entity';
 import { Customer } from './Entities/customer.entity';
@@ -76,6 +75,7 @@ import { District } from './Entities/district.entity';
 import { Tab } from './Entities/Tab.entity';
 import { TabPermission } from './Entities/TabPermission.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
+import { Posm } from './Entities/posm.entity';
 import { Sku } from './Entities/sku.entity';
 
 
@@ -134,6 +134,7 @@ class Postgresdb {
 				UserLeave, LeaveApplication,
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm 
 				InventoryItem, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku
 			];
 			const dbConn: DataSource = new DataSource({
