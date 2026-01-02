@@ -135,7 +135,7 @@ inventory.warehouseId = item.warehouseId ?? undefined;
 
       const inventories = await this.inventoryRepo.find({
         where: { warehouseId },
-        relations: ["sku", "product", "warehouse", "tax"],
+        relations: ["product", "warehouse", "tax"],
       });
 
       if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };
@@ -143,6 +143,24 @@ inventory.warehouseId = item.warehouseId ?? undefined;
       return { status: STATUSCODES.SUCCESS, message: "Inventory fetched successfully", data: inventories };
     } catch (err: any) {
       console.error("Get Inventory error:", err);
+      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to fetch inventory", data: err?.message || err };
+    }
+  }
+
+  // =======================
+  // 5️⃣ GET ALL INVENTORY
+  // =======================
+  async getAllInventory(payload: IUser): Promise<IApiResponse> {
+    try {
+      const inventories = await this.inventoryRepo.find({
+        relations: ["product", "warehouse", "tax"],
+      });
+
+      if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };
+
+      return { status: STATUSCODES.SUCCESS, message: "Inventory fetched successfully", data: inventories };
+    } catch (err: any) {
+      console.error("Get All Inventory error:", err);
       return { status: STATUSCODES.BAD_REQUEST, message: "Failed to fetch inventory", data: err?.message || err };
     }
   }
