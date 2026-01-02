@@ -315,9 +315,8 @@ class ProfileController {
                     visitDate: Between(startOfDay(new Date()), endOfDay(new Date()))
                 }
             })
-            const focusedProductCount = await this.getProductRepository.count({
-                where: { isFocused: true }
-            })
+            // Note: isFocused property doesn't exist in Products entity
+            const focusedProductCount = 0;
 
             const currTargetQueryBuilder = this.getTargetRepository.createQueryBuilder('target')
                 .select([
