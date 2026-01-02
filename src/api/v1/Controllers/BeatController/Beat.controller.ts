@@ -1,126 +1,253 @@
 import { STATUSCODES, UserRole } from "../../../../core/types/Constent/common";
 import { Beat, BeatRepository } from "../../../../core/DB/Entities/beat.entity";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
-import { CreateBeat, DeleteBeat, GetBeat, GetBeatOnVisit, IBeat, UpdateBeat } from "../../../../core/types/BeatService/Beat";
+import {CreateBeatDto , UpdateBeatDto ,  DeleteBeatDto, GetBeatDto, IBeat,GetAllBeatDto } from "../../../../core/types/BeatService/Beat";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
+import { 
+  BeatPriority,
+  BeatStatus,
+  BeatType,
+  VisitFrequency,
+  VisitDay } from "../../../../core/types/Constent/common";
+  import { Customer } from "../../../../core/DB/Entities/customer.entity";
 
 class BeatController {
     private beatRepositry = BeatRepository();
+    private customerRepo = Customer.getRepository();
 
     constructor() { }
+async createBeat(
+  input: CreateBeatDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+     const customerChannel = await this.customerRepo.findOne({
+      select: ["channelType"],      // Only fetch channelType
+      where: { customerId: input.customerId },
+    });
 
-    async createBeat(input: any, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { emp_id } = payload;
-            const { beatName, store, area, country, state, district, city, salesRep } = input;
-            const newBeat = new Beat();
-            newBeat.beatName = beatName;
-            newBeat.area = area;
-            newBeat.country = country;
-            newBeat.state = state;
-            newBeat.district = district;
-            newBeat.city = city;
-            newBeat.empId = salesRep;
-            newBeat.store = store;
-
-            await this.beatRepositry.save(newBeat);
-
-            return { status: STATUSCODES.SUCCESS, message: "Success." }
-        } catch (error) {
-            throw error;
-        }
+    if (!customerChannel) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Customer not found",
+        data: null,
+      };
     }
 
-    async beatList(payload: IUser, input: GetBeatOnVisit): Promise<IApiResponse> {
-        const { emp_id, role } = payload;
-        const { isVisit } = input;
-        const isVisitBoolean = Boolean(isVisit);  // Converts to a boolean
-        try {
-            let queryBuilder = this.beatRepositry.createQueryBuilder('beat')
-                .leftJoinAndSelect("beat.user", "user")
-                
-                if(isVisitBoolean){ 
-                    queryBuilder.where("user.role = :role", {role : UserRole.SSM} )
-                }
-                
-                queryBuilder.andWhere('beat.isDeleted = :isDeleted', { isDeleted: false })
-                .orderBy('beat.updatedAt', 'DESC')
-                .addOrderBy('beat.createdAt', 'DESC');
+    const beat = new Beat();
 
-            if (role === UserRole.RSM) {
-                const beatIds: any = await this.beatRepositry.createQueryBuilder("beat")
-                    .leftJoin("beat.user", "user")
-                    .where("user.managerId = :managerId", { managerId: emp_id })
-                    .select("beat.beatId")
-                    .getMany()
-                    .then((beats: IBeat[]) => beats.map(beat => beat.beatId));
-                if (beatIds.length > 0) {
-                    queryBuilder.where("beat.beatId IN (:...beatId)", { beatId: beatIds });
-                } else {
-                    return { message: "No visitIds found for admin user.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
-            if (role === UserRole.SSM) {
-                queryBuilder = queryBuilder.andWhere('beat.empId = :empId', { empId: emp_id });
-            }
+    /* ---------- Identity ---------- */
+    beat.beatName = input.beatName;
+    beat.beatCode = `BT-${Date.now()}`;
 
-            const beatList: IBeat[] = await queryBuilder.getMany();
+    /* ---------- Ownership ---------- */
+    beat.customerId =  input.customerId;
+    beat.warehouseId = input.warehouseId;
+    beat.userId = input.userId;
 
-            return { status: STATUSCODES.SUCCESS, message: "Success.", data: beatList };
-        } catch (error) {
-            throw error;
-        }
+    /* ---------- Business ---------- */
+    beat.beatType = input.beatType;
+    beat.visitFrequency = input.visitFrequency;
+    beat.defaultVisitDays = input.defaultVisitDays;
+    beat.priority = input.priority;
+    beat.status = BeatStatus.ACTIVE;
+
+    /* ---------- Location ---------- */
+    beat.countryId = input.countryId;
+    beat.stateId = input.stateId;
+    beat.districtId = input.districtId;
+    beat.area = input.area;
+    beat.zone = input.zone;
+
+    /* ---------- Route ---------- */
+    beat.startLat = input.startLat;
+    beat.startLng = input.startLng;
+    beat.endLat = input.endLat;
+    beat.endLng = input.endLng;
+    beat.plannedStartTime = input.plannedStartTime;
+    beat.plannedEndTime = input.plannedEndTime;
+
+    /* ---------- Audit ---------- */
+    beat.createdBy = payload.emp_id;
+        const beatData = await this.beatRepositry.save(beat);
+
+    // Save the beat
+      const responseData = {
+      ...beatData,
+      channel: customerChannel.channelType, // only this field
+    };
+
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Beat created successfully",
+      data: responseData, // now beatWithCustomer.channel will return channel
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
+
+async updateBeat(
+  payload: IUser,
+  input: UpdateBeatDto
+): Promise<IApiResponse> {
+  try {
+    const { beatId, ...updateData } = input;
+
+    // Check beat exists
+    const beat = await this.beatRepositry.findOne({
+      where: { beatId },
+    });
+
+    if (!beat) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Beat not found",
+        data: null,
+      };
     }
 
+    // Update only provided fields
+    await this.beatRepositry.update(
+      { beatId },
+      {
+        ...updateData,
+      }
+    );
 
-    async getBeatById(payload: IUser, input: GetBeat): Promise<IApiResponse> {
-        try {
-            const { beatId } = input;
-            // const brand: IBeat | null = await this.beatRepositry.findOne({ where: { beatId: Number(beatId), isDeleted: false } });
-            const brand: IBeat | null = await this.beatRepositry.createQueryBuilder('beat')
-                .leftJoin('beat.user', 'user')  // Assuming there is a relation between beat and user
-                .addSelect('user.role')  // Select the role from the user table
-                .where('beat.beatId = :beatId', { beatId: Number(beatId) })
-                .andWhere('beat.isDeleted = false')
-                .getOne();
+    const updatedBeat = await this.beatRepositry.findOne({
+      where: { beatId },
+    });
 
-            if (!brand) {
-                return { message: "Not Found.", status: STATUSCODES.NOT_FOUND }
-            }
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Beat updated successfully",
+      data: updatedBeat,
+    };
+  } catch (error) {
+    throw error;
+  }
+}
 
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: brand }
-        } catch (error) {
-            throw error;
-        }
+async delete(
+  payload: IUser,
+  input: DeleteBeatDto
+): Promise<IApiResponse> {
+  try {
+    const { beatId } = input;
+
+    const beat = await this.beatRepositry.findOne({
+      where: { beatId: beatId },
+    });
+
+    if (!beat) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Beat not found",
+        data: null,
+      };
     }
 
+    await this.beatRepositry.update(
+      { beatId: beatId },
+      {
+        isDeleted: true,
+      }
+    );
 
-    async update(payload: IUser, input: UpdateBeat): Promise<IApiResponse> {
-        try {
-            const { emp_id } = payload;
-            const { beatName, area, beatId, store, country, state, district, city, salesRep } = input;
-            if (!beatName) {
-                return { message: "Name can't be empty.", status: STATUSCODES.BAD_REQUEST }
-            }
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Beat deleted successfully",
+      data: null,
+    };
+  } catch (error) {
+    throw error;
+  }
+}
 
-            await this.beatRepositry.createQueryBuilder().update({ beatName, area, store, country, state, district, city, empId: salesRep }).where({ beatId }).execute();
 
-            return { message: "Updated.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
-        }
+async getById(payload: IUser, input: GetBeatDto): Promise<IApiResponse> {
+  try {
+    const query = this.beatRepositry.createQueryBuilder("beat");
+
+    // Filter by beatId
+    query.where("beat.beatId = :beatId", { beatId: input.beatId });
+
+    // Optionally, filter out deleted beats if you use isDeleted
+    query.andWhere("beat.isDeleted = false");
+
+    const beat = await query.getOne();
+
+    if (!beat) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: "Beat not found",
+        data: null,
+      };
     }
 
-    async delete(payload: IUser, input: DeleteBeat): Promise<IApiResponse> {
-        try {
-            const { emp_id } = payload;
-            const { beatId } = input;
-            await this.beatRepositry.createQueryBuilder().update({ isDeleted: true }).where({ beatId: Number(beatId) }).execute();
-            return { message: "Deleted Successfully.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
-        }
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Success.",
+      data: beat,
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
+async getAllBeats(input: GetAllBeatDto, payload: IUser): Promise<IApiResponse> {
+  try {
+    const query = this.beatRepositry.createQueryBuilder("beat");
+
+    // ================= Filters =================
+    if (input.customerId) query.andWhere("beat.customerId = :customerId", { customerId: input.customerId });
+    if (input.warehouseId) query.andWhere("beat.warehouseId = :warehouseId", { warehouseId: input.warehouseId });
+    if (input.userId) query.andWhere("beat.userId = :userId", { userId: input.userId });
+    if (input.channel) query.andWhere("beat.channel = :channel", { channel: input.channel });
+    if (input.beatType) query.andWhere("beat.beatType = :beatType", { beatType: input.beatType });
+    if (input.status) query.andWhere("beat.status = :status", { status: input.status });
+    if (input.priority) query.andWhere("beat.priority = :priority", { priority: input.priority });
+
+    // ================= Location Filters =================
+    if (input.countryId) query.andWhere("beat.countryId = :countryId", { countryId: input.countryId });
+    if (input.stateId) query.andWhere("beat.stateId = :stateId", { stateId: input.stateId });
+    if (input.districtId) query.andWhere("beat.districtId = :districtId", { districtId: input.districtId });
+    if (input.area) query.andWhere("beat.area ILIKE :area", { area: `%${input.area}%` });
+    if (input.zone) query.andWhere("beat.zone ILIKE :zone", { zone: `%${input.zone}%` });
+
+    // ================= Search =================
+    if (input.search) {
+      query.andWhere("(beat.beatName ILIKE :search OR beat.beatCode ILIKE :search)", { search: `%${input.search}%` });
     }
+
+    // ================= Pagination =================
+    const page = input.page || 1;
+    const limit = input.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [beats, total] = await query.skip(skip).take(limit).getManyAndCount();
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Success.",
+      data: {
+        items: beats,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
+
+
 }
 
 export { BeatController as BeatService }

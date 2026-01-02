@@ -244,3 +244,40 @@ export enum ClaimPeriod {
   QUARTERLY = "QUARTERLY",
   CAMPAIGN = "CAMPAIGN",
 }
+
+
+
+
+export enum BeatType {
+  SALES = "SALES",
+  DELIVERY = "DELIVERY",
+  COLLECTION = "COLLECTION",
+}
+
+export enum VisitFrequency {
+  DAILY = "DAILY",
+  WEEKLY = "WEEKLY",
+  FORTNIGHTLY = "FORTNIGHTLY",
+  MONTHLY = "MONTHLY",
+}
+
+export enum BeatStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+}
+
+export enum BeatPriority {
+  HIGH = "HIGH",
+  MEDIUM = "MEDIUM",
+  LOW = "LOW",
+}
+
+export enum VisitDay {
+  MONDAY = "MONDAY",
+  TUESDAY = "TUESDAY",
+  WEDNESDAY = "WEDNESDAY",
+  THURSDAY = "THURSDAY",
+  FRIDAY = "FRIDAY",
+  SATURDAY = "SATURDAY",
+  SUNDAY = "SUNDAY",
+}
