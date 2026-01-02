@@ -210,3 +210,37 @@ export enum PosmStatusEnum {
   RETURNED = "Returned",
   LOST = "Lost",
 }
+
+
+export enum SchemeType {
+  QTY_BASED = "QTY_BASED",
+  VALUE_BASED = "VALUE_BASED",
+  FREE_SKU = "FREE_SKU",
+  SLAB = "SLAB",
+  COMBO = "COMBO",
+}
+
+export enum SchemeNature {
+  PRIMARY = "PRIMARY",
+  SECONDARY = "SECONDARY",
+  TRADE = "TRADE",
+  CONSUMER = "CONSUMER",
+}
+
+export enum SchemeStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  EXPIRED = "EXPIRED",
+}
+
+export enum BenefitType {
+  FREE_SKU = "FREE_SKU",
+  EXTRA_QTY = "EXTRA_QTY",
+  VALUE_OFF = "VALUE_OFF",
+}
+
+export enum ClaimPeriod {
+  MONTHLY = "MONTHLY",
+  QUARTERLY = "QUARTERLY",
+  CAMPAIGN = "CAMPAIGN",
+}

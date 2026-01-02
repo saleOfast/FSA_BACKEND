@@ -134,8 +134,8 @@ class Postgresdb {
 				UserLeave, LeaveApplication,
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm 
-				InventoryItem, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, 
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku
 			];
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',

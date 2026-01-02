@@ -315,9 +315,9 @@ class ProfileController {
                     visitDate: Between(startOfDay(new Date()), endOfDay(new Date()))
                 }
             })
-            const focusedProductCount = await this.getProductRepository.count({
-                where: { isFocused: true }
-            })
+            // const focusedProductCount = await this.getProductRepository.count({
+            //     where: { isFocused: true }
+            // })
 
             const currTargetQueryBuilder = this.getTargetRepository.createQueryBuilder('target')
                 .select([
@@ -491,7 +491,7 @@ class ProfileController {
                 newStoreCount: currStoreCount ? currStoreCount : 0,
                 unBilledStoreCount: unBilledStoreCount ? unBilledStoreCount : 0,
                 todayVisitCount: todayVisitCount,
-                focusedProductCount: focusedProductCount ?? 0,
+                // focusedProductCount: focusedProductCount ?? 0,
                 // bottomSKU,
                 // topSKU,
                 orderCountWithpayment: {

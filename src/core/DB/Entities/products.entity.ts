@@ -98,11 +98,11 @@ export class Products extends BaseEntity implements IProducts {
     @Column({ name: 'product_life_cycle_stage', nullable: true })
     productLifeCycleStage?: string
 
-    // Storage Condition - Pick List (e.g., 'Cool Dry')
+
     @Column({ name: 'storage_condition', nullable: true })
     storageCondition?: string
 
-    // Scheme - Lookup (references Scheme & Discount Table)
+   
     @Column({ name: 'scheme_id', nullable: true })
     schemeId?: number
 
@@ -110,7 +110,7 @@ export class Products extends BaseEntity implements IProducts {
     @JoinColumn({ name: 'scheme_id' })
     scheme?: Scheme;
 
-    // Discount - Lookup (references Scheme & Discount Table)
+   
     @Column({ name: 'discount_id', nullable: true })
     discountId?: number
 
@@ -118,11 +118,10 @@ export class Products extends BaseEntity implements IProducts {
     @JoinColumn({ name: 'discount_id' })
     discount?: Discount;
 
-    // Soft delete flag
     @Column({ name: 'is_deleted', default: false })
     isDeleted: boolean
 
-    // Legacy fields for backward compatibility (created_at, updated_at)
+   
     @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
     createdAt: Date;
 

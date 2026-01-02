@@ -39,6 +39,21 @@ router.post(
 // GET INVENTORY LIST
 // =======================
 router.get(
+  "/getAll",
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await inventoryService.getAllInventory(payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+
+router.get(
   "/getList/:warehouseId",
   validateDtoMiddleware(GetInventoryList),
   AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
@@ -54,6 +69,9 @@ router.get(
     }
   }
 );
+
+
+
 
 // =======================
 // UPDATE INVENTORY

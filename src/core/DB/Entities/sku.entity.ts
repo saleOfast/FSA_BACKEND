@@ -20,12 +20,12 @@ export class Sku extends BaseEntity implements ISku {
     @Column({ name: 'sku_name' })
     skuName: string;
 
-    @Column({ name: 'product_id', nullable: true })
-    productId?: number;
+    @Column({ name: 'product_id' })
+    productId: number;
 
-    @ManyToOne(() => Products, { nullable: true })
+    @ManyToOne(() => Products)
     @JoinColumn({ name: 'product_id' })
-    product?: Products;
+    product: Products;
 
     @Column({ name: 'pack_size', nullable: true })
     packSize?: string; // e.g., "100g", "500ml", "1L", "12x500ml"

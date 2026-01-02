@@ -299,9 +299,9 @@ export class GetProductById {
 }
 
 export class GetProductListRequest {
-    @IsOptional()
-    @IsString()
-    isFocused: string;
+    // @IsOptional()
+    // @IsString()
+    // isFocused: string;
 
     @IsOptional()
     @IsString()
