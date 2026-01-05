@@ -507,7 +507,7 @@ class OrderController {
                     .where("user.managerId = :managerId", { managerId: emp_id })
                     .select("beat.store")
                     .getMany()
-                    .then((beats: IBeat[]) => beats.map(beat => beat.store));
+                    // .then((beats: IBeat[]) => beats.map(beat => beat.store));
                 // console.log({storeIds})
                 if (storeIds.length > 0) {
                     fitlerQuery = storeIds;
@@ -680,7 +680,7 @@ class OrderController {
                     .where("user.managerId = :managerId", { managerId: emp_id })
                     .select("beat.store")
                     .getMany()
-                    .then((beats: IBeat[]) => beats.map(beat => beat.store));
+                    // .then((beats: IBeat[]) => beats.map(beat => beat.store));
                 // console.log({storeIds})
                 if (storeIds.length > 0) {
                     fitlerQuery = storeIds;

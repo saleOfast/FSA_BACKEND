@@ -239,7 +239,7 @@ class ProductController {
     async list(input: GetProductListRequest, payload: IUser): Promise<IApiResponse> {
         try {
             const { role } = payload;
-            const { isFocused, search, category, brand, isActive } = input;
+            const { search, category, isActive } = input;
 
             console.log({ input });
 

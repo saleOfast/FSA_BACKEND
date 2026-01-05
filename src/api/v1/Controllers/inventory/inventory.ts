@@ -1,6 +1,7 @@
 import { Inventory, InventoryRepository } from "../../../../core/DB/Entities/inventory";
-// import { Sku } from "../Entities/sku.entity";
+import { Sku, SkuRepository } from "../../../../core/DB/Entities/sku.entity";
 import { Warehouse } from "../../../../core/DB/Entities/warehouse.entity";
+import { In } from "typeorm";
 import { 
 GetInventoryList,  
 CreateInventoryDto ,
@@ -14,38 +15,77 @@ import { IUser } from "../../../../core/types/AuthService/AuthService";
 
 class InventoryService {
   private inventoryRepo = InventoryRepository();
+  private skuRepo = SkuRepository();
 
   constructor() {}
 
 
-async createInventory(input: CreateInventoryDto, payload: IUser): Promise<IApiResponse> {
+async createInventory(
+  input: CreateInventoryDto,
+  payload: IUser
+): Promise<IApiResponse> {
   try {
     const inventories: Inventory[] = [];
 
+
     for (const item of input.inventory) {
-      if (!item.productId && !item.skuId) {
-        throw new Error(`Either productId or skuId is required for warehouse ${item.warehouseId}`);
+
+      // ============================
+      // Validation
+      // ============================
+      if (!item.skuId) {
+        throw new Error("skuId is required");
       }
 
-      // ✅ Directly create Inventory instance
+      if (!item.warehouseId) {
+        throw new Error("warehouseId is required");
+      }
+
+      // ============================
+      // Fetch SKU → Product
+      // ============================
+      const sku = await this.skuRepo.findOne({
+        where: { skuId: item.skuId },
+        select: ["skuId", "productId"],
+      });
+
+      if (!sku) {
+        throw new Error(`Invalid skuId: ${item.skuId}`);
+      }
+
+      // ============================
+      // Create Inventory
+      // ============================
       const inventory = new Inventory();
 
-     inventory.productId = item.productId ?? undefined;
-inventory.skuId = item.skuId ?? undefined;
-inventory.batchNumber = item.batchNumber ?? undefined;
-inventory.expiryDate = item.expiryDate ? new Date(item.expiryDate) : undefined;
-inventory.reorderLevel = item.reorderLevel ?? undefined;
-inventory.stockInDate = item.stockInDate ? new Date(item.stockInDate) : undefined;
-inventory.stockOutDate = item.stockOutDate ? new Date(item.stockOutDate) : undefined;
-inventory.taxId = item.taxId ?? undefined;
-inventory.schemeId = item.schemeId ?? undefined;
-inventory.discountId = item.discountId ?? undefined;
-inventory.warehouseId = item.warehouseId ?? undefined;
+      inventory.inventoryName = item.inventoryName;
+      inventory.stockQuantity = item.stockQuantity;
+      inventory.warehouseId = item.warehouseId;
+
+      inventory.skuId = sku.skuId;           // ✅ real SKU
+      inventory.productId = sku.productId;   // ✅ derived product
+
+      inventory.batchNumber = item.batchNumber;
+      inventory.expiryDate = item.expiryDate
+        ? new Date(item.expiryDate)
+        : undefined;
+
+      inventory.reorderLevel = item.reorderLevel;
+      inventory.stockInDate = item.stockInDate
+        ? new Date(item.stockInDate)
+        : undefined;
+
+      inventory.stockOutDate = item.stockOutDate
+        ? new Date(item.stockOutDate)
+        : undefined;
+
+      inventory.taxId = item.taxId;
+      inventory.schemeId = item.schemeId;
+      inventory.discountId = item.discountId;
 
       inventories.push(inventory);
     }
 
-    // ✅ Save all inventories at once
     const savedInventories = await this.inventoryRepo.save(inventories);
 
     return {
@@ -55,6 +95,7 @@ inventory.warehouseId = item.warehouseId ?? undefined;
     };
   } catch (err: any) {
     console.error("Create Inventory error:", err);
+
     return {
       status: STATUSCODES.BAD_REQUEST,
       message: err.message || "Failed to create inventory",
@@ -63,68 +104,174 @@ inventory.warehouseId = item.warehouseId ?? undefined;
 }
 
 
-
   // =======================
   // 2️⃣ UPDATE INVENTORY
   // =======================
-  async updateInventory(input: UpdateInventoryDto, payload: IUser): Promise<IApiResponse> {
-    try {
-      const updatedItems: Inventory[] = [];
+ async updateInventory(
+  input: UpdateInventoryDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const updatedItems: Inventory[] = [];
 
-      for (const item of input.inventory) {
-        if (!item.inventoryId) return { status: STATUSCODES.BAD_REQUEST, message: "inventoryId is required for update" };
+    for (const item of input.inventory) {
 
-        const existing = await this.inventoryRepo.findOne({ where: { inventoryId: item.inventoryId } });
-        if (!existing) return { status: STATUSCODES.NOT_FOUND, message: `Inventory not found with id ${item.inventoryId}` };
-
-        // Update only provided fields
-        Object.assign(existing, {
-          stockQuantity: item.stockQuantity,
-          reservedQuantity: item.reservedQuantity ?? existing.reservedQuantity,
-          batchNumber: item.batchNumber ?? existing.batchNumber,
-          expiryDate: item.expiryDate ?? existing.expiryDate,
-          reorderLevel: item.reorderLevel ?? existing.reorderLevel,
-          stockInDate: item.stockInDate ?? existing.stockInDate,
-          stockOutDate: item.stockOutDate ?? existing.stockOutDate,
-          taxId: item.taxId ?? existing.tax,
-          schemeId: item.schemeId ?? existing.schemeId,
-          discountId: item.discountId ?? existing.discountId,
-        });
-
-        const saved = await this.inventoryRepo.save(existing);
-        updatedItems.push(saved);
+      if (!item.inventoryId) {
+        throw new Error("inventoryId is required for update");
       }
 
-      return { status: STATUSCODES.SUCCESS, message: "Inventory updated successfully", data: updatedItems };
-    } catch (err: any) {
-      console.error("Update Inventory error:", err);
-      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to update inventory", data: err?.message || err };
+      const existing = await this.inventoryRepo.findOne({
+        where: { inventoryId: item.inventoryId },
+      });
+
+      if (!existing) {
+        throw new Error(`Inventory not found with id ${item.inventoryId}`);
+      }
+
+      // ============================
+      // Update only provided fields
+      // ============================
+
+      if (item.stockQuantity !== undefined) {
+        existing.stockQuantity = item.stockQuantity;
+      }
+
+      if (item.batchNumber !== undefined) {
+        existing.batchNumber = item.batchNumber;
+      }
+
+      if (item.expiryDate !== undefined) {
+        existing.expiryDate = item.expiryDate
+          ? new Date(item.expiryDate)
+          : undefined;
+      }
+
+      if (item.reorderLevel !== undefined) {
+        existing.reorderLevel = item.reorderLevel;
+      }
+
+      if (item.stockInDate !== undefined) {
+        existing.stockInDate = item.stockInDate
+          ? new Date(item.stockInDate)
+          : undefined;
+      }
+
+      if (item.stockOutDate !== undefined) {
+        existing.stockOutDate = item.stockOutDate
+          ? new Date(item.stockOutDate)
+          : undefined;
+      }
+
+      if (item.taxId !== undefined) {
+        existing.taxId = item.taxId;
+      }
+
+      if (item.schemeId !== undefined) {
+        existing.schemeId = item.schemeId;
+      }
+
+      if (item.discountId !== undefined) {
+        existing.discountId = item.discountId;
+      }
+
+      const saved = await this.inventoryRepo.save(existing);
+      updatedItems.push(saved);
     }
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Inventory updated successfully",
+      data: updatedItems,
+    };
+  } catch (err: any) {
+    console.error("Update Inventory error:", err);
+
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: err.message || "Failed to update inventory",
+    };
   }
+}
+
 
   // =======================
   // 3️⃣ DELETE INVENTORY
   // =======================
-  async deleteInventory(input: DeleteInventoryDto, payload: IUser): Promise<IApiResponse> {
-    try {
-      const { inventoryIds } = input;
+ 
 
-      const existingItems = await this.inventoryRepo.findByIds(inventoryIds);
-      if (!existingItems || existingItems.length === 0) return { status: STATUSCODES.BAD_REQUEST, message: "Inventory items not found" };
+async deleteInventory(
+  input: DeleteInventoryDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const { inventoryIds } = input;
 
-      await this.inventoryRepo
-        .createQueryBuilder()
-        .update(Inventory)
-        .set({ /* optionally mark as deleted */ })
-        .whereInIds(inventoryIds)
-        .execute();
+    const existingItems = await this.inventoryRepo.find({
+      where: {
+        inventoryId: In(inventoryIds),
+        isDeleted: false,
+      },
+    });
 
-      return { status: STATUSCODES.SUCCESS, message: `${existingItems.length} inventory item(s) deleted successfully` };
-    } catch (err: any) {
-      console.error("Delete Inventory error:", err);
-      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to delete inventory", data: err?.message || err };
+    if (existingItems.length === 0) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: "Inventory items not found",
+      };
     }
+
+    await this.inventoryRepo.update(
+      { inventoryId: In(inventoryIds) },
+      { isDeleted: true }
+    );
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: `${existingItems.length} inventory item(s) deleted successfully`,
+    };
+  } catch (err: any) {
+    console.error("Delete Inventory error:", err);
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: "Failed to delete inventory",
+      data: err?.message || err,
+    };
   }
+}
+
+async getAllInventory(payload: IUser): Promise<IApiResponse> {
+  try {
+    const inventories = await this.inventoryRepo.find({
+      relations: {
+        product: true,
+        warehouse: true, // include if you have sku relation
+      },
+      order: {
+        createdAt: "DESC",
+      },
+    });
+
+    if (!inventories.length) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: "No inventory found",
+      };
+    }
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Inventory list fetched successfully",
+      data: inventories,
+    };
+  } catch (err: any) {
+    console.error("Get all inventory error:", err);
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: "Failed to fetch inventory",
+      data: err?.message,
+    };
+  }
+}
 
   // =======================
   // 4️⃣ GET INVENTORY BY WAREHOUSE

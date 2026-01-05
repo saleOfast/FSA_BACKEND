@@ -75,9 +75,9 @@ export class Products {
     @IsOptional()
     skuDiscount?: ISkuDiscount
 
-    @IsBoolean()
-    @IsNotEmpty()
-    isFocused: boolean
+    // @IsBoolean()
+    // @IsNotEmpty()
+    // isFocused: boolean
 }
 
 export class CreateOrder {

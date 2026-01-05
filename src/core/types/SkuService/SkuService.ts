@@ -4,7 +4,7 @@ import { SkuStatus } from "../../../core/DB/Entities/sku.entity";
 export interface ISku {
     skuId: number;
     skuName: string;
-    productId?: number;
+    productId: number;
     packSize?: string;
     vom?: string;
     mrp?: number;
@@ -33,7 +33,7 @@ export class CreateSkuRequest {
     @IsString()
     skuName: string;
 
-    @IsOptional()
+    @IsNotEmpty()
     @IsNumber()
     productId?: number;
 

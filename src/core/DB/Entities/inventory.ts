@@ -14,45 +14,50 @@ import { Products } from "../Entities/products.entity";
 import { Taxes } from "../Entities/tax.entity";
 
 import { Warehouse } from "../Entities/warehouse.entity";
+import { Sku } from "../Entities/sku.entity";
 
 import { DbConnections } from "../postgresdb";
 
 
 export interface IInventory {
-  // Primary key
+  // Primary
   inventoryId: number;
+  inventoryName?: string;
 
-  // Relations (store IDs, not full objects)
-  productId?: number; // optional now
-  skuId?: number; // Foreign key, derived from SKU relation
+  // Lookups
+  skuId: number;
+  productId: number;       // derived from SKU at save time
   warehouseId?: number;
 
-  // Stock (source of truth)
-  stockQuantity: number;
-  reservedQuantity: number;
+  // Quantities
+  stockQuantity: number;   // physical stock
+  // reservedQuantity: number;
 
   // Optional tracking
   batchNumber?: string;
   expiryDate?: Date;
-  reorderLevel?: number;
   stockInDate?: Date;
   stockOutDate?: Date;
+  reorderLevel?: number;
 
-  // Optional references
+  // Lookups
   taxId?: number;
   schemeId?: number;
   discountId?: number;
 
-  // 🔹 Derived / Formula based (NOT stored in DB)
-  availableQuantity?: number;      // stockQuantity - reservedQuantity
+  // 🔹 Formula / Derived (NOT stored)
+  soldQuantity?: number;       // from orders
+  availableQuantity?: number;  // stock - reserved
+  returns?: number;            // from return table
+  shelfLife?: number | null;   // today → expiry
   isExpired?: boolean;
   isBelowReorderLevel?: boolean;
-  daysToExpiry?: number | null;
-  shelfLife?: number | null;
 
   // Audit
   createdAt: Date;
   updatedAt: Date;
+
+
 }
 
 
@@ -64,36 +69,40 @@ export class Inventory extends BaseEntity implements IInventory {
   @PrimaryGeneratedColumn({ name: "inventory_id" })
   inventoryId: number;
 
-@Column({ name: "sku_id", nullable: true })
-skuId?: number;
+  @Column({ name:"inventory_name", type: "varchar", nullable: true})
+  inventoryName?: string;
 
-// @ManyToOne(() => sku, { nullable: true })
-// @JoinColumn({ name: "sku_id" })
-// sku?: sku;
+@Column({ name: "sku_id" })
+ skuId: number;
 
-@Column({ name: "product_id", nullable: true })
-productId?: number;
+@ManyToOne(() => Sku)
+@JoinColumn({ name: "sku_id" })
+sku: Sku;
 
-@ManyToOne(() => Products, { nullable: true })
+@Column({ name: "product_id" })
+productId: number;
+
+@ManyToOne(() => Products)
 @JoinColumn({ name: "product_id" })
-product?: Products;
+product: Products;
+
+// product ref from sku table , (now from product table)
 
 
-
-  @Column({ name: "warehouse_id", nullable: true })
+  @Column({ name: "warehouse_id",nullable: true })
   warehouseId?: number;
 
 
-  @ManyToOne(() => Warehouse, { nullable: true })
-  @JoinColumn({ name: "warehouse_id" })
+  @ManyToOne(() => Warehouse)
+  @JoinColumn({ name: "warehouse_id"})
   warehouse?: Warehouse;
 
 
   @Column({ name: "stock_quantity", type: "int", default: 0 })
   stockQuantity: number;
 
-  @Column({ name: "reserved_quantity", type: "int", default: 0 })
-  reservedQuantity: number;
+  // @Column({ name: "reserved_quantity", type: "int", default: 0 })
+  // reservedQuantity: number;
 
   @Column({ name: "batch_number", nullable: true })
   batchNumber?: string;
@@ -110,8 +119,8 @@ product?: Products;
   @Column({ name: "stock_out_date", type: "date", nullable: true })
   stockOutDate?: Date;
 
- @Column({ name: "tax_id", nullable: true })
-taxId?: number;
+  @Column({ name: "tax_id", nullable: true })
+  taxId?: number;
 
 @ManyToOne(() => Taxes, { nullable: true })
 @JoinColumn({ name: "tax_id" })
@@ -126,7 +135,7 @@ discountId?: number;
 
   // Available = Stock - Reserved
   get availableQuantity(): number {
-    return this.stockQuantity - this.reservedQuantity;
+    return this.stockQuantity 
   }
 
   // Is stock below reorder level?
@@ -158,11 +167,23 @@ discountId?: number;
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
+  get soldQuantity(): number {
+  return 0;
+}
+
+// Return Quantity – future Return module
+get returns(): number {
+  return 0;
+}
+
   @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
 
   @UpdateDateColumn({ name: "updated_at" })
   updatedAt: Date;
+
+    @Column({ name: "is_deleted", default: false })
+isDeleted: boolean;
 }
 
 export const InventoryRepository = (): Repository<Inventory> => {

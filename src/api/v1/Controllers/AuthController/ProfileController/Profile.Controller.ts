@@ -490,7 +490,7 @@ class ProfileController {
                 newStoreCount: currStoreCount ? currStoreCount : 0,
                 unBilledStoreCount: unBilledStoreCount ? unBilledStoreCount : 0,
                 todayVisitCount: todayVisitCount,
-                focusedProductCount: focusedProductCount ?? 0,
+                // focusedProductCount: focusedProductCount ?? 0,
                 // bottomSKU,
                 // topSKU,
                 orderCountWithpayment: {
