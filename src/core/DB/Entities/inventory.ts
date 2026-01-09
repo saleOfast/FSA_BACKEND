@@ -25,8 +25,8 @@ export interface IInventory {
   inventoryName?: string;
 
   // Lookups
-  skuId: number;
-  productId: number;       // derived from SKU at save time
+  skuId?: number;
+  productId?: number;       // derived from SKU at save time
   warehouseId?: number;
 
   // Quantities
@@ -72,19 +72,19 @@ export class Inventory extends BaseEntity implements IInventory {
   @Column({ name:"inventory_name", type: "varchar", nullable: true})
   inventoryName?: string;
 
-@Column({ name: "sku_id" })
- skuId: number;
+@Column({ name: "sku_id", nullable: true })
+ skuId?: number;
 
-@ManyToOne(() => Sku)
+@ManyToOne(() => Sku, { nullable: true })
 @JoinColumn({ name: "sku_id" })
-sku: Sku;
+sku?: Sku;
 
-@Column({ name: "product_id" })
-productId: number;
+@Column({ name: "product_id", nullable: true })
+productId?: number;
 
-@ManyToOne(() => Products)
+@ManyToOne(() => Products, { nullable: true })
 @JoinColumn({ name: "product_id" })
-product: Products;
+product?: Products;
 
 // product ref from sku table , (now from product table)
 

@@ -17,26 +17,26 @@ export class Scheme extends BaseEntity implements IScheme {
    @PrimaryGeneratedColumn({ name: "scheme_id" })
   id: number;
 
-  @Column({ name: "scheme_name" })
-  schemeName: string;
+  @Column({ name: "scheme_name", nullable: true })
+  schemeName?: string;
 
-  @Column({ type: "enum", enum: SchemeType, name: "scheme_type" })
-  schemeType: SchemeType;
+  @Column({ type: "enum", enum: SchemeType, name: "scheme_type", nullable: true })
+  schemeType?: SchemeType;
 
-  @Column({ type: "enum", enum: SchemeNature, name: "scheme_nature" })
-  schemeNature: SchemeNature;
+  @Column({ type: "enum", enum: SchemeNature, name: "scheme_nature", nullable: true })
+  schemeNature?: SchemeNature;
 
-  @Column({ type: "date", name: "start_date" })
-  startDate: Date;
+  @Column({ type: "date", name: "start_date", nullable: true })
+  startDate?: Date;
 
-  @Column({ type: "date", name: "end_date" })
-  endDate: Date;
+  @Column({ type: "date", name: "end_date", nullable: true })
+  endDate?: Date;
 
   @Column({ type: "enum", enum: SchemeStatus, default: SchemeStatus.ACTIVE })
   status: SchemeStatus;
 
   @Column({ name: "priority", nullable: true })
-  priority: number;
+  priority?: number;
 
   @Column({ name: "auto_apply", default: true })
   autoApply: boolean;
@@ -69,7 +69,7 @@ products?: Products[];
   @JoinColumn({ name: "posm_id" })
   posm?: Posm;
   
-  @Column({ name:"beat_id"})
+  @Column({ name:"beat_id", nullable: true})
     beatId?: number;
 
 //   @ManyToOne(() => Beat, { nullable: true })
@@ -91,8 +91,8 @@ products?: Products[];
 
   /* ================= BENEFIT ================= */
 
-  @Column({ type: "enum", enum: BenefitType, name: "benefit_type" })
-  benefitType: BenefitType;
+  @Column({ type: "enum", enum: BenefitType, name: "benefit_type", nullable: true })
+  benefitType?: BenefitType;
 
   @Column({ name: "benefit_qty", type: "int", nullable: true })
   benefitQty?: number;
@@ -108,8 +108,8 @@ products?: Products[];
 
   /* ================= AUDIT ================= */
 
-@Column({ name: "created_by" })
-createdBy: number;
+@Column({ name: "created_by", nullable: true })
+createdBy?: number;
 
   @Column({ name: "is_enable", default: true })
   isEnable: boolean;

@@ -198,7 +198,7 @@ class VisitController {
                 visitStatus: visit.status,
                 beatDetails: {
                     beatId: visit.beat,
-                    beatName: beatDetails.beatName
+                    beatName: beatDetails.beatName || 'N/A'
                 },
                 storeDetails: storeDetails,
                 checkOut: visit.checkOut,

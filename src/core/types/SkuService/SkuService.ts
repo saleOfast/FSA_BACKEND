@@ -3,8 +3,8 @@ import { SkuStatus } from "../../../core/DB/Entities/sku.entity";
 
 export interface ISku {
     skuId: number;
-    skuName: string;
-    productId: number;
+    skuName?: string;
+    productId?: number;
     packSize?: string;
     vom?: string;
     mrp?: number;

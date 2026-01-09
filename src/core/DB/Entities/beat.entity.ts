@@ -28,16 +28,16 @@ export class Beat extends BaseEntity {
   @PrimaryGeneratedColumn({ name: "beat_id" })
   beatId: number;
 
-  @Column({ name: "beat_code", unique: true })
+  @Column({ name: "beat_code", unique: true, nullable: true })
   beatCode: string; // BT-S-001 (generated in service)
 
-  @Column({ name: "beat_name" })
-  beatName: string;
+  @Column({ name: "beat_name", nullable: true })
+  beatName?: string;
 
   /* ================= Ownership ================= */
 
-  @Column({ name: "customer_id" })
-  customerId: number;
+  @Column({ name: "customer_id", nullable: true })
+  customerId?: number;
 
   @ManyToOne(() => Customer)
   @JoinColumn({ name: "customer_id" })
@@ -68,16 +68,18 @@ export class Beat extends BaseEntity {
   type: "enum",
   enum: BeatType,
   name: "beat_type",
+  nullable: true,
 //   default: BeatType.SALES, // default for existing rows
 })
-beatType!: BeatType;
+beatType?: BeatType;
 
   @Column({
     type: "enum",
     enum: VisitFrequency,
     name: "visit_frequency",
+    nullable: true,
   })
-  visitFrequency: VisitFrequency;
+  visitFrequency?: VisitFrequency;
 
   @Column({
     type: "enum",
@@ -92,8 +94,9 @@ beatType!: BeatType;
     type: "enum",
     enum: BeatPriority,
     name: "priority",
+    nullable: true,
   })
-  priority: BeatPriority;
+  priority?: BeatPriority;
 
   @Column({
     type: "enum",
@@ -105,22 +108,22 @@ beatType!: BeatType;
 
   /* ================= Location ================= */
 
-  @Column({ name: "country_id" })
-  countryId: number;
+  @Column({ name: "country_id", nullable: true })
+  countryId?: number;
 
   @ManyToOne(() => Country)
   @JoinColumn({ name: "country_id" })
   country: Country;
 
-  @Column({ name: "state_id" })
-  stateId: number;
+  @Column({ name: "state_id", nullable: true })
+  stateId?: number;
 
   @ManyToOne(() => State)
     @JoinColumn({ name: "state_id" })
     state: State;
 
-  @Column({ name: "district_id" })
-  districtId: number;
+  @Column({ name: "district_id", nullable: true })
+  districtId?: number;
 
     @ManyToOne(() => District)
     @JoinColumn({ name: "district_id" })
@@ -154,8 +157,8 @@ beatType!: BeatType;
 
   /* ================= Audit ================= */
 
-  @Column({ name: "created_by" })
-  createdBy: number;
+  @Column({ name: "created_by", nullable: true })
+  createdBy?: number;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: "created_by" })

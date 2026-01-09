@@ -11,11 +11,11 @@ import { Posm } from "../../DB/Entities/posm.entity";
 
 export interface IScheme {
     id: number;
-   schemeName: string;
-    schemeType: SchemeType;
-    schemeNature: SchemeNature;
-    startDate: Date;
-    endDate: Date;
+    schemeName?: string;
+    schemeType?: SchemeType;
+    schemeNature?: SchemeNature;
+    startDate?: Date;
+    endDate?: Date;
     status: SchemeStatus;
     priority?: number;
     autoApply: boolean;
@@ -33,13 +33,13 @@ export interface IScheme {
     slabFrom?: number;
     slabTo?: number;
 
-    benefitType: BenefitType;
+    benefitType?: BenefitType;
     benefitQty?: number;
     BenefitLimit?: number;
     isClaimable: boolean;
     claimPeriod?: ClaimPeriod;
 
-    createdBy: number;
+    createdBy?: number;
     isEnable: boolean;
     isDeleted: boolean;
     createdAt: Date;

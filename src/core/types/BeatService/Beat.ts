@@ -4,28 +4,28 @@ import { Type } from "class-transformer";
 
 export interface IBeat {
   beatId: number;                // Auto
-  beatCode: string;              // Auto-generated (BT-S-001)
-  beatName: string;
+  beatCode?: string;              // Auto-generated (BT-S-001)
+  beatName?: string;
 
-  customerId: number;            // Distributor
+  customerId?: number;            // Distributor
   warehouseId?: number;
   userId?: number;               // Assigned user / sales rep
 
   channel?: string;               // Derived from customer
-  beatType: BeatType;
+  beatType?: BeatType;
 
-  countryId: number;
-  stateId: number;
-  districtId: number;
+  countryId?: number;
+  stateId?: number;
+  districtId?: number;
 
   area?: string;
   zone?: string;
 
   defaultVisitDays?: VisitDay[]; // Mon, Tue...
-  visitFrequency: VisitFrequency;
+  visitFrequency?: VisitFrequency;
 
   status: BeatStatus;
-  priority: BeatPriority;
+  priority?: BeatPriority;
 
   startLat?: number;
   startLng?: number;
@@ -35,7 +35,7 @@ export interface IBeat {
   plannedStartTime?: Date;
   plannedEndTime?: Date;
 
-  createdBy: number;
+  createdBy?: number;
   createdAt: Date;
   updatedAt: Date;
     isDeleted: boolean;
