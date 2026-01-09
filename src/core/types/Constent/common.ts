@@ -281,3 +281,71 @@ export enum VisitDay {
   SATURDAY = "SATURDAY",
   SUNDAY = "SUNDAY",
 }
+
+export enum PriceBookType {
+  TRADE = "TRADE",
+  MRP = "MRP",
+  PROMO = "PROMO",
+  KEY_ACCOUNT = "KEY_ACCOUNT",
+}
+export enum Channel {
+  GT = "GT",
+  MT = "MT",
+  ECOM = "ECOM",
+  B2B = "B2B",
+}
+export enum CurrencyType {
+  INR = "INR",
+  USD = "USD",
+  EUR = "EUR",
+}
+export enum PriceBookStatus {
+  DRAFT = "DRAFT",
+  ACTIVE = "ACTIVE",
+  EXPIRED = "EXPIRED",
+}
+export enum ApprovalStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+export enum PriorityType {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
+}
+
+
+export enum ItemType {
+  SKU = "SKU",
+  BUNDLE = "BUNDLE",
+  SERVICE = "SERVICE",
+}
+
+export enum UOM {
+  PC = "PC",
+  CASE = "CASE",
+  KG = "KG",
+  LTR = "LTR",
+}
+
+export enum TaxInclusive {
+  INCLUSIVE = "INCLUSIVE",
+  EXCLUSIVE = "EXCLUSIVE",
+}
+
+export enum Status {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+}
+
+export enum  PreferredDays{
+    MONDAY = "MONDAY",
+  TUESDAY = "TUESDAY",
+  WEDNESDAY = "WEDNESDAY",
+  THURSDAY = "THURSDAY",
+  FRIDAY = "FRIDAY",
+  SATURDAY = "SATURDAY",
+  SUNDAY = "SUNDAY",
+}

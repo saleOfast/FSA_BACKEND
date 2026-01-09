@@ -129,3 +129,10 @@ export class GetInventoryList {
   skuId?: number;
   
 }
+
+export class GetInventoryById {
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsNumber()
+  inventoryId: number;
+}

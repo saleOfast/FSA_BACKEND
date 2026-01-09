@@ -56,7 +56,9 @@ import { DistrictRoute } from "./DistrictRouter/District.route";
 import {PosmRoute} from "./POSMRoute/POSMRoute"
 import { SkuRoute } from "./SkuRouter/Sku.route";
 import { DiscountRoute } from "./DiscountRouter/Discount.route";
-
+import {PriceBookRoute} from "./PriceBookRouter/priceBook.route"
+import { PriceBookItmRoute } from "./PriceBookItmRoute/priceBookItm.route";
+import {ShippingAddressRouter} from './ShippingAddressRoute/shippingAddress.route'
 
 const router = express.Router();
 /* Auth ROutes */
@@ -119,5 +121,9 @@ router.use('/district', DistrictRoute);
 router.use('/posm', PosmRoute);
 router.use('/sku', SkuRoute);
 router.use('/discount', DiscountRoute);
+router.use('/priceBook', PriceBookRoute);
+router.use('/priceBookItem', PriceBookItmRoute );
+router.use('/ShippingAddress',ShippingAddressRouter)
+
 
 export { router as routes };
