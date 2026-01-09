@@ -88,7 +88,6 @@ async createBeat(
   }
 }
 
-
 async updateBeat(
   payload: IUser,
   input: UpdateBeatDto
@@ -96,7 +95,7 @@ async updateBeat(
   try {
     const { beatId, ...updateData } = input;
 
-    // Check beat exists
+    // 1️⃣ Check if beat exists
     const beat = await this.beatRepositry.findOne({
       where: { beatId },
     });
@@ -109,27 +108,49 @@ async updateBeat(
       };
     }
 
-    // Update only provided fields
+    // 2️⃣ Update only provided fields
     await this.beatRepositry.update(
       { beatId },
-      {
-        ...updateData,
-      }
+      { ...updateData }
     );
 
+    // 3️⃣ Fetch the updated beat
     const updatedBeat = await this.beatRepositry.findOne({
       where: { beatId },
     });
 
+    if (!updatedBeat) {
+      // Safety check in case something went wrong after update
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Failed to fetch updated beat",
+        data: null,
+      };
+    }
+
+    // 4️⃣ Fetch customer channel
+    const customer = await this.customerRepo.findOne({
+      select: ["channelType"],
+      where: { customerId: updatedBeat.customerId },
+    });
+
+    // 5️⃣ Prepare response with channel
+    const responseData = {
+      ...updatedBeat,
+      channel: customer?.channelType ?? null, // safe fallback
+    };
+
     return {
       status: STATUSCODES.SUCCESS,
       message: "Beat updated successfully",
-      data: updatedBeat,
+      data: responseData,
     };
   } catch (error) {
     throw error;
   }
 }
+
+
 
 async delete(
   payload: IUser,
@@ -170,12 +191,13 @@ async delete(
 
 async getById(payload: IUser, input: GetBeatDto): Promise<IApiResponse> {
   try {
+    // 1️⃣ Build query to fetch beat
     const query = this.beatRepositry.createQueryBuilder("beat");
 
     // Filter by beatId
     query.where("beat.beatId = :beatId", { beatId: input.beatId });
 
-    // Optionally, filter out deleted beats if you use isDeleted
+    // Optionally filter out deleted beats
     query.andWhere("beat.isDeleted = false");
 
     const beat = await query.getOne();
@@ -188,19 +210,38 @@ async getById(payload: IUser, input: GetBeatDto): Promise<IApiResponse> {
       };
     }
 
+    // 2️⃣ Fetch customer channel
+    const customer = await this.customerRepo.findOne({
+      select: ["channelType"],
+      where: { customerId: beat.customerId },
+    });
+
+    // 3️⃣ Merge channel into response
+    const responseData = {
+      ...beat,
+      channel: customer?.channelType ?? null,
+    };
+
     return {
       status: STATUSCODES.SUCCESS,
-      message: "Success.",
-      data: beat,
+      message: "Success",
+      data: responseData,
     };
   } catch (error) {
     throw error;
   }
 }
 
+
 async getAllBeats(input: GetAllBeatDto, payload: IUser): Promise<IApiResponse> {
   try {
-    const query = this.beatRepositry.createQueryBuilder("beat");
+      const query = this.beatRepositry
+      .createQueryBuilder("beat")
+      .leftJoin("beat.customer", "customer")
+      .addSelect([
+        "customer.customerName",
+        "customer.channelType",
+      ]);
 
     // ================= Filters =================
     if (input.customerId) query.andWhere("beat.customerId = :customerId", { customerId: input.customerId });
@@ -210,7 +251,9 @@ async getAllBeats(input: GetAllBeatDto, payload: IUser): Promise<IApiResponse> {
     if (input.beatType) query.andWhere("beat.beatType = :beatType", { beatType: input.beatType });
     if (input.status) query.andWhere("beat.status = :status", { status: input.status });
     if (input.priority) query.andWhere("beat.priority = :priority", { priority: input.priority });
-
+  
+      if (input.channel)
+      query.andWhere("customer.channelType = :channel", { channel: input.channel });
     // ================= Location Filters =================
     if (input.countryId) query.andWhere("beat.countryId = :countryId", { countryId: input.countryId });
     if (input.stateId) query.andWhere("beat.stateId = :stateId", { stateId: input.stateId });

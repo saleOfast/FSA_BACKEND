@@ -7,7 +7,7 @@ GetInventoryList,
 CreateInventoryDto ,
 DeleteInventoryDto,  
 InventoryItemDto ,
-UpdateInventoryDto 
+UpdateInventoryDto ,GetInventoryById
 } from "../../../../core/types/InventoryService/InventoryService";
 import {  STATUSCODES} from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
@@ -286,6 +286,7 @@ async deleteInventory(
       });
 
       if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };
+      
 
       return { status: STATUSCODES.SUCCESS, message: "Inventory fetched successfully", data: inventories };
     } catch (err: any) {
@@ -294,23 +295,48 @@ async deleteInventory(
     }
   }
 
-  // =======================
-  // 5️⃣ GET ALL INVENTORY
-  // =======================
-  async getAllInventory(payload: IUser): Promise<IApiResponse> {
-    try {
-      const inventories = await this.inventoryRepo.find({
-        relations: ["product", "warehouse", "tax"],
-      });
 
-      if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };
 
-      return { status: STATUSCODES.SUCCESS, message: "Inventory fetched successfully", data: inventories };
-    } catch (err: any) {
-      console.error("Get All Inventory error:", err);
-      return { status: STATUSCODES.BAD_REQUEST, message: "Failed to fetch inventory", data: err?.message || err };
+async getInventoryById(
+  input: GetInventoryById,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const inventoryId = Number(input.inventoryId);
+
+    const inventory = await this.inventoryRepo.findOne({
+      where: {
+        inventoryId,
+        isDeleted: false, 
+      },
+      relations: ["product"],
+    });
+
+    if (!inventory) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: "No inventory found",
+      };
     }
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Inventory fetched successfully",
+      data: inventory,
+    };
+  } catch (err: any) {
+    console.error("Get Inventory By ID error:", err);
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: "Failed to fetch inventory",
+      data: err?.message || err,
+    };
   }
 }
+
+
+}
+
+
 
 export { InventoryService };

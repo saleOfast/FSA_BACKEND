@@ -78,6 +78,9 @@ import { TabPermission } from './Entities/TabPermission.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
 import { Posm } from './Entities/posm.entity';
 import { Sku } from './Entities/sku.entity';
+import { PriceBook } from './Entities/priceBook.entity';
+import { PriceBookItem } from './Entities/price_book_item.entity';
+import { ItemShippingAddress } from './Entities/shippingAddress.entity';
 
 
 
@@ -135,7 +138,8 @@ class Postgresdb {
 				UserLeave, LeaveApplication,
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, 
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress
 			];
 			// Determine if we should use migrations or synchronize
 			const useMigrations = process.env.USE_MIGRATIONS === 'true';

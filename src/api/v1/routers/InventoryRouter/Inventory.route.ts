@@ -9,7 +9,7 @@ import {
   InventoryItemDto,
   UpdateInventoryDto,
   DeleteInventoryDto,
-  GetInventoryList
+  GetInventoryList,GetInventoryById
 } from "../../../../core/types/InventoryService/InventoryService";
 
 const router = express.Router();
@@ -63,6 +63,24 @@ router.get(
       const payload: IUser = RequestHandler.Custom.getUser(req);
 
       const data = await inventoryService.getInventory(input, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+
+router.get(
+  "/getById/:inventoryId",
+  validateDtoMiddleware(GetInventoryById),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const input: GetInventoryById = RequestHandler.Defaults.getParams< GetInventoryById>(req, GetInventoryById);
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+
+      const data = await inventoryService.getInventoryById(input, payload);
       ResponseHandler.sendResponse(res, data);
     } catch (error) {
       ResponseHandler.sendErrorResponse(res, error);

@@ -39,6 +39,8 @@ export interface IBeat {
   createdAt: Date;
   updatedAt: Date;
     isDeleted: boolean;
+
+    
 }
 
 
