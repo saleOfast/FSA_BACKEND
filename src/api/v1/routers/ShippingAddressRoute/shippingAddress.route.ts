@@ -60,13 +60,15 @@ router.get(
 );
 
 router.put(
-  "/update",
+  "/update/:addressId",
   validateDtoMiddleware(UpdateShippingAddressDto),
   AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
   async (req: Request, res: Response) => {
     try {
-      const input: UpdateShippingAddressDto =
-        RequestHandler.Defaults.getBody<UpdateShippingAddressDto>(req, UpdateShippingAddressDto);
+     const input: UpdateShippingAddressDto = {
+        addressId: Number(req.params.addressId),
+        ...req.body,
+      };
 
       const payload: IUser = RequestHandler.Custom.getUser(req);
  const AddressService = new ShippingAddressService();

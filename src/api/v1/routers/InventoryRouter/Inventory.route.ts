@@ -70,14 +70,14 @@ router.get(
   }
 );
 
+
 router.get(
   "/getById/:inventoryId",
+  validateDtoMiddleware(GetInventoryById),
   AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
   async (req: Request, res: Response) => {
     try {
-      const input = new GetInventoryById();
-      input.inventoryId = Number(req.params.inventoryId);
-
+      const input: GetInventoryById = RequestHandler.Defaults.getParams< GetInventoryById>(req, GetInventoryById);
       const payload: IUser = RequestHandler.Custom.getUser(req);
 
       const data = await inventoryService.getInventoryById(input, payload);
@@ -87,7 +87,6 @@ router.get(
     }
   }
 );
-
 
 
 
