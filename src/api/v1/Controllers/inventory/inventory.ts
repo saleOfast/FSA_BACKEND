@@ -239,39 +239,39 @@ async deleteInventory(
   }
 }
 
-async getAllInventory(payload: IUser): Promise<IApiResponse> {
-  try {
-    const inventories = await this.inventoryRepo.find({
-      relations: {
-        product: true,
-        warehouse: true, // include if you have sku relation
-      },
-      order: {
-        createdAt: "DESC",
-      },
-    });
+// async getAllInventory(payload: IUser): Promise<IApiResponse> {
+//   try {
+//     const inventories = await this.inventoryRepo.find({
+//       relations: {
+//         product: true,
+//         warehouse: true, // include if you have sku relation
+//       },
+//       order: {
+//         createdAt: "DESC",
+//       },
+//     });
 
-    if (!inventories.length) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "No inventory found",
-      };
-    }
+//     if (!inventories.length) {
+//       return {
+//         status: STATUSCODES.NOT_FOUND,
+//         message: "No inventory found",
+//       };
+//     }
 
-    return {
-      status: STATUSCODES.SUCCESS,
-      message: "Inventory list fetched successfully",
-      data: inventories,
-    };
-  } catch (err: any) {
-    console.error("Get all inventory error:", err);
-    return {
-      status: STATUSCODES.BAD_REQUEST,
-      message: "Failed to fetch inventory",
-      data: err?.message,
-    };
-  }
-}
+//     return {
+//       status: STATUSCODES.SUCCESS,
+//       message: "Inventory list fetched successfully",
+//       data: inventories,
+//     };
+//   } catch (err: any) {
+//     console.error("Get all inventory error:", err);
+//     return {
+//       status: STATUSCODES.BAD_REQUEST,
+//       message: "Failed to fetch inventory",
+//       data: err?.message,
+//     };
+//   }
+// }
 
   // =======================
   // 4️⃣ GET INVENTORY BY WAREHOUSE

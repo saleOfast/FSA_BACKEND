@@ -58,7 +58,7 @@ class ActivitiesService {
                     where: { storeId: input.storeId },
                     relations: {
                         user: true,
-                        product: true,
+                        // product: true,
                         jointWorks: {
                             user: true // Populate user inside jointWorks
                         }

@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DeleteCategoryById = exports.UpdateCategoryById = exports.GetCategoryById = exports.CreateProductCategory = exports.DeleteProductById = exports.GetProductListRequest = exports.GetProductById = exports.UpdateProductRequest = exports.CreateProductRequest = exports.SkuDiscount = void 0;
 const class_validator_1 = require("class-validator");
 const common_1 = require("../Constent/common");
-const class_transformer_1 = require("class-transformer");
 class SkuDiscount {
 }
 __decorate([
@@ -34,35 +33,65 @@ exports.SkuDiscount = SkuDiscount;
 class CreateProductRequest {
 }
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(['FG', 'POSM']),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "productType", void 0);
+__decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateProductRequest.prototype, "productName", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], CreateProductRequest.prototype, "mrp", void 0);
-__decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], CreateProductRequest.prototype, "rlp", void 0);
-__decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], CreateProductRequest.prototype, "caseQty", void 0);
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "productCode", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], CreateProductRequest.prototype, "categoryId", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
-], CreateProductRequest.prototype, "brandId", void 0);
+], CreateProductRequest.prototype, "subCategoryId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "description", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(['Active', 'Inactive']),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "launchDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "discontinueDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "vol", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateProductRequest.prototype, "taxCategoryId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "hsnCode", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
@@ -72,22 +101,27 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], CreateProductRequest.prototype, "colour", void 0);
+], CreateProductRequest.prototype, "marketSegment", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsObject)(),
-    __metadata("design:type", SkuDiscount)
-], CreateProductRequest.prototype, "skuDiscount", void 0);
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "productLifeCycleStage", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], CreateProductRequest.prototype, "isFocused", void 0);
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductRequest.prototype, "storageCondition", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], CreateProductRequest.prototype, "isActive", void 0);
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateProductRequest.prototype, "schemeId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateProductRequest.prototype, "discountId", void 0);
 exports.CreateProductRequest = CreateProductRequest;
 class UpdateProductRequest {
 }
@@ -97,53 +131,95 @@ __decorate([
     __metadata("design:type", Number)
 ], UpdateProductRequest.prototype, "productId", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(['FG', 'POSM']),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "productType", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateProductRequest.prototype, "productName", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], UpdateProductRequest.prototype, "mrp", void 0);
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "productCode", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], UpdateProductRequest.prototype, "rlp", void 0);
-__decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
-], UpdateProductRequest.prototype, "caseQty", void 0);
-__decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
 ], UpdateProductRequest.prototype, "categoryId", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
-], UpdateProductRequest.prototype, "brandId", void 0);
+], UpdateProductRequest.prototype, "subCategoryId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsObject)()
-    // @ValidateNested({ each: true })
-    ,
-    (0, class_transformer_1.Type)(() => SkuDiscount),
-    __metadata("design:type", SkuDiscount)
-], UpdateProductRequest.prototype, "skuDiscount", void 0);
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "description", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], UpdateProductRequest.prototype, "isFocused", void 0);
+    (0, class_validator_1.IsEnum)(['Active', 'Inactive']),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], UpdateProductRequest.prototype, "isActive", void 0);
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "launchDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "discontinueDate", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "vol", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateProductRequest.prototype, "taxCategoryId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "hsnCode", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "image", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "marketSegment", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "productLifeCycleStage", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProductRequest.prototype, "storageCondition", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateProductRequest.prototype, "schemeId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateProductRequest.prototype, "discountId", void 0);
 exports.UpdateProductRequest = UpdateProductRequest;
 class GetProductById {
 }
@@ -155,11 +231,6 @@ __decorate([
 exports.GetProductById = GetProductById;
 class GetProductListRequest {
 }
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], GetProductListRequest.prototype, "isFocused", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),

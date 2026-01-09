@@ -15,7 +15,6 @@ const postgresdb_1 = require("../postgresdb");
 const common_1 = require("../../../core/types/Constent/common");
 const activities_jointWork_entity_1 = require("./activities.jointWork.entity");
 const stores_entity_1 = require("./stores.entity");
-const products_entity_1 = require("./products.entity");
 const User_entity_1 = require("./User.entity");
 let Activities = class Activities extends typeorm_1.BaseEntity {
 };
@@ -55,15 +54,6 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'added_by' }),
     __metadata("design:type", Number)
 ], Activities.prototype, "addedBy", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => products_entity_1.Products, (product) => product.activities, { onDelete: "CASCADE" }),
-    (0, typeorm_1.JoinColumn)({ name: 'product_id' }),
-    __metadata("design:type", products_entity_1.Products)
-], Activities.prototype, "product", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'product_id' }),
-    __metadata("design:type", Number)
-], Activities.prototype, "productId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'remarks' }),
     __metadata("design:type", String)

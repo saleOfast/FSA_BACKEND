@@ -3,9 +3,21 @@ import { IUser } from "../../../../core/types/AuthService/AuthService";
 import { CreateSchemeDto, IScheme, UpdateSchemeDto ,GetAllSchemeDto,GetSchemeDto, DeleteSchemeDto} from "../../../../core/types/SchemeService/SchemeService";
 import { STATUSCODES, UserRole } from "../../../../core/types/Constent/common";
 import { getSchemeRepository } from "../../../../core/DB/Entities/scheme.entity";
+import { CustomerRepository } from "../../../../core/DB/Entities/customer.entity";
+import { CustomerTypeRepository } from "../../../../core/DB/Entities/customerType.entity";
+import { ProductRepository } from "../../../../core/DB/Entities/products.entity";
+import { SkuRepository } from "../../../../core/DB/Entities/sku.entity";
+import { WarehouseRepository } from "../../../../core/DB/Entities/warehouse.entity";
+import { PosmRepository } from "../../../../core/DB/Entities/posm.entity";
 
 class SchemeController {
     private getRepositry = getSchemeRepository()
+    private customerRepository = CustomerRepository();
+    private customerTypeRepository = CustomerTypeRepository();
+    private productRepository = ProductRepository();
+    private skuRepository = SkuRepository();
+    private warehouseRepository = WarehouseRepository();
+    private posmRepository = PosmRepository();
 
     constructor() { }
 
@@ -45,6 +57,67 @@ class SchemeController {
       isClaimable,
       claimPeriod,
     } = input;
+
+    // Validate foreign keys if provided
+    if (customerId) {
+      const customer = await this.customerRepository.findOne({ where: { customerId } });
+      if (!customer) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: `Customer with ID ${customerId} not found`,
+        };
+      }
+    }
+
+    if (customerTypeId) {
+      const customerType = await this.customerTypeRepository.findOne({ where: { customerTypeId } });
+      if (!customerType) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: `Customer Type with ID ${customerTypeId} not found`,
+        };
+      }
+    }
+
+    if (productId) {
+      const product = await this.productRepository.findOne({ where: { productId } });
+      if (!product) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: `Product with ID ${productId} not found`,
+        };
+      }
+    }
+
+    if (skuId) {
+      const sku = await this.skuRepository.findOne({ where: { skuId } });
+      if (!sku) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: `SKU with ID ${skuId} not found`,
+        };
+      }
+    }
+
+    if (warehouseId) {
+      const warehouse = await this.warehouseRepository.findOne({ where: { warehouseId } });
+      if (!warehouse) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: `Warehouse with ID ${warehouseId} not found`,
+        };
+      }
+    }
+
+    if (posmId) {
+      const posm = await this.posmRepository.findOne({ where: { posmId } });
+      if (!posm) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: `POSM with ID ${posmId} not found`,
+        };
+      }
+    }
 
     const newScheme = this.getRepositry.create({
       schemeName,

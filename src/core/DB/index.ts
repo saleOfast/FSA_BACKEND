@@ -27,6 +27,15 @@ const close = async (): Promise<void> => {
 const start = async () => {
     await close();
     await postgresdb.initialize();
+    
+    // Auto-seed customer data if it doesn't exist
+    try {
+        const { autoSeedCustomerData } = await import('../../scripts/seed-customer-data');
+        await autoSeedCustomerData();
+    } catch (error) {
+        console.log('⚠️  Auto-seed skipped or failed:', error);
+        // Continue server startup even if seeding fails
+    }
 };
 
 /**

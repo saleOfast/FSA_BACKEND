@@ -22,9 +22,9 @@ const SchemeService_1 = require("../../../../core/types/SchemeService/SchemeServ
 const Scheme_controller_1 = require("../../Controllers/SchemeController/Scheme.controller");
 const router = express_1.default.Router();
 exports.SchemeRoute = router;
-router.post('/create', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.CreateScheme), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/create', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.CreateSchemeDto), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.CreateScheme);
+        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.CreateSchemeDto);
         const payload = RequestHander_1.RequestHandler.Custom.getUser(req);
         const SchemeController = new Scheme_controller_1.SchemeService();
         const data = yield SchemeController.createScheme(payload, input);
@@ -34,37 +34,69 @@ router.post('/create', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeS
         validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
     }
 })));
-router.get('/getActiveScheme', validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// router.get('/getActiveScheme', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), catchAsync(async (req: Request, res: Response) => {
+//     try {
+//         const SchemeController = new SchemeService();
+//         const data = await SchemeController.getScheme();
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// }));
+router.get('/list', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.GetAllSchemeDto), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const SchemeController = new Scheme_controller_1.SchemeService();
-        const data = yield SchemeController.getScheme();
+        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.GetAllSchemeDto);
+        const payload = RequestHander_1.RequestHandler.Custom.getUser(req);
+        const schemeService = new Scheme_controller_1.SchemeService();
+        const data = yield schemeService.getAllSchemes(input, payload);
         validationMiddleware_1.ResponseHandler.sendResponse(res, data);
     }
     catch (error) {
         validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
     }
 })));
-router.get('/schemeList', validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/get', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.GetSchemeDto), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const input = RequestHander_1.RequestHandler.Defaults.getParams(req, SchemeService_1.GetScheme);
-        const payload = RequestHander_1.RequestHandler.Custom.getUser(req);
-        const SchemeController = new Scheme_controller_1.SchemeService();
-        const data = yield SchemeController.schemeList(payload);
+        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.GetSchemeDto);
+        const schemeService = new Scheme_controller_1.SchemeService();
+        const data = yield schemeService.getScheme(input);
         validationMiddleware_1.ResponseHandler.sendResponse(res, data);
     }
     catch (error) {
         validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
     }
 })));
-router.post('/update', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.UpdateScheme), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.put("/update/:id", validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.UpdateSchemeDto), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.UpdateScheme);
         const payload = RequestHander_1.RequestHandler.Custom.getUser(req);
+        // ✅ id from URL
+        const schemeId = Number(req.params.id);
+        if (isNaN(schemeId)) {
+            return validationMiddleware_1.ResponseHandler.sendErrorResponse(res, {
+                message: "Invalid scheme ID",
+                status: 400,
+            });
+        }
+        // ✅ body contains ONLY update fields
+        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.UpdateSchemeDto);
         const service = new Scheme_controller_1.SchemeService();
-        const data = yield service.update(payload, input);
+        const data = yield service.update(payload, schemeId, input);
         validationMiddleware_1.ResponseHandler.sendResponse(res, data);
     }
     catch (error) {
         validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
     }
 }));
+router.delete('/delete', (0, validationMiddleware_1.validateDtoMiddleware)(SchemeService_1.DeleteSchemeDto), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Get validated body from request
+        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, SchemeService_1.DeleteSchemeDto);
+        const payload = RequestHander_1.RequestHandler.Custom.getUser(req);
+        const schemeService = new Scheme_controller_1.SchemeService();
+        const data = yield schemeService.deleteScheme(input, payload);
+        validationMiddleware_1.ResponseHandler.sendResponse(res, data);
+    }
+    catch (error) {
+        validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
+    }
+})));

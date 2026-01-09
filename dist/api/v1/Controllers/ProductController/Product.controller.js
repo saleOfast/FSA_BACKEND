@@ -10,51 +10,77 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductService = void 0;
-const brand_entity_1 = require("../../../../core/DB/Entities/brand.entity");
 const products_entity_1 = require("../../../../core/DB/Entities/products.entity");
 const common_1 = require("../../../../core/types/Constent/common");
-const ProductService_1 = require("../../../../core/types/ProductService/ProductService");
 const productCategory_entity_1 = require("../../../../core/DB/Entities/productCategory.entity");
+const tax_entity_1 = require("../../../../core/DB/Entities/tax.entity");
+const scheme_entity_1 = require("../../../../core/DB/Entities/scheme.entity");
+const discount_entity_1 = require("../../../../core/DB/Entities/discount.entity");
 class ProductController {
     constructor() {
         this.productRepositry = (0, products_entity_1.ProductRepository)();
         this.productModel = products_entity_1.Products;
-        this.brandRepository = (0, brand_entity_1.BrandRepository)();
         this.productCategoryRespositry = (0, productCategory_entity_1.ProductCategoryRepository)();
+        this.taxesRepository = (0, tax_entity_1.TaxesRepository)();
+        this.schemeRepository = (0, scheme_entity_1.getSchemeRepository)();
+        this.discountRepository = (0, discount_entity_1.DiscountRepository)();
     }
     createProduct(input, payload) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
-                const { emp_id } = payload;
-                const brand = yield this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-                if (!brand) {
-                    return { message: "Brand Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                const { productCode, productType, productName, categoryId, subCategoryId, description, status, launchDate, discontinueDate, vol, taxCategoryId, hsnCode, image, marketSegment, productLifeCycleStage, storageCondition, schemeId, discountId } = input;
+                // Validate category
+                const category = yield this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
+                if (!category) {
+                    return { message: "Category Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                }
+                // Validate subcategory if provided
+                if (subCategoryId) {
+                    const subCategory = yield this.productCategoryRespositry.findOneBy({ productCategoryId: Number(subCategoryId), isDeleted: false });
+                    if (!subCategory) {
+                        return { message: "Sub Category Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate tax category if provided
+                if (taxCategoryId) {
+                    const taxCategory = yield this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+                    if (!taxCategory) {
+                        return { message: "Tax Category Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate scheme if provided
+                if (schemeId) {
+                    const scheme = yield this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+                    if (!scheme) {
+                        return { message: "Scheme Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate discount if provided
+                if (discountId) {
+                    const discount = yield this.discountRepository.findOneBy({ discountId: Number(discountId) });
+                    if (!discount) {
+                        return { message: "Discount Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
                 }
                 const product = new this.productModel();
+                product.productCode = productCode;
+                product.productType = productType;
                 product.productName = productName;
-                product.empId = emp_id;
-                product.brandId = brandId;
                 product.categoryId = categoryId;
-                product.mrp = mrp;
-                product.rlp = rlp;
-                product.caseQty = caseQty;
+                product.subCategoryId = subCategoryId;
+                product.description = description;
+                product.status = status || 'Active';
+                product.launchDate = launchDate ? new Date(launchDate) : undefined;
+                product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
+                product.vol = vol;
+                product.taxCategoryId = taxCategoryId;
+                product.hsnCode = hsnCode;
                 product.image = image;
-                product.isFocused = isFocused;
-                product.isActive = isActive;
-                if (skuDiscount) {
-                    // Validate skuDiscount if provided
-                    const skuDiscountObj = new ProductService_1.SkuDiscount();
-                    skuDiscountObj.discountType = skuDiscount.discountType;
-                    skuDiscountObj.isActive = (_a = skuDiscount.isActive) !== null && _a !== void 0 ? _a : false; // Default to false if not provided
-                    skuDiscountObj.value = (_b = skuDiscount.value) !== null && _b !== void 0 ? _b : 0; // Default to 0 if not provided
-                    // Save skuDiscount to product
-                    product.skuDiscount = skuDiscountObj;
-                }
-                if (product.rlp > product.mrp) {
-                    return { message: "RLP must be less than or equal to MRP", status: common_1.STATUSCODES.BAD_REQUEST };
-                }
+                product.marketSegment = marketSegment;
+                product.productLifeCycleStage = productLifeCycleStage;
+                product.storageCondition = storageCondition;
+                product.schemeId = schemeId;
+                product.discountId = discountId;
                 yield this.productRepositry.save(product);
                 return { message: "Success.", status: common_1.STATUSCODES.SUCCESS };
             }
@@ -66,17 +92,91 @@ class ProductController {
     updateProduct(input, payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive } = input;
+                const { productId, productCode, productType, productName, categoryId, subCategoryId, description, status, launchDate, discontinueDate, vol, taxCategoryId, hsnCode, image, marketSegment, productLifeCycleStage, storageCondition, schemeId, discountId } = input;
                 const product = yield this.productRepositry.findOne({
                     where: { productId: Number(productId), isDeleted: false }
                 });
                 if (!product) {
                     return { message: "Product Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
                 }
+                // Validate category if provided
+                if (categoryId) {
+                    const category = yield this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
+                    if (!category) {
+                        return { message: "Category Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate subcategory if provided
+                if (subCategoryId) {
+                    const subCategory = yield this.productCategoryRespositry.findOneBy({ productCategoryId: Number(subCategoryId), isDeleted: false });
+                    if (!subCategory) {
+                        return { message: "Sub Category Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate tax category if provided
+                if (taxCategoryId) {
+                    const taxCategory = yield this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+                    if (!taxCategory) {
+                        return { message: "Tax Category Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate scheme if provided
+                if (schemeId) {
+                    const scheme = yield this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+                    if (!scheme) {
+                        return { message: "Scheme Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Validate discount if provided
+                if (discountId) {
+                    const discount = yield this.discountRepository.findOneBy({ discountId: Number(discountId) });
+                    if (!discount) {
+                        return { message: "Discount Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
+                    }
+                }
+                // Build update object with only provided fields
+                const updateData = {};
+                if (productCode !== undefined)
+                    updateData.productCode = productCode;
+                if (productType !== undefined)
+                    updateData.productType = productType;
+                if (productName !== undefined)
+                    updateData.productName = productName;
+                if (categoryId !== undefined)
+                    updateData.categoryId = categoryId;
+                if (subCategoryId !== undefined)
+                    updateData.subCategoryId = subCategoryId;
+                if (description !== undefined)
+                    updateData.description = description;
+                if (status !== undefined)
+                    updateData.status = status;
+                if (launchDate !== undefined)
+                    updateData.launchDate = launchDate ? new Date(launchDate) : null;
+                if (discontinueDate !== undefined)
+                    updateData.discontinueDate = discontinueDate ? new Date(discontinueDate) : null;
+                if (vol !== undefined)
+                    updateData.vol = vol;
+                if (taxCategoryId !== undefined)
+                    updateData.taxCategoryId = taxCategoryId;
+                if (hsnCode !== undefined)
+                    updateData.hsnCode = hsnCode;
+                if (image !== undefined)
+                    updateData.image = image;
+                if (marketSegment !== undefined)
+                    updateData.marketSegment = marketSegment;
+                if (productLifeCycleStage !== undefined)
+                    updateData.productLifeCycleStage = productLifeCycleStage;
+                if (storageCondition !== undefined)
+                    updateData.storageCondition = storageCondition;
+                if (schemeId !== undefined)
+                    updateData.schemeId = schemeId;
+                if (discountId !== undefined)
+                    updateData.discountId = discountId;
                 yield this.productRepositry
                     .createQueryBuilder()
-                    .update({ productId, productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, isFocused, isActive })
-                    .where({ productId }).execute();
+                    .update(updateData)
+                    .where({ productId: Number(productId) })
+                    .execute();
                 return { message: "Success.", status: common_1.STATUSCODES.SUCCESS };
             }
             catch (error) {
@@ -90,7 +190,7 @@ class ProductController {
                 const { productId } = input;
                 const product = yield this.productRepositry.findOne({
                     where: { productId: Number(productId), isDeleted: false },
-                    relations: ["brand", "category"]
+                    relations: ["category", "subCategory", "taxCategory", "scheme", "discount"]
                 });
                 if (!product) {
                     return { message: "Product Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
@@ -138,37 +238,33 @@ class ProductController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { role } = payload;
-                const { isFocused, search, category, brand, isActive } = input;
+                const { search, category, isActive } = input;
                 console.log({ input });
                 // Initialize the QueryBuilder
                 const queryBuilder = this.productRepositry.createQueryBuilder('product')
-                    .leftJoinAndSelect('product.brand', 'brand')
                     .leftJoinAndSelect('product.category', 'category')
+                    .leftJoinAndSelect('product.subCategory', 'subCategory')
+                    .leftJoinAndSelect('product.taxCategory', 'taxCategory')
+                    .leftJoinAndSelect('product.scheme', 'scheme')
+                    .leftJoinAndSelect('product.discount', 'discount')
                     .where('product.isDeleted = :isDeleted', { isDeleted: false });
                 // Add conditions dynamically
-                if (isFocused === 'true') {
-                    queryBuilder.andWhere('product.isFocused = :isFocused', { isFocused: true });
-                }
                 if (role === common_1.UserRole.SSM || role === common_1.UserRole.RETAILER) {
-                    queryBuilder.andWhere('product.isActive = :isActive', { isActive: true });
+                    queryBuilder.andWhere('product.status = :status', { status: 'Active' });
                 }
                 if (isActive === 'true') {
-                    queryBuilder.andWhere('product.isActive = :isActive', { isActive: true });
-                }
-                if (Number(brand) > 0) {
-                    queryBuilder.andWhere('brand.brandId = :brandId', { brandId: brand });
+                    queryBuilder.andWhere('product.status = :status', { status: 'Active' });
                 }
                 if (Number(category) > 0) {
                     queryBuilder.andWhere('category.productCategoryId = :productCategoryId', { productCategoryId: category });
                 }
                 if (search) {
-                    queryBuilder.andWhere('product.name LIKE :search', { search: `%${search}%` });
+                    queryBuilder.andWhere('product.productName LIKE :search', { search: `%${search}%` });
                 }
                 // Add ordering
-                queryBuilder.orderBy('product.isActive', 'DESC')
-                    .addOrderBy('product.isFocused', 'DESC')
+                queryBuilder.orderBy('product.status', 'DESC')
                     .addOrderBy('product.productName', 'ASC')
-                    .addOrderBy('product.createdAt', 'DESC');
+                    .addOrderBy('product.createdDate', 'DESC');
                 // Execute the query and get the results
                 const products = yield queryBuilder.getMany();
                 return { message: "Success.", status: common_1.STATUSCODES.SUCCESS, data: products };
@@ -183,8 +279,8 @@ class ProductController {
             try {
                 const { productId } = input;
                 const product = yield this.productRepositry.findOne({
-                    where: { productId: Number(productId) },
-                    relations: ["brand", "category"]
+                    where: { productId: Number(productId), isDeleted: false },
+                    // Remove relations - brand doesn't exist anymore, and we don't need category for deletion
                 });
                 if (!product) {
                     return { message: "Product Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
@@ -275,59 +371,86 @@ class ProductController {
         });
     }
     createProducts(inputs, payload) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { emp_id } = payload;
                 const skippedProducts = []; // Store skipped product names
                 const processedProducts = new Set(); // Store unique products to prevent duplicates from the input
                 console.log({ inputs });
                 // Loop through inputs
                 for (const input of inputs) {
-                    const { productName, brandId, categoryId, mrp, rlp, caseQty, skuDiscount, image, isFocused, isActive } = input;
-                    // Create a unique key to identify each product by name, brand, and category
-                    const productKey = `${productName}-${brandId}-${categoryId}`;
+                    const { productCode, productType, productName, categoryId, subCategoryId, description, status, launchDate, discontinueDate, vol, taxCategoryId, hsnCode, image, marketSegment, productLifeCycleStage, storageCondition, schemeId, discountId } = input;
+                    // Create a unique key to identify each product by name and category
+                    const productKey = `${productName}-${categoryId}`;
                     // In-memory duplicate check (skip if the product is already processed)
                     if (processedProducts.has(productKey)) {
                         skippedProducts.push(`${productName} (Duplicate in input)`);
                         continue; // Skip the duplicate in the input
                     }
                     processedProducts.add(productKey); // Mark this product as processed
-                    // Check if the brand exists
-                    const brand = yield this.brandRepository.findOneBy({ brandId: Number(brandId), isDeleted: false });
-                    if (!brand) {
-                        return { message: `Brand Not Found for product: ${productName}.`, status: common_1.STATUSCODES.NOT_FOUND };
+                    // Validate category
+                    const category = yield this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
+                    if (!category) {
+                        skippedProducts.push(`${productName} (Category Not Found)`);
+                        continue;
+                    }
+                    // Validate subcategory if provided
+                    if (subCategoryId) {
+                        const subCategory = yield this.productCategoryRespositry.findOneBy({ productCategoryId: Number(subCategoryId), isDeleted: false });
+                        if (!subCategory) {
+                            skippedProducts.push(`${productName} (Sub Category Not Found)`);
+                            continue;
+                        }
+                    }
+                    // Validate tax category if provided
+                    if (taxCategoryId) {
+                        const taxCategory = yield this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+                        if (!taxCategory) {
+                            skippedProducts.push(`${productName} (Tax Category Not Found)`);
+                            continue;
+                        }
+                    }
+                    // Validate scheme if provided
+                    if (schemeId) {
+                        const scheme = yield this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+                        if (!scheme) {
+                            skippedProducts.push(`${productName} (Scheme Not Found)`);
+                            continue;
+                        }
+                    }
+                    // Validate discount if provided
+                    if (discountId) {
+                        const discount = yield this.discountRepository.findOneBy({ discountId: Number(discountId) });
+                        if (!discount) {
+                            skippedProducts.push(`${productName} (Discount Not Found)`);
+                            continue;
+                        }
                     }
                     // Check if the product already exists in the database
-                    const existingProduct = yield this.productRepositry.findOneBy({ productName, brandId, categoryId: Number(categoryId) });
+                    const existingProduct = yield this.productRepositry.findOneBy({ productName, categoryId: Number(categoryId) });
                     if (existingProduct) {
                         skippedProducts.push(`${productName} (Already exists in database)`);
                         continue; // Skip the product if it already exists
                     }
                     // Create a new product object
                     const product = new this.productModel();
+                    product.productCode = productCode;
+                    product.productType = productType;
                     product.productName = productName;
-                    product.empId = emp_id;
-                    product.brandId = brandId;
                     product.categoryId = categoryId;
-                    product.mrp = mrp;
-                    product.rlp = rlp;
-                    product.caseQty = caseQty;
+                    product.subCategoryId = subCategoryId;
+                    product.description = description;
+                    product.status = status || 'Active';
+                    product.launchDate = launchDate ? new Date(launchDate) : undefined;
+                    product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
+                    product.vol = vol;
+                    product.taxCategoryId = taxCategoryId;
+                    product.hsnCode = hsnCode;
                     product.image = image;
-                    product.isFocused = isFocused;
-                    product.isActive = isActive;
-                    // Add SKU discount if available
-                    if (skuDiscount) {
-                        const skuDiscountObj = new ProductService_1.SkuDiscount();
-                        skuDiscountObj.discountType = skuDiscount.discountType;
-                        skuDiscountObj.isActive = (_a = skuDiscount.isActive) !== null && _a !== void 0 ? _a : false;
-                        skuDiscountObj.value = (_b = skuDiscount.value) !== null && _b !== void 0 ? _b : 0;
-                        product.skuDiscount = skuDiscountObj;
-                    }
-                    // Ensure RLP is less than or equal to MRP
-                    if (product.rlp > product.mrp) {
-                        return { message: `RLP must be less than or equal to MRP for product: ${productName}.`, status: common_1.STATUSCODES.BAD_REQUEST };
-                    }
+                    product.marketSegment = marketSegment;
+                    product.productLifeCycleStage = productLifeCycleStage;
+                    product.storageCondition = storageCondition;
+                    product.schemeId = schemeId;
+                    product.discountId = discountId;
                     // Save the product
                     yield this.productRepositry.save(product);
                 }
