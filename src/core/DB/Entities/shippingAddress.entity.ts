@@ -9,7 +9,7 @@ import {PreferredDays} from "../../types/Constent/common"
 import { IItemShippingAddress } from "core/types/ShippingAddressService/shippingAddressService";
 
 
-@Entity("item_shipping_address")
+@Entity("shipping_address")
 export class ItemShippingAddress extends BaseEntity implements IItemShippingAddress {
 
   // ================= PK =================

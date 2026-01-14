@@ -171,7 +171,8 @@ async updatePosm(
       const { posmId} = input;
 
       const query = await this.posmRepository
-        .createQueryBuilder("posm");
+        .createQueryBuilder("posm")
+        .where({is_deleted:false})
 
       // 🔎 Apply filters if provided
       if (posmId) query.andWhere("posm.posmId = :posmId", { posmId });

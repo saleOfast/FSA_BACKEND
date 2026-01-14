@@ -129,8 +129,8 @@ export class User extends BaseEntity implements IUser {
     @OneToMany(() => Activities, (activity) => activity.user)
     activities: Activities[];
 
-    @OneToMany(() => Taxes, (tax) => tax.user)
-    taxes: Taxes[];
+    // @OneToMany(() => Taxes, (tax) => tax.user)
+    // taxes: Taxes[];
 
     @OneToMany(() => Workplace, (workplace) => workplace.user)
     workplace: Workplace[];

@@ -158,16 +158,34 @@ async getAllShippingAddresse(
       .leftJoinAndSelect("address.customer", "customer")
       .leftJoinAndSelect("address.shippingCountry", "country")
       .leftJoinAndSelect("address.shippingState", "state")
-      .leftJoinAndSelect("address.shippingDistrict", "district");
+      .leftJoinAndSelect("address.shippingDistrict", "district")
+      // ✅ always exclude deleted
+      .where("address.isDeleted = :isDeleted", { isDeleted: false });
 
-    if (input.customerId) query.andWhere("address.customerId = :customerId", { customerId: input.customerId });
-    if (input.shippingCountryId) query.andWhere("address.shippingCountryId = :countryId", { countryId: input.shippingCountryId });
-    if (input.shippingStateId) query.andWhere("address.shippingStateId = :stateId", { stateId: input.shippingStateId });
-    if (input.shippingDistrictId) query.andWhere("address.shippingDistrictId = :districtId", { districtId: input.shippingDistrictId });
-    if (input.preferredDays) query.andWhere("address.preferredDays = :preferredDays", { preferredDays: input.preferredDays });
-    if (input.isDeleted !== undefined) query.andWhere("address.isDeleted = :isDeleted", { isDeleted: input.isDeleted });
+    if (input.customerId)
+      query.andWhere("address.customerId = :customerId", { customerId: input.customerId });
+
+    if (input.shippingCountryId)
+      query.andWhere("address.shippingCountryId = :countryId", { countryId: input.shippingCountryId });
+
+    if (input.shippingStateId)
+      query.andWhere("address.shippingStateId = :stateId", { stateId: input.shippingStateId });
+
+    if (input.shippingDistrictId)
+      query.andWhere("address.shippingDistrictId = :districtId", { districtId: input.shippingDistrictId });
+
+    if (input.preferredDays)
+      query.andWhere("address.preferredDays = :preferredDays", { preferredDays: input.preferredDays });
 
     const addresses = await query.getMany();
+
+    if (!addresses.length) {
+      return {
+        status: 404,
+        message: "Shipping address not found",
+        data: [],
+      };
+    }
 
     return {
       status: 200,
@@ -186,13 +204,14 @@ async getAllShippingAddresse(
         receiverName: address.receiverName,
         receiverContactNo: address.receiverContactNo,
         isDeleted: address.isDeleted,
-
-      }))
+      })),
     };
   } catch (error) {
+    console.error(error);
     throw error;
   }
 }
+
 
 async updateShippingAddress(
   input: UpdateShippingAddressDto,

@@ -59,6 +59,7 @@ import { DiscountRoute } from "./DiscountRouter/Discount.route";
 import {PriceBookRoute} from "./PriceBookRouter/priceBook.route"
 import { PriceBookItmRoute } from "./PriceBookItmRoute/priceBookItm.route";
 import {ShippingAddressRouter} from './ShippingAddressRoute/shippingAddress.route'
+import {taxRoute} from './TaxesRoute/tax.route'
 
 const router = express.Router();
 /* Auth ROutes */
@@ -124,6 +125,7 @@ router.use('/discount', DiscountRoute);
 router.use('/priceBook', PriceBookRoute);
 router.use('/priceBookItem', PriceBookItmRoute );
 router.use('/ShippingAddress',ShippingAddressRouter)
+router.use('/tax',taxRoute)
 
 
 export { router as routes };

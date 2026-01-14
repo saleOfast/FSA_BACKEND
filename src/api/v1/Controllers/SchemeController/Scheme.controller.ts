@@ -254,7 +254,8 @@ async update(
 
 async getAllSchemes(input: GetAllSchemeDto,payload: IUser): Promise<IApiResponse> {
     try {
-      const query = this.getRepositry.createQueryBuilder("scheme");
+      const query = this.getRepositry.createQueryBuilder("scheme")
+        .where("scheme.isDeleted = :isDeleted", { isDeleted: false });
 
       if (input.schemeType) query.andWhere("scheme.schemeType = :schemeType", { schemeType: input.schemeType });
       if (input.schemeNature) query.andWhere("scheme.schemeNature = :schemeNature", { schemeNature: input.schemeNature });
@@ -266,7 +267,7 @@ async getAllSchemes(input: GetAllSchemeDto,payload: IUser): Promise<IApiResponse
       if (input.posmId) query.andWhere("scheme.posmId = :posmId", { posmId: input.posmId });
       if (input.beatId) query.andWhere("scheme.beatId = :beatId", { beatId: input.beatId });
       if (input.isEnable !== undefined) query.andWhere("scheme.isEnable = :isEnable", { isEnable: input.isEnable });
-      if (input.isDeleted !== undefined) query.andWhere("scheme.isDeleted = :isDeleted", { isDeleted: input.isDeleted });
+      // if (input.isDeleted !== undefined) query.andWhere("scheme.isDeleted = :isDeleted", { isDeleted: false });
       if (input.startDateFrom) query.andWhere("scheme.startDate >= :startDateFrom", { startDateFrom: input.startDateFrom });
       if (input.startDateTo) query.andWhere("scheme.startDate <= :startDateTo", { startDateTo: input.startDateTo });
       if (input.endDateFrom) query.andWhere("scheme.endDate >= :endDateFrom", { endDateFrom: input.endDateFrom });
@@ -299,7 +300,7 @@ async getScheme(input: GetSchemeDto): Promise<IApiResponse> {
       // If ID is provided, return exactly one scheme
       if (id) {
         const scheme = await this.getRepositry.findOne({
-          where: { id },
+          where: { id ,isDeleted:false},
           relations: ["customer", "customerType", "products", "sku", "warehouse", "posm"],
         });
 
@@ -317,10 +318,9 @@ async getScheme(input: GetSchemeDto): Promise<IApiResponse> {
           data: scheme,
         };
       }
-
       // If schemeName is provided, return all matching schemes
       const schemes = await this.getRepositry.find({
-        where: { schemeName },
+        where: { schemeName ,isDeleted:false },
         relations: ["customer", "customerType", "products", "sku", "warehouse", "posm"],
       });
 
