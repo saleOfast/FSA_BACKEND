@@ -9,6 +9,8 @@ import {
   UpdateDateColumn,
   Repository,
 } from "typeorm";
+import { Expose } from "class-transformer";
+
 
 import { Products } from "../Entities/products.entity";
 import { Taxes } from "../Entities/tax.entity";
@@ -134,23 +136,27 @@ discountId?: number;
 
 
   // Available = Stock - Reserved
+  @Expose()
   get availableQuantity(): number {
     return this.stockQuantity 
   }
 
   // Is stock below reorder level?
+   @Expose()
   get isBelowReorderLevel(): boolean {
     if (this.reorderLevel == null) return false;
     return this.stockQuantity <= this.reorderLevel;
   }
 
   // Is product expired?
+   @Expose()
   get isExpired(): boolean {
     if (!this.expiryDate) return false;
     return new Date(this.expiryDate) < new Date();
   }
 
   // Days to expiry
+   @Expose()
   get daysToExpiry(): number | null {
     if (!this.expiryDate) return null;
     const diff =
@@ -159,6 +165,7 @@ discountId?: number;
   }
 
   // Shelf life (derived if stock_in_date exists)
+   @Expose()
   get shelfLife(): number | null {
     if (!this.stockInDate || !this.expiryDate) return null;
     const diff =
@@ -167,11 +174,13 @@ discountId?: number;
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }
 
+   @Expose()
   get soldQuantity(): number {
   return 0;
 }
 
 // Return Quantity – future Return module
+ @Expose()
 get returns(): number {
   return 0;
 }

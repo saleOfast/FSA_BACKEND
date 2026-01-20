@@ -242,6 +242,9 @@ async deleteInventory(
 async getAllInventory(payload: IUser): Promise<IApiResponse> {
   try {
     const inventories = await this.inventoryRepo.find({
+      where:{
+        isDeleted: false,
+      },
       relations: {
         product: true,
         warehouse: true, // include if you have sku relation
@@ -278,10 +281,11 @@ async getAllInventory(payload: IUser): Promise<IApiResponse> {
   // =======================
   async getInventory(input: GetInventoryList, payload: IUser): Promise<IApiResponse> {
     try {
-      const { warehouseId } = input;
+      const { warehouseId,inventoryId } = input;
 
       const inventories = await this.inventoryRepo.find({
-        where: { warehouseId },
+        where: { warehouseId ,inventoryId,
+        isDeleted: false,  },
         relations: [ "product", "warehouse"],
       });
 

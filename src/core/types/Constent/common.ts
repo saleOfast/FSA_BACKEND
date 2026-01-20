@@ -374,3 +374,26 @@ export enum YesNo {
   YES = "YES",
   NO = "NO",
 }
+
+export enum OrderTypeEnum {
+  REGULAR = "Regular",
+  VAN_SALES = "Van Sales",
+  SECONDARY = "Secondary",
+  PRE_SELL = "Pre-sell",
+}
+
+export enum OrderStatusEnum {
+  DRAFT = "Draft",
+  CONFIRMED = "Confirmed",
+  ALLOCATED = "Allocated",
+  INVOICED = "Invoiced",
+  CANCELLED = "Cancelled",
+}
+export enum PaymentModeEnum {
+  CASH = "CASH",
+  UPI = "UPI",
+  CHEQUE = "CHEQUE",
+  NEFT = "NEFT",
+  RTGS = "RTGS",
+}
+
