@@ -62,8 +62,7 @@ router.get('/getById/:customerTypeId', validateDtoMiddleware(GetCustomerTypeById
 
 router.get('/list', validateDtoMiddleware(CustomerTypeListFilter), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
   try {
-    // After validation middleware, the validated object is stored in req.body
-    const input: CustomerTypeListFilter = req.body as CustomerTypeListFilter;
+    const input: CustomerTypeListFilter = RequestHandler.Defaults.getQuery<CustomerTypeListFilter>(req, CustomerTypeListFilter);
     const payload: IUser = RequestHandler.Custom.getUser(req);
     const customerTypeService = new CustomerTypeService();
     const data = await customerTypeService.customerTypeList(input, payload);

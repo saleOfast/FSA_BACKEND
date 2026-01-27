@@ -4,6 +4,7 @@ import { User } from "./User.entity";
 import {OrderStatusEnum,OrderTypeEnum,PaymentModeEnum} from '../../types/Constent/common'
 import { DbConnections} from "../postgresdb";
 import {ISalesOrderHeader } from '../../types/SalesOrderHeaderService/SalesOrderHeaderService'
+import {SalesOrderItem } from '../Entities/salesOrderItem.entity'
 
 @Entity("sales_order_header")
 export class SalesOrderHeader extends BaseEntity implements ISalesOrderHeader {
@@ -85,12 +86,12 @@ orderType: OrderTypeEnum;
   @Column({ type: "decimal", precision: 12, scale: 2, default: 0 })
   grandTotal: number;
 
-//  @OneToMany(
-//     () => SalesOrderLineItem,
-//     (lineItem) => lineItem.salesOrder,
-//     { cascade: true }
-//   )
-//   lineItems: SalesOrderLineItem[];
+ @OneToMany(
+    () => SalesOrderItem,
+    (Item) => Item.salesOrder,
+    { cascade: true }
+  )
+  Items: SalesOrderItem[];
 
 @CreateDateColumn({ name: "created_on" })
 createdDate: Date;
