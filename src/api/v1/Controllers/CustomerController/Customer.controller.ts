@@ -282,7 +282,7 @@ class CustomerController {
         }
       }
 
-      // Validate beatRouteId if provided
+      // Validate beatRouteId if provided   
       if (updateData.beatRouteId !== undefined && updateData.beatRouteId !== null) {
         const beatRoute = await this.beatRepository.findOne({ where: { beatId: updateData.beatRouteId } });
         if (!beatRoute) {

@@ -349,3 +349,28 @@ export enum  PreferredDays{
   SATURDAY = "SATURDAY",
   SUNDAY = "SUNDAY",
 }
+
+export enum TaxClassification {
+  HSN = "HSN",
+  SAC = "SAC",
+}
+
+export enum TaxComponent {
+  CGST = "CGST",
+  SGST = "SGST",
+  IGST = "IGST",
+  UTGST = "UTGST",
+  CESS = "CESS",
+  REVERSE_CHARGE = "REVERSE_CHARGE",
+  NON_GST = "NON_GST",
+}
+
+export enum SupplyType {
+  INTRA = "INTRA",
+  INTER = "INTER",
+}
+
+export enum YesNo {
+  YES = "YES",
+  NO = "NO",
+}

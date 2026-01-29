@@ -1,73 +1,190 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString,IsEnum,IsUUID,IsDateString } from "class-validator";
+
+import {
+  TaxClassification,
+  TaxComponent,
+  SupplyType,
+  YesNo,
+} from "../../types/Constent/common";
+// import { Country } from "../../DB/Entities/country.entity";
+// import { State } from "../../DB/Entities/state.entity";
+
 
 export interface ITaxes {
-    taxId: number;
-    taxName: string;
-    taxAmount: number;
-    description: string;
-    addedBy: number;
-    status: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-    deletedAt?: Date;
+  taxId:number;
+
+  taxClassification: TaxClassification;
+  hsnCode?: string;
+  sacCode?: string;
+
+  taxComponent: TaxComponent;
+  taxPercentage: number;
+  supplyType: SupplyType;
+
+  country:number;
+  state:number;
+
+  isSez: YesNo;
+  isExport: YesNo;
+  isRcm: YesNo;
+  isTaxable: YesNo;
+
+  effectiveFrom: Date;
+  effectiveTo?: Date;
+
+  priority: number;
+  isActive: YesNo;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class TaxesC {
-    @IsNotEmpty()
-    @IsString()
-    taxName: string;
+  @IsNotEmpty()
+  @IsEnum(TaxClassification)
+  taxClassification: TaxClassification;
 
-    @IsNotEmpty()
-    @IsNumber()
-    taxAmount: number;
+  @IsOptional()
+  @IsString()
+  hsnCode?: string;
 
-    @IsNotEmpty()
-    @IsString()
-    description: string;
+  @IsOptional()
+  @IsString()
+  sacCode?: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    addedBy: number;
+  @IsNotEmpty()
+  @IsEnum(TaxComponent)
+  taxComponent: TaxComponent;
 
-    @IsOptional()
-    @IsBoolean()
-    status: boolean = true;
+  @IsNotEmpty()
+  @IsNumber()
+  taxPercentage: number;
+
+  @IsNotEmpty()
+  @IsEnum(SupplyType)
+  supplyType: SupplyType;
+
+  @IsNotEmpty()
+  countryId:number;
+
+  
+  @IsNotEmpty()
+  stateId:number;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isSez?: YesNo = YesNo.NO;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isExport?: YesNo = YesNo.NO;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isRcm?: YesNo = YesNo.NO;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isTaxable?: YesNo = YesNo.YES;
+
+  @IsNotEmpty()
+  @IsDateString()
+  effectiveFrom: Date;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: Date;
+
+  @IsOptional()
+  @IsNumber()
+  priority?: number = 1;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isActive?: YesNo = YesNo.YES;
 }
 
 export class TaxesR {
-    @IsNotEmpty()
-    @IsNumber()
-    taxId: number;
+  @IsOptional()
+  taxId:number;
 }
 
 export class TaxesU {
-    @IsNotEmpty()
-    @IsNumber()
-    taxId: number;
+  @IsNotEmpty()
+  taxId: number;
 
-    @IsOptional()
-    @IsString()
-    taxName?: string;
+  @IsOptional()
+  @IsEnum(TaxClassification)
+  taxClassification?: TaxClassification;
 
-    @IsOptional()
-    @IsNumber()
-    taxAmount?: number;
+  @IsOptional()
+  @IsString()
+  hsnCode?: string;
 
-    @IsOptional()
-    @IsString()
-    description?: string;
+  @IsOptional()
+  @IsString()
+  sacCode?: string;
 
-    @IsOptional()
-    @IsNumber()
-    addedBy?: number;
+  @IsOptional()
+  @IsEnum(TaxComponent)
+  taxComponent?: TaxComponent;
 
-    @IsOptional()
-    @IsBoolean()
-    status?: boolean;
+  @IsOptional()
+  @IsNumber()
+  taxPercentage?: number;
+
+  @IsOptional()
+  @IsEnum(SupplyType)
+  supplyType?: SupplyType;
+
+  @IsNotEmpty()
+  countryId:number;
+
+   @IsNotEmpty()
+  stateId:number;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isSez?: YesNo;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isExport?: YesNo;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isRcm?: YesNo;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isTaxable?: YesNo;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: Date;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveTo?: Date;
+
+  @IsOptional()
+  @IsNumber()
+  priority?: number;
+
+  @IsOptional()
+  @IsEnum(YesNo)
+  isActive?: YesNo;
 }
 
+
 export class TaxesD {
-    @IsNotEmpty()
-    @IsNumber()
-    taxId: number;
+  @IsOptional()
+  taxId: number;
+}
+
+export class getTaskById{
+   
+  @IsOptional()
+  taxId:number;
+
 }
