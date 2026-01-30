@@ -12,14 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductRepository = exports.Products = void 0;
 const typeorm_1 = require("typeorm");
 const postgresdb_1 = require("../postgresdb");
-const brand_entity_1 = require("./brand.entity");
 const productCategory_entity_1 = require("./productCategory.entity");
-const samples_entity_1 = require("./samples.entity");
-const activities_entity_1 = require("./activities.entity");
 const sessions_entity_1 = require("./sessions.entity");
-const feedback_entity_1 = require("./feedback.entity");
-const rcpa_entity_1 = require("./rcpa.entity");
-const giftDistribution_entity_1 = require("./giftDistribution.entity");
+const tax_entity_1 = require("./tax.entity");
+const scheme_entity_1 = require("./scheme.entity");
+const discount_entity_1 = require("./discount.entity");
 let Products = class Products extends typeorm_1.BaseEntity {
 };
 __decorate([
@@ -27,22 +24,17 @@ __decorate([
     __metadata("design:type", Number)
 ], Products.prototype, "productId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'emp_id' }),
-    __metadata("design:type", Number)
-], Products.prototype, "empId", void 0);
+    (0, typeorm_1.Column)({ name: 'product_type', type: 'enum', enum: ['FG', 'POSM'], nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "productType", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'product_name' }),
     __metadata("design:type", String)
 ], Products.prototype, "productName", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'brand_id' }),
-    __metadata("design:type", Number)
-], Products.prototype, "brandId", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => brand_entity_1.Brand),
-    (0, typeorm_1.JoinColumn)({ name: 'brand_id' }),
-    __metadata("design:type", brand_entity_1.Brand)
-], Products.prototype, "brand", void 0);
+    (0, typeorm_1.Column)({ name: 'product_code', nullable: true, unique: true }),
+    __metadata("design:type", String)
+], Products.prototype, "productCode", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'category_id' }),
     __metadata("design:type", Number)
@@ -53,29 +45,93 @@ __decorate([
     __metadata("design:type", productCategory_entity_1.ProductCategory)
 ], Products.prototype, "category", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ name: 'sub_category_id', nullable: true }),
     __metadata("design:type", Number)
-], Products.prototype, "mrp", void 0);
+], Products.prototype, "subCategoryId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.ManyToOne)(() => productCategory_entity_1.ProductCategory, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'sub_category_id' }),
+    __metadata("design:type", productCategory_entity_1.ProductCategory)
+], Products.prototype, "subCategory", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "description", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'status', type: 'enum', enum: ['Active', 'Inactive'], default: 'Active' }),
+    __metadata("design:type", String)
+], Products.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'launch_date', type: 'date', nullable: true }),
+    __metadata("design:type", Date
+    // Discontinue Date - DATE
+    )
+], Products.prototype, "launchDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'discontinue_date', type: 'date', nullable: true }),
+    __metadata("design:type", Date
+    // Vol. - Pick List (Default unit of measure e.g., 'Piece', 'Pack')
+    )
+], Products.prototype, "discontinueDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'vol', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "vol", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'tax_category_id', nullable: true }),
     __metadata("design:type", Number)
-], Products.prototype, "rlp", void 0);
+], Products.prototype, "taxCategoryId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'case_qty' }),
+    (0, typeorm_1.ManyToOne)(() => tax_entity_1.Taxes, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'tax_category_id' }),
+    __metadata("design:type", tax_entity_1.Taxes)
+], Products.prototype, "taxCategory", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'hsn_code', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "hsnCode", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'image', type: 'varchar', length: 255, nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "image", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_date' }),
+    __metadata("design:type", Date)
+], Products.prototype, "createdDate", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_date' }),
+    __metadata("design:type", Date)
+], Products.prototype, "updatedDate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'market_segment', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "marketSegment", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'product_life_cycle_stage', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "productLifeCycleStage", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'storage_condition', nullable: true }),
+    __metadata("design:type", String)
+], Products.prototype, "storageCondition", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'scheme_id', nullable: true }),
     __metadata("design:type", Number)
-], Products.prototype, "caseQty", void 0);
+], Products.prototype, "schemeId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'sku_discount', type: 'json', nullable: true }),
-    __metadata("design:type", Object)
-], Products.prototype, "skuDiscount", void 0);
+    (0, typeorm_1.ManyToOne)(() => scheme_entity_1.Scheme, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'scheme_id' }),
+    __metadata("design:type", scheme_entity_1.Scheme)
+], Products.prototype, "scheme", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'is_focused', default: false }),
-    __metadata("design:type", Boolean)
-], Products.prototype, "isFocused", void 0);
+    (0, typeorm_1.Column)({ name: 'discount_id', nullable: true }),
+    __metadata("design:type", Number)
+], Products.prototype, "discountId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'is_active', default: false }),
-    __metadata("design:type", Boolean)
-], Products.prototype, "isActive", void 0);
+    (0, typeorm_1.ManyToOne)(() => discount_entity_1.Discount, { nullable: true }),
+    (0, typeorm_1.JoinColumn)({ name: 'discount_id' }),
+    __metadata("design:type", discount_entity_1.Discount)
+], Products.prototype, "discount", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'is_deleted', default: false }),
     __metadata("design:type", Boolean)
@@ -89,37 +145,9 @@ __decorate([
     __metadata("design:type", Date)
 ], Products.prototype, "updatedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], Products.prototype, "image", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'colour', nullable: true }),
-    __metadata("design:type", String)
-], Products.prototype, "colour", void 0);
-__decorate([
     (0, typeorm_1.OneToMany)(() => sessions_entity_1.Sessions, (session) => session.store),
     __metadata("design:type", Array)
 ], Products.prototype, "sessions", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => feedback_entity_1.FeedBack, (session) => session.store),
-    __metadata("design:type", Array)
-], Products.prototype, "feedBack", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => samples_entity_1.Samples, (samples) => samples.product),
-    __metadata("design:type", Array)
-], Products.prototype, "samples", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => giftDistribution_entity_1.Gifts, (gifts) => gifts.product),
-    __metadata("design:type", Array)
-], Products.prototype, "gift", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => activities_entity_1.Activities, (activities) => activities.product),
-    __metadata("design:type", Array)
-], Products.prototype, "activities", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => rcpa_entity_1.RCPA, (rcpa) => rcpa.product),
-    __metadata("design:type", Array)
-], Products.prototype, "rcpa", void 0);
 Products = __decorate([
     (0, typeorm_1.Entity)()
 ], Products);

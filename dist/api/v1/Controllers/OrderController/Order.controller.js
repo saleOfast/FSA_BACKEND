@@ -15,8 +15,7 @@ const common_1 = require("../../../../core/types/Constent/common");
 const stores_entity_1 = require("../../../../core/DB/Entities/stores.entity");
 const Visit_entity_1 = require("../../../../core/DB/Entities/Visit.entity");
 const products_entity_1 = require("../../../../core/DB/Entities/products.entity");
-const typeorm_1 = require("typeorm");
-const Inventory_controller_1 = require("../InventoryController/Inventory.controller");
+// import { InventoryService } from "../../../../core/types/InventoryService/InventoryService";
 const date_fns_1 = require("date-fns");
 const payment_entity_1 = require("../../../../core/DB/Entities/payment.entity");
 const User_entity_1 = require("../../../../core/DB/Entities/User.entity");
@@ -201,20 +200,19 @@ class OrderController {
     getSkuDiscount(products, amount) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const productIds = products.map((item) => item.productId);
-                const productList = yield this.productResposity.find({ where: { productId: (0, typeorm_1.In)(productIds) } });
+                // Use products from the order array instead of fetching from database
                 let totalSkuDiscount = 0;
-                let index = 0;
-                for (let item of productList) {
-                    for (let product of products) {
-                        if (item.skuDiscount && item.skuDiscount.isActive == true && item.productId === product.productId) {
-                            const totalNumberOfPiece = ((product.noOfCase * item.caseQty) + product.noOfPiece);
-                            const totalProductAmount = (item.rlp * totalNumberOfPiece);
-                            const discountPerItem = item.skuDiscount.discountType == common_1.DiscountType.PERCENTAGE ? totalProductAmount * item.skuDiscount.value / 100 : item.skuDiscount.discountType == common_1.DiscountType.VALUE ? (item.skuDiscount.value * totalNumberOfPiece) : 0;
-                            totalSkuDiscount = totalSkuDiscount + discountPerItem;
-                        }
+                for (let product of products) {
+                    if (product.skuDiscount && product.skuDiscount.isActive == true) {
+                        const totalNumberOfPiece = ((product.noOfCase * product.caseQty) + product.noOfPiece);
+                        const totalProductAmount = (product.rlp * totalNumberOfPiece);
+                        const discountPerItem = product.skuDiscount.discountType == common_1.DiscountType.PERCENTAGE
+                            ? totalProductAmount * product.skuDiscount.value / 100
+                            : product.skuDiscount.discountType == common_1.DiscountType.VALUE
+                                ? (product.skuDiscount.value * totalNumberOfPiece)
+                                : 0;
+                        totalSkuDiscount = totalSkuDiscount + discountPerItem;
                     }
-                    index++;
                 }
                 return { netAmount: amount - totalSkuDiscount, discountValue: totalSkuDiscount };
             }
@@ -474,8 +472,8 @@ class OrderController {
                         .leftJoin("beat.user", "user")
                         .where("user.managerId = :managerId", { managerId: emp_id })
                         .select("beat.store")
-                        .getMany()
-                        .then((beats) => beats.map(beat => beat.store));
+                        .getMany();
+                    // .then((beats: IBeat[]) => beats.map(beat => beat.store));
                     // console.log({storeIds})
                     if (storeIds.length > 0) {
                         fitlerQuery = storeIds;
@@ -638,8 +636,8 @@ class OrderController {
                         .leftJoin("beat.user", "user")
                         .where("user.managerId = :managerId", { managerId: emp_id })
                         .select("beat.store")
-                        .getMany()
-                        .then((beats) => beats.map(beat => beat.store));
+                        .getMany();
+                    // .then((beats: IBeat[]) => beats.map(beat => beat.store));
                     // console.log({storeIds})
                     if (storeIds.length > 0) {
                         fitlerQuery = storeIds;
@@ -700,33 +698,30 @@ class OrderController {
             }
         });
     }
-    updateOrderTrackStatus(input) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { orderId, orderStatus } = input;
-                const order = yield (0, orders_entity_1.OrdersRepository)().findOne({ where: { orderId } });
-                if (!order) {
-                    return { message: "Order Not Found.", status: common_1.STATUSCODES.NOT_FOUND };
-                }
-                const previousStatus = order.orderStatus;
-                yield (0, orders_entity_1.OrdersRepository)().update(orderId, { orderStatus });
-                const newStatusEntry = {
-                    status: orderStatus,
-                    timestamp: new Date().toISOString()
-                };
-                const updatedStatusHistory = [...order.statusHistory, newStatusEntry];
-                yield (0, orders_entity_1.OrdersRepository)().update(orderId, { statusHistory: updatedStatusHistory });
-                if (orderStatus === common_1.OrderStatus.DELIVERED) {
-                    const inventoryService = new Inventory_controller_1.InventoryService();
-                    yield inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
-                }
-                return { message: "Success.", status: common_1.STATUSCODES.SUCCESS };
-            }
-            catch (error) {
-                throw error;
-            }
-        });
-    }
+    // async updateOrderTrackStatus(input: UpdateOrderTrackStatusById): Promise<IApiResponse> {
+    //     try {
+    //         const { orderId, orderStatus } = input;
+    //         const order: Orders | null = await OrdersRepository().findOne({ where: { orderId } });
+    //         if (!order) {
+    //             return { message: "Order Not Found.", status: STATUSCODES.NOT_FOUND };
+    //         }
+    //         const previousStatus: OrderStatus = order.orderStatus;
+    //         await OrdersRepository().update(orderId, { orderStatus });
+    //         const newStatusEntry: StatusHistoryEntry = {
+    //             status: orderStatus,
+    //             timestamp: new Date().toISOString()
+    //         };
+    //         const updatedStatusHistory: StatusHistoryEntry[] = [...order.statusHistory, newStatusEntry];
+    //         await OrdersRepository().update(orderId, { statusHistory: updatedStatusHistory });
+    //         if (orderStatus === OrderStatus.DELIVERED) {
+    //             const inventoryService = new InventoryService();
+    //             await inventoryService.saveInventoryByStoreId(order.products, order.storeId, order.empId);
+    //         }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS };
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
     updateOrderBySpecialDiscount(input) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

@@ -150,17 +150,16 @@ router.get('/signedUrl', (0, validationMiddleware_1.validateDtoMiddleware)(Order
         validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
     }
 }));
-router.put('/update/orderStatus', (0, validationMiddleware_1.validateDtoMiddleware)(OrderService_1.UpdateOrderTrackStatusById), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const input = RequestHander_1.RequestHandler.Defaults.getBody(req, OrderService_1.UpdateOrderTrackStatusById);
-        const orderService = new Order_controller_1.OrderService();
-        const data = yield orderService.updateOrderTrackStatus(input);
-        validationMiddleware_1.ResponseHandler.sendResponse(res, data);
-    }
-    catch (error) {
-        validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
-    }
-}));
+// router.put('/update/orderStatus', validateDtoMiddleware(UpdateOrderTrackStatusById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: UpdateOrderTrackStatusById = RequestHandler.Defaults.getBody<UpdateOrderTrackStatusById>(req, UpdateOrderTrackStatusById);
+//         const orderService = new OrderService();
+//         const data = await orderService.updateOrderTrackStatus(input);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 router.put('/update/special-discount', (0, validationMiddleware_1.validateDtoMiddleware)(OrderService_1.UpdateOrderBySpecialDiscountById), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const input = RequestHander_1.RequestHandler.Defaults.getBody(req, OrderService_1.UpdateOrderBySpecialDiscountById);

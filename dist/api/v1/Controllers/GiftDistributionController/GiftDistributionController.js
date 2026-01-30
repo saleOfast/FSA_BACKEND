@@ -39,7 +39,9 @@ class GiftsService {
             try {
                 const GiftsList = yield this.GiftsRepository.find({
                     where: { storeId: input.storeId },
-                    relations: { store: true, user: true, product: true },
+                    relations: { store: true, user: true
+                        // , product: true 
+                    },
                     order: { createdAt: "DESC" },
                 });
                 return { status: common_1.STATUSCODES.SUCCESS, message: "Gifts list retrieved successfully.", data: GiftsList };

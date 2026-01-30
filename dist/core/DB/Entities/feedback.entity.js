@@ -14,7 +14,6 @@ const typeorm_1 = require("typeorm");
 const postgresdb_1 = require("../postgresdb");
 const stores_entity_1 = require("./stores.entity");
 const User_entity_1 = require("./User.entity");
-const products_entity_1 = require("./products.entity");
 let FeedBack = class FeedBack extends typeorm_1.BaseEntity {
 };
 __decorate([
@@ -32,15 +31,6 @@ __decorate([
     ,
     __metadata("design:type", Number)
 ], FeedBack.prototype, "storeId", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => products_entity_1.Products, (product) => product.feedBack, { onDelete: "CASCADE" }),
-    (0, typeorm_1.JoinColumn)({ name: 'product_id' }),
-    __metadata("design:type", products_entity_1.Products)
-], FeedBack.prototype, "product", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ name: 'product_id' }),
-    __metadata("design:type", Number)
-], FeedBack.prototype, "productId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'date', nullable: true }),
     __metadata("design:type", Date)

@@ -155,9 +155,9 @@ class StoreController {
                     const storeIds = yield this.beatRespositry.createQueryBuilder("beat")
                         .leftJoin("beat.user", "user")
                         .where("user.managerId = :managerId", { managerId: emp_id })
-                        .select("beat.store")
-                        .getMany()
-                        .then((beats) => beats.map(beat => beat.store));
+                        .select("beat.store");
+                    // .getMany()
+                    // .then((beats: IBeat[]) => beats.map(beat => beat.store));
                     // console.log({storeIds})
                     if (storeIds.length > 0) {
                         fitlerQuery = storeIds;
@@ -209,10 +209,10 @@ class StoreController {
                 let beatSubQuery = yield this.beatRespositry.createQueryBuilder('beat')
                     .where('beat.beatId IN (:...beatId)', { beatId: (beatIdsArray) })
                     .getMany();
-                if (beatSubQuery.length > 0) {
-                    const newArr = beatSubQuery.map((item) => item.store).flat();
-                    buildQuery.andWhere(`stores.storeId IN (${newArr})`);
-                }
+                // if (beatSubQuery.length > 0) {
+                //     const newArr = beatSubQuery.map((item) => item.store).flat();
+                //     buildQuery.andWhere(`stores.storeId IN (${newArr})`);
+                // }
                 buildQuery.orderBy("stores.updatedAt", "DESC");
                 buildQuery.skip((+pageNumber - 1) * +pageSize).take(+pageSize);
                 const result = yield buildQuery.getManyAndCount();

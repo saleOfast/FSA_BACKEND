@@ -1,4 +1,4 @@
-import { Type } from "class-transformer";
+import { Type, Transform } from "class-transformer";
 import { 
   IsArray,
   IsNotEmpty,
@@ -109,6 +109,7 @@ export class DeleteInventoryDto {
 // 5️⃣ GET INVENTORY LIST DTO
 // =======================
 export class GetInventoryList {
+  @Transform(({ value }) => parseInt(value))
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()

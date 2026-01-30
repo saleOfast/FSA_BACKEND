@@ -49,6 +49,11 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsNumber)(),
     __metadata("design:type", Number)
+], Products.prototype, "caseQty", void 0);
+__decorate([
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
 ], Products.prototype, "noOfCase", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
@@ -60,11 +65,6 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Object)
 ], Products.prototype, "skuDiscount", void 0);
-__decorate([
-    (0, class_validator_1.IsBoolean)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", Boolean)
-], Products.prototype, "isFocused", void 0);
 exports.Products = Products;
 class CreateOrder {
 }

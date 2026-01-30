@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import { config as envConfig } from '../config';
+import path from 'path';
 
 import { PolicyHead } from "./Entities/policyHead.entity";
 import { PolicyTypeHead } from "./Entities/policyHeadType.entity";
@@ -142,13 +143,23 @@ class Postgresdb {
 				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, 
 				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress,SalesOrderHeader,SalesOrderItem
 			];
+			// Determine if we should use migrations or synchronize
+			const useMigrations = process.env.USE_MIGRATIONS === 'true';
+			const shouldSynchronize = !useMigrations && JSON.parse(this.isSync);
+
 			const dbConn: DataSource = new DataSource({
 				type: 'postgres',
 				url: this.connectionUrl,
-				synchronize: JSON.parse(this.isSync),
+				// Disable synchronize when using migrations
+				synchronize: shouldSynchronize,
 				logging: true,
 				ssl: isLocal ? false : { rejectUnauthorized: false },
 				entities,
+				// Enable migrations if USE_MIGRATIONS=true
+				...(useMigrations && {
+					migrations: [path.join(__dirname, 'migrations', '*.ts')],
+					migrationsRun: false, // Set to true to auto-run migrations on app start
+				}),
 				schema: 'public',
 				extra: {
 					keepAlive: true,

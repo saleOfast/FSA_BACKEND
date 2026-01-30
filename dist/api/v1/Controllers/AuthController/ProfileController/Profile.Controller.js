@@ -310,9 +310,8 @@ class ProfileController {
                         visitDate: (0, typeorm_1.Between)((0, date_fns_1.startOfDay)(new Date()), (0, date_fns_1.endOfDay)(new Date()))
                     }
                 });
-                const focusedProductCount = yield this.getProductRepository.count({
-                    where: { isFocused: true }
-                });
+                // Note: isFocused property doesn't exist in Products entity
+                const focusedProductCount = 0;
                 const currTargetQueryBuilder = this.getTargetRepository.createQueryBuilder('target')
                     .select([
                     'target'
@@ -457,7 +456,7 @@ class ProfileController {
                     newStoreCount: currStoreCount ? currStoreCount : 0,
                     unBilledStoreCount: unBilledStoreCount ? unBilledStoreCount : 0,
                     todayVisitCount: todayVisitCount,
-                    focusedProductCount: focusedProductCount !== null && focusedProductCount !== void 0 ? focusedProductCount : 0,
+                    // focusedProductCount: focusedProductCount ?? 0,
                     // bottomSKU,
                     // topSKU,
                     orderCountWithpayment: {

@@ -242,12 +242,12 @@ async deleteInventory(
 async getAllInventory(payload: IUser): Promise<IApiResponse> {
   try {
     const inventories = await this.inventoryRepo.find({
-      where:{
+      where: {
         isDeleted: false,
       },
       relations: {
         product: true,
-        warehouse: true, // include if you have sku relation
+        warehouse: true,
       },
       order: {
         createdAt: "DESC",
@@ -284,9 +284,9 @@ async getAllInventory(payload: IUser): Promise<IApiResponse> {
       const { warehouseId,inventoryId } = input;
 
       const inventories = await this.inventoryRepo.find({
+        relations: ["product", "warehouse", "tax"],
         where: { warehouseId ,inventoryId,
         isDeleted: false,  },
-        relations: [ "product", "warehouse"],
       });
 
       if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };

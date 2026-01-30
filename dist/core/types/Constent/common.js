@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.InventoryVisibilityScope = exports.StockLevelComparison = exports.SessionTypeEnum = exports.WorkplaceTypeEnum = exports.ActivityTypeEnum = exports.PracticeTypeEnum = exports.ExpenseReportStatus = exports.HolidayType = exports.ExpenseReportClaimType = exports.TimelineEnum = exports.StoreBilling = exports.CollectionStatus = exports.DurationEnum = exports.OrderStatus = exports.PaymentStatus = exports.DiscountType = exports.StoreTypeFilter = exports.SpecialDiscountStatus = exports.VisitStatus = exports.CallTypeOrders = exports.CallType = exports.UserRole = exports.ExpressExtendedRequestParams = exports.JwtTokenTypes = exports.STATUSCODES = void 0;
+exports.VisitDay = exports.BeatPriority = exports.BeatStatus = exports.VisitFrequency = exports.BeatType = exports.ClaimPeriod = exports.BenefitType = exports.SchemeStatus = exports.SchemeNature = exports.SchemeType = exports.PosmStatusEnum = exports.POSMAllocationTargetEnum = exports.POSMChannelTargetEnum = exports.POSMMaterialTypeEnum = exports.PosmCategoryEnum = exports.PosmTypeEnum = exports.InventoryVisibilityScope = exports.StockLevelComparison = exports.SessionTypeEnum = exports.WorkplaceTypeEnum = exports.ActivityTypeEnum = exports.PracticeTypeEnum = exports.ExpenseReportStatus = exports.HolidayType = exports.ExpenseReportClaimType = exports.TimelineEnum = exports.StoreBilling = exports.CollectionStatus = exports.DurationEnum = exports.OrderStatus = exports.PaymentStatus = exports.DiscountType = exports.StoreTypeFilter = exports.SpecialDiscountStatus = exports.VisitStatus = exports.CallTypeOrders = exports.CallType = exports.UserRole = exports.ExpressExtendedRequestParams = exports.JwtTokenTypes = exports.STATUSCODES = void 0;
 var STATUSCODES;
 (function (STATUSCODES) {
     STATUSCODES[STATUSCODES["BAD_REQUEST"] = 400] = "BAD_REQUEST";
@@ -167,3 +167,117 @@ var InventoryVisibilityScope;
     InventoryVisibilityScope["FULL"] = "Full";
     InventoryVisibilityScope["NONE"] = "None";
 })(InventoryVisibilityScope = exports.InventoryVisibilityScope || (exports.InventoryVisibilityScope = {}));
+// POSM Type
+var PosmTypeEnum;
+(function (PosmTypeEnum) {
+    PosmTypeEnum["POSTER"] = "Poster";
+    PosmTypeEnum["SHELF_STRIP"] = "Shelf Strip";
+    PosmTypeEnum["WOBBLER"] = "Wobbler";
+    PosmTypeEnum["COOLER"] = "Cooler";
+    PosmTypeEnum["DISPLAY_UNIT"] = "Display Unit";
+    PosmTypeEnum["DIGITAL_SCREEN"] = "Digital Screen";
+})(PosmTypeEnum = exports.PosmTypeEnum || (exports.PosmTypeEnum = {}));
+// POSM Category
+var PosmCategoryEnum;
+(function (PosmCategoryEnum) {
+    PosmCategoryEnum["PERMANENT"] = "Permanent";
+    PosmCategoryEnum["SEMI_PERMANENT"] = "Semi-Permanent";
+    PosmCategoryEnum["TEMPORARY"] = "Temporary";
+})(PosmCategoryEnum = exports.PosmCategoryEnum || (exports.PosmCategoryEnum = {}));
+// Material Type
+var POSMMaterialTypeEnum;
+(function (POSMMaterialTypeEnum) {
+    POSMMaterialTypeEnum["CARDBOARD"] = "Cardboard";
+    POSMMaterialTypeEnum["PLASTIC"] = "Plastic";
+    POSMMaterialTypeEnum["METAL"] = "Metal";
+    POSMMaterialTypeEnum["DIGITAL"] = "Digital";
+})(POSMMaterialTypeEnum = exports.POSMMaterialTypeEnum || (exports.POSMMaterialTypeEnum = {}));
+// Channel Target
+var POSMChannelTargetEnum;
+(function (POSMChannelTargetEnum) {
+    POSMChannelTargetEnum["GT"] = "GT";
+    POSMChannelTargetEnum["MT"] = "MT";
+    POSMChannelTargetEnum["ECOM"] = "E-COM";
+})(POSMChannelTargetEnum = exports.POSMChannelTargetEnum || (exports.POSMChannelTargetEnum = {}));
+// Allocation Target
+var POSMAllocationTargetEnum;
+(function (POSMAllocationTargetEnum) {
+    POSMAllocationTargetEnum["DISTRIBUTOR"] = "Distributor";
+    POSMAllocationTargetEnum["RETAILER"] = "Retailer";
+    POSMAllocationTargetEnum["KEY_ACCOUNT"] = "Key Account";
+})(POSMAllocationTargetEnum = exports.POSMAllocationTargetEnum || (exports.POSMAllocationTargetEnum = {}));
+// POSM Status
+var PosmStatusEnum;
+(function (PosmStatusEnum) {
+    PosmStatusEnum["ACTIVE"] = "Active";
+    PosmStatusEnum["INACTIVE"] = "Inactive";
+    PosmStatusEnum["RETURNED"] = "Returned";
+    PosmStatusEnum["LOST"] = "Lost";
+})(PosmStatusEnum = exports.PosmStatusEnum || (exports.PosmStatusEnum = {}));
+var SchemeType;
+(function (SchemeType) {
+    SchemeType["QTY_BASED"] = "QTY_BASED";
+    SchemeType["VALUE_BASED"] = "VALUE_BASED";
+    SchemeType["FREE_SKU"] = "FREE_SKU";
+    SchemeType["SLAB"] = "SLAB";
+    SchemeType["COMBO"] = "COMBO";
+})(SchemeType = exports.SchemeType || (exports.SchemeType = {}));
+var SchemeNature;
+(function (SchemeNature) {
+    SchemeNature["PRIMARY"] = "PRIMARY";
+    SchemeNature["SECONDARY"] = "SECONDARY";
+    SchemeNature["TRADE"] = "TRADE";
+    SchemeNature["CONSUMER"] = "CONSUMER";
+})(SchemeNature = exports.SchemeNature || (exports.SchemeNature = {}));
+var SchemeStatus;
+(function (SchemeStatus) {
+    SchemeStatus["ACTIVE"] = "ACTIVE";
+    SchemeStatus["INACTIVE"] = "INACTIVE";
+    SchemeStatus["EXPIRED"] = "EXPIRED";
+})(SchemeStatus = exports.SchemeStatus || (exports.SchemeStatus = {}));
+var BenefitType;
+(function (BenefitType) {
+    BenefitType["FREE_SKU"] = "FREE_SKU";
+    BenefitType["EXTRA_QTY"] = "EXTRA_QTY";
+    BenefitType["VALUE_OFF"] = "VALUE_OFF";
+})(BenefitType = exports.BenefitType || (exports.BenefitType = {}));
+var ClaimPeriod;
+(function (ClaimPeriod) {
+    ClaimPeriod["MONTHLY"] = "MONTHLY";
+    ClaimPeriod["QUARTERLY"] = "QUARTERLY";
+    ClaimPeriod["CAMPAIGN"] = "CAMPAIGN";
+})(ClaimPeriod = exports.ClaimPeriod || (exports.ClaimPeriod = {}));
+var BeatType;
+(function (BeatType) {
+    BeatType["SALES"] = "SALES";
+    BeatType["DELIVERY"] = "DELIVERY";
+    BeatType["COLLECTION"] = "COLLECTION";
+})(BeatType = exports.BeatType || (exports.BeatType = {}));
+var VisitFrequency;
+(function (VisitFrequency) {
+    VisitFrequency["DAILY"] = "DAILY";
+    VisitFrequency["WEEKLY"] = "WEEKLY";
+    VisitFrequency["FORTNIGHTLY"] = "FORTNIGHTLY";
+    VisitFrequency["MONTHLY"] = "MONTHLY";
+})(VisitFrequency = exports.VisitFrequency || (exports.VisitFrequency = {}));
+var BeatStatus;
+(function (BeatStatus) {
+    BeatStatus["ACTIVE"] = "ACTIVE";
+    BeatStatus["INACTIVE"] = "INACTIVE";
+})(BeatStatus = exports.BeatStatus || (exports.BeatStatus = {}));
+var BeatPriority;
+(function (BeatPriority) {
+    BeatPriority["HIGH"] = "HIGH";
+    BeatPriority["MEDIUM"] = "MEDIUM";
+    BeatPriority["LOW"] = "LOW";
+})(BeatPriority = exports.BeatPriority || (exports.BeatPriority = {}));
+var VisitDay;
+(function (VisitDay) {
+    VisitDay["MONDAY"] = "MONDAY";
+    VisitDay["TUESDAY"] = "TUESDAY";
+    VisitDay["WEDNESDAY"] = "WEDNESDAY";
+    VisitDay["THURSDAY"] = "THURSDAY";
+    VisitDay["FRIDAY"] = "FRIDAY";
+    VisitDay["SATURDAY"] = "SATURDAY";
+    VisitDay["SUNDAY"] = "SUNDAY";
+})(VisitDay = exports.VisitDay || (exports.VisitDay = {}));

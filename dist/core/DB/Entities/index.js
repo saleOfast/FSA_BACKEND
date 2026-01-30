@@ -23,6 +23,7 @@ const ObjectPermission_entity_1 = require("./ObjectPermission.entity");
 const Tab_entity_1 = require("./Tab.entity");
 const TabPermission_entity_1 = require("./TabPermission.entity");
 const systemPermission_entity_1 = require("./systemPermission.entity");
+const sku_entity_1 = require("./sku.entity");
 const dbentities = [
     User_entity_1.User,
     attendance_entity_1.Attendance,
@@ -45,6 +46,7 @@ const dbentities = [
     ObjectPermission_entity_1.ObjectPermission,
     Tab_entity_1.Tab,
     TabPermission_entity_1.TabPermission,
-    systemPermission_entity_1.SystemPermission
+    systemPermission_entity_1.SystemPermission,
+    sku_entity_1.Sku
 ];
 exports.dbentities = dbentities;

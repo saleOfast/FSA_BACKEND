@@ -21,7 +21,7 @@ const beat_entity_1 = require("./Entities/beat.entity");
 const collect_payment_entity_1 = require("./Entities/collect_payment.entity");
 const discount_entity_1 = require("./Entities/discount.entity");
 const distributors_entity_1 = require("./Entities/distributors.entity");
-const inventory_entity_1 = require("./Entities/inventory.entity");
+const inventory_1 = require("./Entities/inventory");
 const orders_entity_1 = require("./Entities/orders.entity");
 const outlet_inventory_entity_1 = require("./Entities/outlet_inventory.entity");
 const products_entity_1 = require("./Entities/products.entity");
@@ -70,14 +70,18 @@ const holidays_entity_1 = require("./Entities/holidays.entity");
 const rcpa_entity_1 = require("./Entities/rcpa.entity");
 const tax_entity_1 = require("./Entities/tax.entity");
 const new_target_entity_1 = require("./Entities/new.target.entity");
-const inventory_1 = require("./Entities/inventory");
 const warehouse_entity_1 = require("./Entities/warehouse.entity");
 const sales_return_entity_1 = require("./Entities/sales_return.entity");
 const customer_entity_1 = require("./Entities/customer.entity");
 const customerType_entity_1 = require("./Entities/customerType.entity");
+const country_entity_1 = require("./Entities/country.entity");
+const state_entity_1 = require("./Entities/state.entity");
+const district_entity_1 = require("./Entities/district.entity");
 const Tab_entity_1 = require("./Entities/Tab.entity");
 const TabPermission_entity_1 = require("./Entities/TabPermission.entity");
 const systemPermission_entity_1 = require("./Entities/systemPermission.entity");
+const posm_entity_1 = require("./Entities/posm.entity");
+const sku_entity_1 = require("./Entities/sku.entity");
 const { userName, password, host, port, dbName, isSynchronize } = (0, config_1.config)();
 const dbConfig = { userName, password, host, port, dbName, isSynchronize };
 class Postgresdb {
@@ -105,7 +109,7 @@ class Postgresdb {
                 const isLocal = env === 'local' || this.dbConfig.host === 'localhost' || this.dbConfig.host === '127.0.0.1';
                 const entities = [
                     policyHead_entity_1.PolicyHead, policyHeadType_entity_1.PolicyTypeHead, expenseManagement_entity_1.ExpenseManagement,
-                    User_entity_1.User, attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor, inventory_entity_1.Inventory,
+                    User_entity_1.User, attendance_entity_1.Attendance, beat_entity_1.Beat, collect_payment_entity_1.CollectPayment, discount_entity_1.Discount, distributors_entity_1.Distributor, inventory_1.Inventory,
                     orders_entity_1.Orders, outlet_inventory_entity_1.OutletInventory, products_entity_1.Products, storeCategory_entity_1.StoreCategory, stores_entity_1.Stores, Visit_entity_1.Visits, brand_entity_1.Brand,
                     brand_competitor_entity_1.CompetitorBrand, productCategory_entity_1.ProductCategory, scheme_entity_1.Scheme, collected_amount_entity_1.CollectAmount, payment_entity_1.Payment, course_entity_1.Course,
                     learningSession_entity_1.LearningSession, quiz_entity_1.Quiz, target_entity_1.Target, object_entity_1.ObjectEntity, reason_entity_1.Reason, colour_entity_1.Colour,
@@ -114,15 +118,18 @@ class Postgresdb {
                     userLeave_entity_1.UserLeave, userLeaveApplication_entity_1.LeaveApplication,
                     activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
                     dar_entity_1.Dar, eDetailing_entity_1.Edetailing, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
-                    inventory_1.InventoryItem, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, customer_entity_1.Customer, customerType_entity_1.CustomerType, profile_entity_1.Profile, ObjectPermission_entity_1.ObjectPermission, Tab_entity_1.Tab, TabPermission_entity_1.TabPermission, systemPermission_entity_1.SystemPermission
+                    inventory_1.Inventory, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, customer_entity_1.Customer, customerType_entity_1.CustomerType, country_entity_1.Country, state_entity_1.State, district_entity_1.District, profile_entity_1.Profile, ObjectPermission_entity_1.ObjectPermission, Tab_entity_1.Tab, TabPermission_entity_1.TabPermission, systemPermission_entity_1.SystemPermission, posm_entity_1.Posm, sku_entity_1.Sku
                 ];
                 const dbConn = new typeorm_1.DataSource({
                     type: 'postgres',
                     url: this.connectionUrl,
+                    // Use synchronize only in local development, disable in production/dev when using migrations
                     synchronize: JSON.parse(this.isSync),
                     logging: true,
                     ssl: isLocal ? false : { rejectUnauthorized: false },
                     entities,
+                    // Uncomment to enable migrations at runtime (optional)
+                    // migrations: [path.join(__dirname, 'migrations', '*.ts')],
                     schema: 'public',
                     extra: {
                         keepAlive: true,
