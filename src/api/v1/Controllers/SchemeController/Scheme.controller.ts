@@ -100,7 +100,7 @@ class SchemeController {
     }
 
     if (warehouseId) {
-      const warehouse = await this.warehouseRepository.findOne({ where: { warehouseId } });
+      const warehouse = await this.warehouseRepository.findOne({ where: { warehouseId: String(warehouseId) } });
       if (!warehouse) {
         return {
           status: STATUSCODES.NOT_FOUND,

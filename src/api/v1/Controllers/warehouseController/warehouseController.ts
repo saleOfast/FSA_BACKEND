@@ -1,135 +1,282 @@
 import { STATUSCODES } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
-import { CreateWarehouse, DeleteWarehouseById, GetWarehouseById, GetWarehouseList, UpdateWarehouse } from "../../../../core/types/warehouseService/warehouseService";
-import { Warehouse, WarehouseRepository, WarehouseStatus, WarehouseType } from "../../../../core/DB/Entities/warehouse.entity";
-
+import { CreateWarehouseDto,GetWarehouseById ,GetWarehouseList,DeleteWarehouseById,UpdateWarehouse} from "../../../../core/types/warehouseService/warehouseService";
+import { Warehouse, WarehouseRepository } from "../../../../core/DB/Entities/warehouse.entity";
+import { CountryRepository } from "../../../../core/DB/Entities/country.entity";
+import { StateRepository } from "../../../../core/DB/Entities/state.entity";
+import { DistrictRepository } from "../../../../core/DB/Entities/district.entity";
+import { WarehouseStatusEnum } from "../../../../core/types/Constent/common";
 // Configuration flag - set to true after running the database migration
 const ENABLE_USER_NAME_FEATURES = true;
 
 class WarehouseController {
 	private repo = WarehouseRepository();
+	private countryRepo=CountryRepository();
+	private stateRepo=StateRepository();
+	private districtRepo=DistrictRepository();
 
 	constructor() {}
 
-	async create(input: CreateWarehouse, payload: IUser): Promise<IApiResponse> {
-		const existingByName = await this.repo.findOne({ where: { warehouseName: input.warehouseName } });
-		if (existingByName) {
-			return { status: STATUSCODES.CONFLICT, message: "Warehouse already exists." };
-		}
-		const entity = new Warehouse();
-		entity.warehouseName = input.warehouseName;
-		entity.warehouseType = input.type;
-		entity.address = input.address;
-		entity.city = input.city;
-		entity.state = input.state;
-		entity.zip = input.zip;
-		entity.managerId = input.managerId ?? undefined;
-		entity.email = input.email ?? undefined;
-		entity.managerPhone = input.managerPhone ?? undefined;
-		entity.contactPerson = input.contactPerson ?? undefined;
-		entity.contactName = input.contactName ?? undefined;
-		entity.capacity = input.capacity ?? undefined;
-		entity.status = input.status ?? WarehouseStatus.ACTIVE;
-		entity.operationalHours = input.operationalHours ?? undefined;
-		entity.createdBy = input.createdBy ?? payload.emp_id;
-		entity.lastModifiedBy = input.lastModifiedBy ?? payload.emp_id;
+	async createWarehouse(input: CreateWarehouseDto, payload: IUser): Promise<IApiResponse> {
+		 const existing = await this.repo.findOne({
+    where: [
+      { warehouseCode: input.warehouseCode },
+      { warehouseName: input.warehouseName },
+    ],
+  });
 
-		// Set user names
-		entity.createdByName = input.createdByName ?? `${payload.firstname} ${payload.lastname || ''}`.trim();
-		entity.lastModifiedByName = input.lastModifiedByName ?? `${payload.firstname} ${payload.lastname || ''}`.trim();
+  if (existing) {
+    return {
+      status: STATUSCODES.CONFLICT,
+      message: "Warehouse with same code or name already exists.",
+    };
+  }
 
-		await this.repo.save(entity);
-		return { status: STATUSCODES.SUCCESS, message: "Warehouse created successfully." };
-	}
+  // 2. Validate Foreign Keys
+  const country = await this.countryRepo.findOne({ where: { countryId: input.shippingCountryId } });
+  if (!country) {
+    return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping country." };
+  }
 
-	async getById(input: GetWarehouseById): Promise<IApiResponse> {
-		const { warehouseId } = input;
-		const warehouse = await this.repo.findOne({ 
-			where: { warehouseId }
-		});
-		if (!warehouse) {
-			return { status: STATUSCODES.NOT_FOUND, message: "Warehouse not found." };
-		}
-		return { status: STATUSCODES.SUCCESS, message: "Success.", data: warehouse.toResponseFormat() };
-	}
+  const state = await this.stateRepo.findOne({ where: { stateId: input.shippingStateId } });
+  if (!state) {
+    return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping state." };
+  }
 
-	async list(input: GetWarehouseList): Promise<IApiResponse> {
-		let { search, name, id, city, status, pageNumber, pageSize } = input;
-		pageNumber = pageNumber && pageNumber > 0 ? pageNumber : 1;
-		pageSize = pageSize && pageSize > 0 ? pageSize : 10;
+  const district = await this.districtRepo.findOne({ where: { districtId: input.shippingDistrictId } });
+  if (!district) {
+    return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping district." };
+  }
 
-		const qb = this.repo.createQueryBuilder('w');
-		
-		// General search across multiple fields
-		if (search && search.trim()) {
-			qb.andWhere(`(
-				LOWER(w.warehouse_name) LIKE LOWER(:search) OR
-				LOWER(w.city) LIKE LOWER(:search) OR
-				LOWER(w.state) LIKE LOWER(:search) OR
-				CAST(w.warehouse_id AS TEXT) LIKE :search
-			)`, { search: `%${search}%` });
-		}
+  // 3. Create Entity
+  const entity = new Warehouse();
 
-		// Specific field searches
-		if (name && name.trim()) {
-			qb.andWhere('LOWER(w.warehouse_name) LIKE LOWER(:name)', { name: `%${name}%` });
-		}
+  // Core
+  entity.warehouseCode = input.warehouseCode;
+  entity.warehouseName = input.warehouseName;
+  entity.status = input.status ?? WarehouseStatusEnum.DRAFT;
+  entity.activeFlag = input.activeFlag ?? true;
+  entity.effectiveFrom = input.effectiveFrom;
+  entity.effectiveTo = input.effectiveTo ?? undefined;
 
-		if (id) {
-			qb.andWhere('w.warehouse_id = :id', { id });
-		}
+  // Business
+  entity.ownershipType = input.ownershipType;
+  entity.businessRole = input.businessRole;
+  entity.legalEntityId = input.legalEntityId ?? null;
+  entity.parentPartnerId = input.parentPartnerId ?? null;
+  entity.franchise = input.franchise;
 
-		if (city && city.trim()) {
-			qb.andWhere('LOWER(w.city) LIKE LOWER(:city)', { city: `%${city}%` });
-		}
+  // Shipping Address (Relations)
+  entity.shippingCountry = country;
+  entity.shippingState = state;
+  entity.shippingDistrict = district;
+  entity.shippingStreet = input.shippingStreet;
+  entity.shippingCity = input.shippingCity;
+  entity.shippingPinCode = input.shippingPinCode;
 
-		// Status filter (if not provided, returns all)
-		if (status) {
-			qb.andWhere('w.status = :status', { status });
-		}
+  // Tax / Compliance
+  entity.gstNo = input.gstNo ?? undefined;
+  entity.vatRegistrationNo = input.vatRegistrationNo ?? undefined;
+  entity.taxRegistrationType = input.taxRegistrationType ?? undefined;
+  entity.sez = input.sez;
+  entity.customZone = input.customZone;
 
-		qb.orderBy('w.last_updated_date', 'DESC');
-		qb.skip((pageNumber - 1) * pageSize).take(pageSize);
+  // Operational Flags
+  entity.allowsSales = input.allowsSales ?? true;
+  entity.allowsPurchase = input.allowsPurchase ?? true;
+  entity.allowsReturns = input.allowsReturns ?? true;
+  entity.supportsBatch = input.supportsBatch ?? false;
+  entity.supportsExpiry = input.supportsExpiry ?? false;
+  entity.supportsSerial = input.supportsSerial ?? false;
+  entity.temperatureControlled = input.temperatureControlled ?? false;
+  entity.crossDockingFlag = input.crossDockingFlag ?? false;
+  entity.consignmentFlag = input.consignmentFlag ?? false;
 
-		const [items, total] = await qb.getManyAndCount();
-		
-		// Format the response data
-		const formattedItems = items.map(item => item.toResponseFormat());
-		
-		return {
-			status: STATUSCODES.SUCCESS,
-			message: 'Success.',
-			data: {
-				warehouses: formattedItems,
-				pagination: {
-					pageNumber,
-					pageSize,
-					totalRecords: total,
-					totalPages: Math.ceil(total / pageSize)
-				},
-				filters: {
-					search: search || null,
-					name: name || null,
-					id: id || null,
-					city: city || null,
-					status: status || null
-				}
-			}
-		};
-	}
+  // 4. Save
+  await this.repo.save(entity);
+
+  return {
+    status: STATUSCODES.SUCCESS,
+    message: "Warehouse created successfully.",
+  };
+}
+
+async getById(input: GetWarehouseById): Promise<IApiResponse> {
+  const { warehouseId } = input;
+
+  const warehouse = await this.repo
+    .createQueryBuilder("w")
+    .leftJoinAndSelect("w.shippingCountry", "country")
+    .leftJoinAndSelect("w.shippingState", "state")
+    .leftJoinAndSelect("w.shippingDistrict", "district")
+    .where("w.warehouse_id = :warehouseId", { warehouseId })
+    .andWhere("w.is_deleted = false")
+    .getOne();
+
+  if (!warehouse) {
+    return {
+      status: STATUSCODES.NOT_FOUND,
+      message: "Warehouse not found.",
+    };
+  }
+
+  return {
+    status: STATUSCODES.SUCCESS,
+    message: "Success.",
+    data: {
+      ...warehouse,
+  
+    },
+  };
+}
+
+
+
+async list(
+  input: GetWarehouseList,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const query = this.repo
+      .createQueryBuilder("warehouse")
+      .leftJoinAndSelect("warehouse.shippingCountry", "country")
+      .leftJoinAndSelect("warehouse.shippingState", "state")
+      .leftJoinAndSelect("warehouse.shippingDistrict", "district")
+      // ✅ always exclude deleted
+      .where("warehouse.isDeleted = :isDeleted", { isDeleted: false });
+
+    // 🔍 Filters
+    if (input.warehouseId) {
+      query.andWhere("warehouse.warehouseId = :warehouseId", {
+        warehouseId: input.warehouseId,
+      });
+    }
+
+    if (input.warehouseCode) {
+      query.andWhere("LOWER(warehouse.warehouseCode) LIKE LOWER(:code)", {
+        code: `%${input.warehouseCode}%`,
+      });
+    }
+
+    if (input.warehouseName) {
+      query.andWhere("LOWER(warehouse.warehouseName) LIKE LOWER(:name)", {
+        name: `%${input.warehouseName}%`,
+      });
+    }
+
+    if (input.status) {
+      query.andWhere("warehouse.status = :status", {
+        status: input.status,
+      });
+    }
+
+    if (input.activeFlag !== undefined) {
+      query.andWhere("warehouse.activeFlag = :activeFlag", {
+        activeFlag: input.activeFlag,
+      });
+    }
+
+    if (input.shippingCountryId) {
+      query.andWhere("country.id = :countryId", {
+        countryId: input.shippingCountryId,
+      });
+    }
+
+    if (input.shippingStateId) {
+      query.andWhere("state.id = :stateId", {
+        stateId: input.shippingStateId,
+      });
+    }
+
+    if (input.shippingDistrictId) {
+      query.andWhere("district.id = :districtId", {
+        districtId: input.shippingDistrictId,
+      });
+    }
+
+    // ⬇ sorting
+    query.orderBy("warehouse.createdAt", "DESC");
+
+    const warehouses = await query.getMany();
+
+    if (!warehouses.length) {
+      return {
+        status: 404,
+        message: "Warehouse not found",
+        data: [],
+      };
+    }
+
+    return {
+      status: 200,
+      message: "Warehouses fetched successfully",
+      data: warehouses.map(w => ({
+        warehouseId: w.warehouseId,
+        warehouseCode: w.warehouseCode,
+        warehouseName: w.warehouseName,
+        status: w.status,
+        activeFlag: w.activeFlag,
+
+        effectiveFrom: w.effectiveFrom,
+        effectiveTo: w.effectiveTo,
+
+        ownershipType: w.ownershipType,
+        businessRole: w.businessRole,
+
+        legalEntityId: w.legalEntityId,
+        parentPartnerId: w.parentPartnerId,
+        franchise: w.franchise,
+
+        shippingCountryId: w.shippingCountry,
+        shippingStateId: w.shippingState,
+        shippingDistrictId: w.shippingDistrict,
+
+        shippingStreet: w.shippingStreet,
+        shippingCity: w.shippingCity,
+        shippingPinCode: w.shippingPinCode,
+
+        gstNo: w.gstNo,
+        vatRegistrationNo: w.vatRegistrationNo,
+        taxRegistrationType: w.taxRegistrationType,
+
+        sez: w.sez,
+        customZone: w.customZone,
+
+        allowsSales: w.allowsSales,
+        allowsPurchase: w.allowsPurchase,
+        allowsReturns: w.allowsReturns,
+
+        supportsBatch: w.supportsBatch,
+        supportsExpiry: w.supportsExpiry,
+        supportsSerial: w.supportsSerial,
+
+        temperatureControlled: w.temperatureControlled,
+        crossDockingFlag: w.crossDockingFlag,
+        consignmentFlag: w.consignmentFlag,
+
+        isDeleted: w.isDeleted,
+        createdAt: w.createdAt,
+        updatedAt: w.updatedAt,
+      })),
+    };
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
+
 
 	async update(input: UpdateWarehouse, payload: IUser): Promise<IApiResponse> {
-		const { warehouseId, type, ...rest } = input;
+		const { warehouseId,...rest } = input;
 		const existing = await this.repo.findOne({ where: { warehouseId } });
 		if (!existing) {
 			return { status: STATUSCODES.NOT_FOUND, message: 'Warehouse not found.' };
 		}
 		const updatePayload: Partial<Warehouse> = {
 			...rest,
-			warehouseType: type ?? existing.warehouseType,
-			lastModifiedBy: payload.emp_id,
-			lastModifiedByName: `${payload.firstname} ${payload.lastname || ''}`.trim()
+			updatedAt: new Date(),
 		};
 
 		await this.repo.createQueryBuilder().update(updatePayload).where({ warehouseId }).execute();
@@ -138,11 +285,11 @@ class WarehouseController {
 
 	async delete(input: DeleteWarehouseById): Promise<IApiResponse> {
 		const { warehouseId } = input;
-		const existing = await this.repo.findOne({ where: { warehouseId } });
+		const existing = await this.repo.findOne({ where: { warehouseId, isDeleted: false } });
 		if (!existing) {
 			return { status: STATUSCODES.NOT_FOUND, message: 'Warehouse not found.' };
 		}
-		await this.repo.delete({ warehouseId });
+		await this.repo.update({ warehouseId }, { isDeleted: true });
 		return { status: STATUSCODES.SUCCESS, message: 'Deleted successfully.' };
 	}
 }

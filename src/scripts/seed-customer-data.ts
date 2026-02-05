@@ -39,6 +39,12 @@ import {
   POSMChannelTargetEnum,
   POSMAllocationTargetEnum,
   UserRole,
+  WarehouseStatusEnum,
+  OwnershipTypeEnum,
+  BusinessRoleEnum,
+  franchise,
+  SEZ,
+  customerZone,
 } from '../core/types/Constent/common';
 
 type AnyRecord = Record<string, unknown>;
@@ -699,24 +705,48 @@ async function seedCustomerDataInternal(ds: DataSource): Promise<void> {
       taxes.push(defaultTax);
     }
 
-    const warehouseRepo = ds.getRepository(Warehouse);
-    let warehouses = await warehouseRepo.find({ take: 1 });
-    if (warehouses.length === 0) {
-      const defaultWarehouse = await warehouseRepo.save(warehouseRepo.create({
-        warehouseName: 'Main Warehouse',
-        address: '123 Warehouse Street',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        zip: '400001',
-        status: 'ACTIVE' as any
-      } as any));
-      warehouses.push(defaultWarehouse);
-    }
-
-    // Seed in dependency order
+    // Seed in dependency order - countries, states, districts must exist before warehouse
     const countries = await seedCountries(ds);
     const states = await seedStates(ds, countries);
     const districts = await seedDistricts(ds, states, countries);
+
+    const warehouseRepo = ds.getRepository(Warehouse);
+    let warehouses = await warehouseRepo.find({ take: 1 });
+    if (warehouses.length === 0 && countries[0] && states[0] && districts[0]) {
+      const defaultWarehouse = await warehouseRepo.save(warehouseRepo.create({
+        warehouseCode: 'WH-MAIN-001',
+        warehouseName: 'Main Warehouse',
+        status: WarehouseStatusEnum.ACTIVE,
+        activeFlag: true,
+        effectiveFrom: new Date(),
+        ownershipType: OwnershipTypeEnum.COMPANY,
+        businessRole: BusinessRoleEnum.PRIMARY,
+        legalEntityId: 1,
+        parentPartnerId: 0,
+        franchise: franchise.NO,
+        shippingCountry: countries[0],
+        shippingState: states[0],
+        shippingDistrict: districts[0],
+        shippingStreet: '123 Warehouse Street',
+        shippingCity: 'Mumbai',
+        shippingPinCode: '400001',
+        sez: SEZ.NO,
+        customZone: customerZone.NORTH,
+        allowsSales: true,
+        allowsPurchase: true,
+        allowsReturns: true,
+        supportsBatch: true,
+        supportsExpiry: true,
+        supportsSerial: false,
+        temperatureControlled: false,
+        crossDockingFlag: false,
+        consignmentFlag: false,
+      } as any));
+      warehouses.push(defaultWarehouse);
+    }
+    if (warehouses.length === 0) {
+      warehouses = await warehouseRepo.find({ take: 1 });
+    }
     const customerTypes = await seedCustomerTypes(ds, user);
     const customers = await seedCustomers(ds, customerTypes, districts, states, countries, user);
     const products = await seedProducts(ds, categories);

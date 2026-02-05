@@ -13,6 +13,7 @@ import { calculateSalesOrderAmounts } from '../../../../core/helper/calculateSal
 import { updateSalesOrderHeaderAmounts } from '../../../../core/helper/updateSalesOrderHeaderAmounts'; // Add this import
 
 import { Products,ProductRepository } from "../../../../core/DB/Entities/products.entity";
+import { ShippingAddressRepository } from "../../../../core/DB/Entities/shippingAddress.entity"
 
 export class SalesOrderItemController {
   private salesOrderHeaderRepository = SalesOrderHeaderRepository();
@@ -22,108 +23,151 @@ export class SalesOrderItemController {
   private schemeRepository = getSchemeRepository();
   private taxRepository = TaxesRepository();
   private products = ProductRepository()
+  private shippingAddress= ShippingAddressRepository()
 
   constructor() { }
 
-  public async createSalesOrderItem(
-    input: CreateSalesOrderItemDto,
-    payload: IUser
-  ): Promise<IApiResponse> {
-    try {
-      const {
-        salesOrderId, // Add this field
-        productId,
-        shippingAddressId,
-        saleQty,
-        discountId,
-        schemeId,
-        taxId,
-        skuId
-      } = input;
+ public async createSalesOrderItem(
+  input: CreateSalesOrderItemDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const {
+      salesOrderId,
+      productId,
+      shippingAddressId,
+      saleQty,
+      discountId,
+      schemeId,
+      taxId,
+      skuId
+    } = input;
 
-      // Validate SalesOrderHeader exists
-      if (!salesOrderId) {
-        return { status: STATUSCODES.BAD_REQUEST, message: 'Sales Order ID is required' };
-      }
-
-      const salesOrderHeader = await this.salesOrderHeaderRepository.findOne({
-        where: { soId: salesOrderId, isDeleted: false }
-      });
-
-      if (!salesOrderHeader) {
-        return { status: STATUSCODES.NOT_FOUND, message: 'Sales Order Header not found' };
-      }
-
-      /* ---------- 1. Fetch SKU ---------- */
-      const sku = await this.skuRepository.findOne({ where: { skuId: skuId, isDeleted: false } });
-      if (!sku) {
-        return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid SKU' };
-      }
-
-       const basePrice = Number(sku.basePrice);
-      const uom = sku.vom;
-
-      const product = await this.products.findOne({where:{productId:productId,isDeleted:false}});
-      if(!product){
-        return {status:STATUSCODES.BAD_REQUEST,message:'Invalid Product'}
-      }
-
-
-     
-      // Fetch tax percentage from the database
-      const tax = await this.taxRepository.findOne({ where: { taxId: taxId } });
-      const taxPercent = tax ? Number(tax.taxPercentage) : 0;
-
-      /* ---------- 2. Fetch Discount ---------- */
-      let discountPercentage = 0;
-      if (discountId) {
-        const discount = await this.discountRepository.findOne({ where: { discountId: discountId } });
-        if (!discount) {
-          return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Discount' };
-        }
-        discountPercentage = Number(discount.discountPercentage);
-      }
-
-      /* ---------- 3. Calculations ---------- */
-      const amounts = calculateSalesOrderAmounts({
-        saleQty,
-        basePrice,
-        discountPercentage,
-        taxPercent
-      });
-
-      /* ---------- 4. Save DB ---------- */
-      const item = this.salesOrderItem.create({
-        salesOrder: { soId: salesOrderId } as any, // Link to SalesOrderHeader
-        product: { id: productId } as any,
-        sku: { skuId: skuId } as any,
-        shippingAddress: { id: shippingAddressId } as any,
-        saleQty,
-        basePrice,
-        uom,
-        discountPercentage,
-        scheme: schemeId ? ({ id: schemeId } as any) : undefined,
-        schemeId: schemeId,
-        tax: { taxId: taxId } as any,
-        taxPercentage: taxPercent,
-        ...amounts
-      });
-
-      const savedItem = await this.salesOrderItem.save(item);
-
-      /* ---------- 5. Update SalesOrderHeader Amounts ---------- */
-      await updateSalesOrderHeaderAmounts(salesOrderId);
-
+    /* ---------- Validate Sales Order ---------- */
+    if (!salesOrderId) {
       return {
-        status: STATUSCODES.SUCCESS,
-        message: 'Sales order item created successfully',
-        data: savedItem
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'Sales Order ID is required'
       };
-
-    } catch (error) {
-      throw error;
     }
-  };
+
+    const salesOrderHeader = await this.salesOrderHeaderRepository.findOne({
+      where: { soId: salesOrderId, isDeleted: false }
+    });
+
+    if (!salesOrderHeader) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: 'Sales Order Header not found'
+      };
+    }
+
+    /* ---------- Fetch SKU ---------- */
+    const sku = await this.skuRepository.findOne({
+      where: { skuId, isDeleted: false }
+    });
+
+    if (!sku) {
+      return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid SKU' };
+    }
+
+    const basePrice = Number(sku.basePrice);
+    const uom = sku.vom;
+
+    /* ---------- Fetch Product ---------- */
+    const product = await this.products.findOne({
+      where: { productId, isDeleted: false }
+    });
+
+    if (!product) {
+      return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Product' };
+    }
+
+    /* ---------- Fetch Shipping Address ---------- */
+    const shippingAddress = await this.shippingAddress.findOne({
+      where: { addressId: shippingAddressId, isDeleted: false }
+    });
+
+    if (!shippingAddress) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'Invalid Shipping Address'
+      };
+    }
+
+    /* ---------- Fetch Tax ---------- */
+    let tax;
+    let taxPercent = 0;
+
+    if (taxId) {
+      tax = await this.taxRepository.findOne({ where: { taxId } });
+
+      if (!tax) {
+        return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Tax' };
+      }
+
+      taxPercent = Number(tax.taxPercentage);
+    }
+
+    /* ---------- Fetch Discount ---------- */
+    let discount;
+    let discountPercentage = 0;
+
+    if (discountId) {
+      discount = await this.discountRepository.findOne({
+        where: { discountId }
+      });
+
+      if (!discount) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: 'Invalid Discount'
+        };
+      }
+
+      discountPercentage = Number(discount.discountPercentage);
+    }
+
+    /* ---------- Calculations ---------- */
+    const amounts = calculateSalesOrderAmounts({
+      saleQty,
+      basePrice,
+      discountPercentage,
+      taxPercent
+    });
+
+    /* ---------- Create Item ---------- */
+    const item = this.salesOrderItem.create({
+      salesOrder: salesOrderHeader,
+      product: product,
+      sku: sku,
+      shippingAddress: shippingAddress,
+      saleQty,
+      basePrice,
+      uom,
+      discountPercentage,
+      scheme: schemeId ? { id: schemeId } : undefined,
+      tax: tax,
+      taxPercentage: taxPercent,
+      discount: discount,
+      ...amounts
+    });
+
+    const savedItem = await this.salesOrderItem.save(item);
+
+    /* ---------- Update Header Amount ---------- */
+    await updateSalesOrderHeaderAmounts(salesOrderId);
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: 'Sales order item created successfully',
+      data: savedItem
+    };
+
+  } catch (error) {
+    throw error;
+  }
+}
 
  public async updateSalesOrderItem(
     input: UpdateSalesOrderItemDto,
