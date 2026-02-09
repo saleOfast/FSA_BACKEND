@@ -438,3 +438,24 @@ export enum customerZone{
   WEST = "WEST",
 
 }
+
+
+export enum BatchStatusEnum {
+  ACTIVE = "ACTIVE",
+  BLOCKED = "BLOCKED",
+  EXPIRED = "EXPIRED",
+  QUARANTINE = "QUARANTINE",
+}
+
+export enum QualityStatusEnum {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum StorageConditionEnum {
+  AMBIENT = "AMBIENT",
+  COLD_CHAIN = "COLD_CHAIN",
+  FROZEN = "FROZEN",
+}
+

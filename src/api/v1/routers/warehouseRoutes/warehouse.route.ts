@@ -58,21 +58,27 @@ router.get(
 );
 
 router.put(
-	'/update/:warehouseId',
-	validateDtoMiddleware(UpdateWarehouse),
-	AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
-	async (req: Request, res: Response) => {
-		try {
-			const input: UpdateWarehouse = RequestHandler.Defaults.getBody<UpdateWarehouse>(req, UpdateWarehouse);
-			const payload: IUser = RequestHandler.Custom.getUser(req);
-			const service = new WarehouseService();
-			const data = await service.update(input, payload);
-			ResponseHandler.sendResponse(res, data);
-		} catch (error) {
-			ResponseHandler.sendErrorResponse(res, error);
-		}
-	}
+  '/update/:warehouseId',
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  validateDtoMiddleware(UpdateWarehouse),
+  async (req: Request, res: Response) => {
+    try {
+      const input: UpdateWarehouse = {
+        ...req.body,
+        warehouseId: req.params.warehouseId, // ✅ string UUID
+      };
+
+      const payload = RequestHandler.Custom.getUser(req);
+      const service = new WarehouseService();
+
+      const data = await service.update(input, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
 );
+
 
 router.delete(
 	'/delete/:warehouseId',

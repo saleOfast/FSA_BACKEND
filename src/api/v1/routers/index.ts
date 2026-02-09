@@ -62,6 +62,7 @@ import {ShippingAddressRouter} from './ShippingAddressRoute/shippingAddress.rout
 import {taxRoute} from './TaxesRoute/tax.route'
 import {SalesOrderHeaderRoute} from './SalesOrderHeaderRoute/SalesOrderHeader.route'
 import { SalesOrderItemRoute } from "./SalesOrderItemRoute/SalesOrderItem.route";
+import { BatchRoute} from "./InventoryBatchRouter/InventoryBatchRoute";
 
 const router = express.Router();
 /* Auth ROutes */
@@ -130,5 +131,7 @@ router.use('/ShippingAddress',ShippingAddressRouter)
 router.use('/tax',taxRoute)
 router.use('/SalesOrderHeader',SalesOrderHeaderRoute)
 router.use('/SalesOrderItem',SalesOrderItemRoute)
+router.use('/Batch',BatchRoute)
+
 
 export { router as routes };

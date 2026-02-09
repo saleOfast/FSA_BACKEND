@@ -268,20 +268,48 @@ async list(
 
 
 
-	async update(input: UpdateWarehouse, payload: IUser): Promise<IApiResponse> {
-		const { warehouseId,...rest } = input;
-		const existing = await this.repo.findOne({ where: { warehouseId } });
-		if (!existing) {
-			return { status: STATUSCODES.NOT_FOUND, message: 'Warehouse not found.' };
-		}
-		const updatePayload: Partial<Warehouse> = {
-			...rest,
-			updatedAt: new Date(),
-		};
+async update(input: UpdateWarehouse, payload: IUser): Promise<IApiResponse> {
+  const { warehouseId, ...rest } = input;
 
-		await this.repo.createQueryBuilder().update(updatePayload).where({ warehouseId }).execute();
-		return { status: STATUSCODES.SUCCESS, message: 'Updated successfully.' };
-	}
+  const existing = await this.repo.findOne({
+    where: { warehouseId },
+  });
+
+  if (!existing) {
+    return {
+      status: STATUSCODES.NOT_FOUND,
+      message: 'Warehouse not found.',
+    };
+  }
+
+  // 1️⃣ Update
+  await this.repo.update(
+    { warehouseId },
+    {
+      ...rest,
+      updatedAt: new Date(),
+    }
+  );
+
+  // 2️⃣ Fetch updated data
+  const updatedWarehouse = await this.repo.findOne({
+    where: { warehouseId },
+    relations: [
+      'shippingCountry',
+      'shippingState',
+      'shippingDistrict',
+    ],
+  });
+
+  return {
+    status: STATUSCODES.SUCCESS,
+    message: 'Updated successfully.',
+    data: updatedWarehouse,
+  };
+}
+
+
+
 
 	async delete(input: DeleteWarehouseById): Promise<IApiResponse> {
 		const { warehouseId } = input;

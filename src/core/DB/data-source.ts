@@ -72,7 +72,7 @@ import { TabPermission } from './Entities/TabPermission.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
 import { Posm } from './Entities/posm.entity';
 import { Sku } from './Entities/sku.entity';
-
+import { Batch} from './Entities/inventoryBatch.entity';
 const dbConfig = config();
 const env = (dbConfig.environment || '').toLowerCase();
 const isLocal = env === 'local' || dbConfig.host === 'localhost' || dbConfig.host === '127.0.0.1';
@@ -96,7 +96,7 @@ export const AppDataSource = new DataSource({
 		UserLeave, LeaveApplication,
 		ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 		Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-		Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku
+		Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku,Batch
 	],
 	migrations: [path.join(__dirname, 'migrations', '*.ts')],
 	subscribers: [],
