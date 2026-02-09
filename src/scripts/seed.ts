@@ -52,15 +52,74 @@ import { NextActionOn } from '../core/DB/Entities/nextActionOn.entity';
 import { NewTarget } from '../core/DB/Entities/new.target.entity';
 import { Discount } from '../core/DB/Entities/discount.entity';
 import { Distributor } from '../core/DB/Entities/distributors.entity';
-import { UserRole, CallType, OrderStatus, PaymentStatus, StockLevelComparison, ExpenseReportClaimType, HolidayType, WorkplaceTypeEnum } from '../core/types/Constent/common';
+import { PriceBook } from '../core/DB/Entities/priceBook.entity';
+import { PriceBookItem } from '../core/DB/Entities/price_book_item.entity';
+import { ItemShippingAddress } from '../core/DB/Entities/shippingAddress.entity';
+import { Customer } from '../core/DB/Entities/customer.entity';
+import { CustomerType } from '../core/DB/Entities/customerType.entity';
+import { Country } from '../core/DB/Entities/country.entity';
+import { State } from '../core/DB/Entities/state.entity';
+import { District } from '../core/DB/Entities/district.entity';
+import { Sku } from '../core/DB/Entities/sku.entity';
+import { UserRole, CallType, OrderStatus, PaymentStatus, StockLevelComparison, ExpenseReportClaimType, HolidayType, WorkplaceTypeEnum, PriceBookType, PriceBookStatus, ApprovalStatus, Channel, CurrencyType, PriorityType, ItemType, UOM, TaxInclusive, Status as StatusEnum, PreferredDays } from '../core/types/Constent/common';
 
 type AnyRecord = Record<string, unknown>;
 
-async function upsertIfMissing<T extends ObjectLiteral>(repo: Repository<T>, findCriteria: AnyRecord, data: AnyRecord): Promise<void> {
+/**
+ * Upsert helper: Only inserts data if it doesn't already exist
+ * @param repo - Repository instance
+ * @param findCriteria - Criteria to check if record exists
+ * @param data - Data to insert if record doesn't exist
+ * @param entityName - Optional entity name for logging
+ */
+async function upsertIfMissing<T extends ObjectLiteral>(
+	repo: Repository<T>, 
+	findCriteria: AnyRecord, 
+	data: AnyRecord,
+	entityName?: string
+): Promise<void> {
 	const existing = await repo.findOne({ where: findCriteria as any });
 	if (!existing) {
 		await repo.save(repo.create(data as any));
+		if (entityName) {
+			console.log(`✅ Inserted ${entityName}:`, Object.values(findCriteria).join(', '));
+		}
+	} else {
+		if (entityName) {
+			console.log(`⏭️  Skipped ${entityName} (already exists):`, Object.values(findCriteria).join(', '));
+		}
 	}
+}
+
+/**
+ * Check if table has any data
+ * @param repo - Repository instance
+ * @returns true if table has data, false if empty
+ */
+async function tableHasData<T extends ObjectLiteral>(repo: Repository<T>): Promise<boolean> {
+	const count = await repo.count();
+	return count > 0;
+}
+
+/**
+ * Seed wrapper: Only seeds if table is empty
+ * @param repo - Repository instance
+ * @param tableName - Name of the table for logging
+ * @param seedFunction - Function to execute if table is empty
+ */
+async function seedIfTableEmpty<T extends ObjectLiteral>(
+	repo: Repository<T>,
+	tableName: string,
+	seedFunction: () => Promise<void>
+): Promise<void> {
+	const hasData = await tableHasData(repo);
+	if (hasData) {
+		console.log(`⏭️  Skipped ${tableName} (table already has data)`);
+		return;
+	}
+	console.log(`📝 Seeding ${tableName}...`);
+	await seedFunction();
+	console.log(`✅ Completed seeding ${tableName}`);
 }
 
 async function seedStatuses(ds: DataSource): Promise<void> {
@@ -71,7 +130,7 @@ async function seedStatuses(ds: DataSource): Promise<void> {
 		{ status_code: 'DELETED', status_name: 'Deleted', status: true }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { status_code: item.status_code }, item);
+		await upsertIfMissing(repo, { status_code: item.status_code }, item, 'Status');
 	}
 }
 
@@ -83,7 +142,7 @@ async function seedUserTypes(ds: DataSource): Promise<void> {
 		{ userTypeName: 'Employee', userTypeCode: 'EMP', status: true }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { userTypeCode: item.userTypeCode }, item);
+		await upsertIfMissing(repo, { userTypeCode: item.userTypeCode }, item, 'UserType');
 	}
 }
 
@@ -108,7 +167,7 @@ async function seedPaymentModes(ds: DataSource): Promise<void> {
 		{ name: 'Cheque', empId: 0, isDeleted: false }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { name: item.name }, item);
+		await upsertIfMissing(repo, { name: item.name }, item, 'PaymentMode');
 	}
 }
 
@@ -120,7 +179,7 @@ async function seedColours(ds: DataSource): Promise<void> {
 		{ name: 'Green', empId: 0, isDeleted: false }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { name: item.name }, item);
+		await upsertIfMissing(repo, { name: item.name }, item, 'Colour');
 	}
 }
 
@@ -132,7 +191,7 @@ async function seedSizes(ds: DataSource): Promise<void> {
 		{ name: 'Large', empId: 0, isDeleted: false }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { name: item.name }, item);
+		await upsertIfMissing(repo, { name: item.name }, item, 'Size');
 	}
 }
 
@@ -143,7 +202,7 @@ async function seedFeatures(ds: DataSource): Promise<void> {
 		{ key: 'ORDERS', name: 'Orders', empId: 0, isActive: true, isDeleted: false }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { key: item.key }, item);
+		await upsertIfMissing(repo, { key: item.key }, item, 'Feature');
 	}
 }
 
@@ -154,7 +213,7 @@ async function seedReasons(ds: DataSource): Promise<void> {
 		{ description: 'Owner not available', empId: 0, isDeleted: false }
 	];
 	for (const item of items) {
-		await upsertIfMissing(repo, { description: item.description }, item);
+		await upsertIfMissing(repo, { description: item.description }, item, 'Reason');
 	}
 }
 
@@ -167,7 +226,12 @@ async function seedStoreCategories(ds: DataSource): Promise<StoreCategory[]> {
     const saved: StoreCategory[] = [];
 	for (const item of items) {
         let row = await repo.findOne({ where: { categoryName: item.categoryName } });
-        if (!row) row = await repo.save(repo.create(item as any));
+        if (!row) {
+			row = await repo.save(repo.create(item as any));
+			console.log(`✅ Inserted StoreCategory: ${item.categoryName}`);
+		} else {
+			console.log(`⏭️  Skipped StoreCategory (already exists): ${item.categoryName}`);
+		}
         saved.push(row as StoreCategory);
 	}
 	return saved;
@@ -182,7 +246,12 @@ async function seedBrands(ds: DataSource): Promise<Brand[]> {
     const saved: Brand[] = [];
 	for (const item of items) {
         let row = await repo.findOne({ where: { name: item.name } });
-        if (!row) row = await repo.save(repo.create(item as any));
+        if (!row) {
+			row = await repo.save(repo.create(item as any));
+			console.log(`✅ Inserted Brand: ${item.name}`);
+		} else {
+			console.log(`⏭️  Skipped Brand (already exists): ${item.name}`);
+		}
         saved.push(row as Brand);
 	}
 	return saved;
@@ -197,7 +266,12 @@ async function seedProductCategories(ds: DataSource): Promise<ProductCategory[]>
     const saved: ProductCategory[] = [];
 	for (const item of items) {
         let row = await repo.findOne({ where: { name: item.name } });
-        if (!row) row = await repo.save(repo.create(item as any));
+        if (!row) {
+			row = await repo.save(repo.create(item as any));
+			console.log(`✅ Inserted ProductCategory: ${item.name}`);
+		} else {
+			console.log(`⏭️  Skipped ProductCategory (already exists): ${item.name}`);
+		}
         saved.push(row as ProductCategory);
 	}
 	return saved;
@@ -220,7 +294,12 @@ async function seedUsers(ds: DataSource): Promise<User[]> {
     const saved: User[] = [];
 	for (const u of users) {
         let row = await repo.findOne({ where: { email: u.email as string } });
-        if (!row) row = await repo.save(repo.create(u as any));
+        if (!row) {
+			row = await repo.save(repo.create(u as any));
+			console.log(`✅ Inserted User: ${u.email}`);
+		} else {
+			console.log(`⏭️  Skipped User (already exists): ${u.email}`);
+		}
         saved.push(row as User);
 	}
 	return saved;
@@ -240,7 +319,12 @@ async function seedStores(ds: DataSource, users: User[], categories: StoreCatego
     const saved: Stores[] = [];
 	for (const item of items) {
         let row = await repo.findOne({ where: { storeName: item.storeName as string } });
-        if (!row) row = await repo.save(repo.create(item as any));
+        if (!row) {
+			row = await repo.save(repo.create(item as any));
+			console.log(`✅ Inserted Store: ${item.storeName}`);
+		} else {
+			console.log(`⏭️  Skipped Store (already exists): ${item.storeName}`);
+		}
         saved.push(row as Stores);
 	}
 	return saved;
@@ -259,7 +343,12 @@ async function seedProducts(ds: DataSource, brands: Brand[], categories: Product
     const saved: Products[] = [];
 	for (const item of items) {
         let row = await repo.findOne({ where: { productName: item.productName as string } });
-        if (!row) row = await repo.save(repo.create(item as any));
+        if (!row) {
+			row = await repo.save(repo.create(item as any));
+			console.log(`✅ Inserted Product: ${item.productName}`);
+		} else {
+			console.log(`⏭️  Skipped Product (already exists): ${item.productName}`);
+		}
         saved.push(row as Products);
 	}
 	return saved;
@@ -280,6 +369,9 @@ async function seedVisits(ds: DataSource, user: User, store: Stores): Promise<Vi
 			empId: user.emp_id, beat: 1, store: [store.storeId], storeId: store.storeId,
 			visitDate: new Date(), status: 1 as any, isCallType: CallType.PHYSICAL
 		} as any));
+		console.log(`✅ Inserted Visit for User ${user.emp_id} and Store ${store.storeId}`);
+	} else {
+		console.log(`⏭️  Skipped Visit (already exists) for User ${user.emp_id} and Store ${store.storeId}`);
 	}
     return row as Visits;
 }
@@ -309,6 +401,9 @@ async function seedOrders(ds: DataSource, user: User, store: Stores, product: Pr
 			paymentStatus: PaymentStatus.PENDING, netAmount: 900, totalDiscountAmount: 100, orderStatus: OrderStatus.ORDERSAVED,
 			statusHistory: []
 		} as any));
+		console.log(`✅ Inserted Order for User ${user.emp_id} and Store ${store.storeId}`);
+	} else {
+		console.log(`⏭️  Skipped Order (already exists) for User ${user.emp_id} and Store ${store.storeId}`);
 	}
     return row as Orders;
 }
@@ -323,9 +418,9 @@ async function seedPayments(ds: DataSource, user: User, order: Orders): Promise<
 
 async function seedCollections(ds: DataSource, order: Orders, store: Stores): Promise<void> {
 	const repo = ds.getRepository(Collection);
-	await upsertIfMissing(repo, { orderId: order.orderId }, {
-		orderId: order.orderId, storeId: store.storeId, orderAmount: 1000, collectedAmount: 900, pendingAmount: 100
-	});
+		await upsertIfMissing(repo, { orderId: order.orderId }, {
+			orderId: order.orderId, storeId: store.storeId, orderAmount: 1000, collectedAmount: 900, pendingAmount: 100
+		}, `Collection (OrderId: ${order.orderId})`);
 }
 
 async function seedCollectAmounts(ds: DataSource, order: Orders): Promise<void> {
@@ -445,9 +540,16 @@ async function seedOutletInventory(ds: DataSource): Promise<void> {
 
 async function seedTaxes(ds: DataSource, user: User): Promise<void> {
 	const repo = ds.getRepository(Taxes);
-	await upsertIfMissing(repo, { taxName: 'GST 18%' }, {
-		taxName: 'GST 18%', taxAmount: 18, description: 'Goods and Services Tax', addedBy: user.emp_id, status: true
-	});
+	const taxes = [
+		{ taxName: 'GST 18%', taxAmount: 18, description: 'Goods and Services Tax 18%', addedBy: user.emp_id, status: true },
+		{ taxName: 'GST 12%', taxAmount: 12, description: 'Goods and Services Tax 12%', addedBy: user.emp_id, status: true },
+		{ taxName: 'GST 5%', taxAmount: 5, description: 'Goods and Services Tax 5%', addedBy: user.emp_id, status: true },
+		{ taxName: 'CGST 9%', taxAmount: 9, description: 'Central Goods and Services Tax', addedBy: user.emp_id, status: true },
+		{ taxName: 'SGST 9%', taxAmount: 9, description: 'State Goods and Services Tax', addedBy: user.emp_id, status: true }
+	];
+	for (const tax of taxes) {
+		await upsertIfMissing(repo, { taxName: tax.taxName }, tax, 'Tax');
+	}
 }
 
 async function seedEdetailing(ds: DataSource): Promise<void> {
@@ -483,81 +585,637 @@ async function seedDistributors(ds: DataSource): Promise<void> {
 	await upsertIfMissing(repo, { distributorName: 'Default Distributor' }, { distributorName: 'Default Distributor', type: 'Regional', address: 'Address', isActive: true });
 }
 
+async function seedCustomers(ds: DataSource, user: User): Promise<Customer[]> {
+	const repo = ds.getRepository(Customer);
+	const customers: Array<Partial<Customer>> = [
+		{
+			customerName: 'ABC Retail Store',
+			customerType: 'Retailer',
+			channelType: 'GT',
+			phone: '9876543210',
+			email: 'abc@retail.com',
+			accountOwnerId: user.emp_id,
+			category: 'A',
+			billingCountry: 'India',
+			billingState: 'Delhi',
+			billingDistrict: 'Central',
+			billingStreet: '123 Main St',
+			billingCity: 'New Delhi',
+			billingPinCode: '110001',
+			shippingCountry: 'India',
+			shippingState: 'Delhi',
+			shippingDistrict: 'Central',
+			shippingStreet: '123 Main St',
+			shippingCity: 'New Delhi',
+			shippingPinCode: '110001',
+			deliveryTimeSlot: '10:00-18:00',
+			paymentTerms: 'Net 30',
+			creditLimit: 100000,
+			isDeleted: false
+		}
+	];
+	const saved: Customer[] = [];
+	for (const customer of customers) {
+		let row = await repo.findOne({ where: { customerName: customer.customerName as string } });
+		if (!row) {
+			row = await repo.save(repo.create(customer as any));
+			console.log(`✅ Inserted Customer: ${customer.customerName}`);
+		} else {
+			console.log(`⏭️  Skipped Customer (already exists): ${customer.customerName}`);
+		}
+		saved.push(row as Customer);
+	}
+	return saved;
+}
+
+async function seedSkus(ds: DataSource, product: Products): Promise<Sku[]> {
+	const repo = ds.getRepository(Sku);
+	const skus: Array<Partial<Sku>> = [
+		{
+			skuName: 'Paracetamol 500mg Tablet',
+			productId: product.productId,
+			barcode: '1234567890123',
+			mrp: 100,
+			basePrice: 90,
+			status: 'active' as any,
+			isDeleted: false
+		},
+		{
+			skuName: 'Paracetamol 500mg Strip',
+			productId: product.productId,
+			barcode: '1234567890124',
+			mrp: 200,
+			basePrice: 180,
+			status: 'active' as any,
+			isDeleted: false
+		}
+	];
+	const saved: Sku[] = [];
+	for (const sku of skus) {
+		let row = await repo.findOne({ where: { skuName: sku.skuName as string, productId: sku.productId } });
+		if (!row) {
+			row = await repo.save(repo.create(sku as any));
+			console.log(`✅ Inserted SKU: ${sku.skuName}`);
+		} else {
+			console.log(`⏭️  Skipped SKU (already exists): ${sku.skuName}`);
+		}
+		saved.push(row as Sku);
+	}
+	return saved;
+}
+
+async function seedCountries(ds: DataSource): Promise<Country[]> {
+	const repo = ds.getRepository(Country);
+	const countries: Array<Partial<Country>> = [
+		{ countryName: 'India', countryCode: 'IN', isActive: true, isDeleted: false }
+	];
+	const saved: Country[] = [];
+	for (const country of countries) {
+		let row = await repo.findOne({ where: { countryCode: country.countryCode as string } });
+		if (!row) {
+			row = await repo.save(repo.create(country as any));
+			console.log(`✅ Inserted Country: ${country.countryName}`);
+		} else {
+			console.log(`⏭️  Skipped Country (already exists): ${country.countryName}`);
+		}
+		saved.push(row as Country);
+	}
+	return saved;
+}
+
+async function seedStates(ds: DataSource, country: Country): Promise<State[]> {
+	const repo = ds.getRepository(State);
+	const states: Array<Partial<State>> = [
+		{ stateName: 'Delhi', stateCode: 'DL', countryId: country.countryId, isActive: true, isDeleted: false },
+		{ stateName: 'Maharashtra', stateCode: 'MH', countryId: country.countryId, isActive: true, isDeleted: false }
+	];
+	const saved: State[] = [];
+	for (const state of states) {
+		let row = await repo.findOne({ where: { stateCode: state.stateCode as string } });
+		if (!row) {
+			row = await repo.save(repo.create(state as any));
+			console.log(`✅ Inserted State: ${state.stateName}`);
+		} else {
+			console.log(`⏭️  Skipped State (already exists): ${state.stateName}`);
+		}
+		saved.push(row as State);
+	}
+	return saved;
+}
+
+async function seedDistricts(ds: DataSource, state: State): Promise<District[]> {
+	const repo = ds.getRepository(District);
+	const districts: Array<Partial<District>> = [
+		{ districtName: 'Central', stateId: state.stateId, isActive: true, isDeleted: false },
+		{ districtName: 'North', stateId: state.stateId, isActive: true, isDeleted: false }
+	];
+	const saved: District[] = [];
+	for (const district of districts) {
+		let row = await repo.findOne({ where: { districtName: district.districtName as string, stateId: district.stateId } });
+		if (!row) {
+			row = await repo.save(repo.create(district as any));
+			console.log(`✅ Inserted District: ${district.districtName}`);
+		} else {
+			console.log(`⏭️  Skipped District (already exists): ${district.districtName}`);
+		}
+		saved.push(row as District);
+	}
+	return saved;
+}
+
+async function seedPriceBooks(ds: DataSource, user: User, customer: Customer, country: Country, state: State, district: District): Promise<PriceBook[]> {
+	const repo = ds.getRepository(PriceBook);
+	const priceBooks: Array<Partial<PriceBook>> = [
+		{
+			priceBookCode: 'PB001',
+			priceBookName: 'Standard Trade Price Book',
+			priceBookType: PriceBookType.TRADE,
+			Channel: Channel.GT,
+			currency: CurrencyType.INR,
+			priority: PriorityType.MEDIUM,
+			effectiveFrom: new Date(),
+			effectiveTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+			version: 1,
+			status: PriceBookStatus.ACTIVE,
+			approvalStatus: ApprovalStatus.APPROVED,
+			createdBy: user.emp_id,
+			isDeleted: false
+		},
+		{
+			priceBookCode: 'PB002',
+			priceBookName: 'MRP Price Book',
+			priceBookType: PriceBookType.MRP,
+			Channel: Channel.MT,
+			currency: CurrencyType.INR,
+			priority: PriorityType.HIGH,
+			effectiveFrom: new Date(),
+			effectiveTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+			version: 1,
+			status: PriceBookStatus.DRAFT,
+			approvalStatus: ApprovalStatus.PENDING,
+			createdBy: user.emp_id,
+			isDeleted: false
+		}
+	];
+	const saved: PriceBook[] = [];
+	for (const pb of priceBooks) {
+		let row = await repo.findOne({ where: { priceBookCode: pb.priceBookCode as string } });
+		if (!row) {
+			row = await repo.save(repo.create(pb as any));
+			console.log(`✅ Inserted PriceBook: ${pb.priceBookCode} - ${pb.priceBookName}`);
+		} else {
+			console.log(`⏭️  Skipped PriceBook (already exists): ${pb.priceBookCode} - ${pb.priceBookName}`);
+		}
+		saved.push(row as PriceBook);
+	}
+	return saved;
+}
+
+async function seedPriceBookItems(ds: DataSource, priceBook: PriceBook, sku: Sku): Promise<void> {
+	const repo = ds.getRepository(PriceBookItem);
+	const items = [
+		{
+			priceBookId: priceBook.priceBookId,
+			skuId: sku.skuId,
+			itemType: ItemType.SKU,
+			uom: UOM.PC,
+			basePrice: 90,
+			minPrice: 85,
+			maxPrice: 95,
+			allowDiscount: true,
+			maxDiscountPct: 10,
+			slabFromQty: 1,
+			slabToQty: 100,
+			taxInclusive: TaxInclusive.EXCLUSIVE,
+			status: StatusEnum.ACTIVE,
+			isDeleted: false
+		},
+		{
+			priceBookId: priceBook.priceBookId,
+			skuId: sku.skuId,
+			itemType: ItemType.SKU,
+			uom: UOM.CASE,
+			basePrice: 900,
+			minPrice: 850,
+			maxPrice: 950,
+			allowDiscount: true,
+			maxDiscountPct: 15,
+			slabFromQty: 10,
+			slabToQty: 50,
+			taxInclusive: TaxInclusive.EXCLUSIVE,
+			status: StatusEnum.ACTIVE,
+			isDeleted: false
+		}
+	];
+	for (const item of items) {
+		await upsertIfMissing(repo, { priceBookId: item.priceBookId, skuId: item.skuId, uom: item.uom }, item, `PriceBookItem (PB:${item.priceBookId}, SKU:${item.skuId}, UOM:${item.uom})`);
+	}
+}
+
+async function seedShippingAddresses(ds: DataSource, customer: Customer, country: Country, state: State, district: District): Promise<void> {
+	const repo = ds.getRepository(ItemShippingAddress);
+	const addresses = [
+		{
+			customerId: customer.customerId,
+			shippingCountryId: country.countryId,
+			shippingStateId: state.stateId,
+			shippingDistrictId: district.districtId,
+			shippingStreet: '456 Shipping St',
+			shippingCity: 'New Delhi',
+			shippingPinCode: '110002',
+			deliveryTimeSlot: '10:00-18:00',
+			preferredDays: PreferredDays.MONDAY,
+			receiverName: 'John Doe',
+			receiverContactNo: '9876543210',
+			isDeleted: false
+		},
+		{
+			customerId: customer.customerId,
+			shippingCountryId: country.countryId,
+			shippingStateId: state.stateId,
+			shippingDistrictId: district.districtId,
+			shippingStreet: '789 Warehouse St',
+			shippingCity: 'New Delhi',
+			shippingPinCode: '110003',
+			deliveryTimeSlot: '09:00-17:00',
+			preferredDays: PreferredDays.WEDNESDAY,
+			receiverName: 'Jane Smith',
+			receiverContactNo: '9876543211',
+			isDeleted: false
+		}
+	];
+	for (const address of addresses) {
+		await upsertIfMissing(repo, { customerId: address.customerId, shippingStreet: address.shippingStreet }, address, `ShippingAddress (${address.shippingStreet})`);
+	}
+}
+
+/**
+ * Seed only new entities (PriceBook, PriceBookItem, ItemShippingAddress)
+ * This can be run independently even if other data exists
+ */
+async function seedNewEntitiesOnly(ds: DataSource): Promise<void> {
+	console.log('\n📦 Seeding NEW entities only: PriceBook, PriceBookItem, ItemShippingAddress...');
+	
+	// Get existing data (users, products) - required dependencies
+	const users = await ds.getRepository(User).find({ take: 1 });
+	if (users.length === 0) {
+		console.error('❌ Error: No users found. Please run full seed first or seed users.');
+		return;
+	}
+	const owner = users[0];
+	
+	const products = await ds.getRepository(Products).find({ take: 1 });
+	if (products.length === 0) {
+		console.error('❌ Error: No products found. Please run full seed first or seed products.');
+		return;
+	}
+	const product = products[0];
+	
+	// Geography data for PriceBook and ShippingAddress
+	console.log('🌍 Seeding geography data (Country, State, District)...');
+	const countries = await seedCountries(ds);
+	const country = countries[0];
+	const states = await seedStates(ds, country);
+	const state = states[0];
+	const districts = await seedDistricts(ds, state);
+	const district = districts[0];
+
+	// Customers and SKUs for PriceBook
+	console.log('👥 Seeding Customers and SKUs...');
+	const customers = await seedCustomers(ds, owner);
+	const customer = customers[0];
+	const skus = await seedSkus(ds, product);
+	const sku = skus[0];
+
+	// PriceBook and related entities
+	console.log('📚 Seeding PriceBooks...');
+	const priceBooks = await seedPriceBooks(ds, owner, customer, country, state, district);
+	const priceBook = priceBooks[0];
+	
+	console.log('📋 Seeding PriceBookItems...');
+	await seedPriceBookItems(ds, priceBook, sku);
+	
+	console.log('🚚 Seeding ShippingAddresses...');
+	await seedShippingAddresses(ds, customer, country, state, district);
+	
+	console.log('✅ New entities seeding completed!\n');
+}
+
 async function main(): Promise<void> {
 	console.log('Starting database seed...');
+	console.log('📋 This script will check each table and insert data only if table is empty.\n');
 	const ds = await DbConnections.AppDbConnection.initialize();
 	try {
-		// Global guard: skip seeding if data already exists unless FORCE_SEED=true
-		const forceSeed = String(process.env.FORCE_SEED || '').toLowerCase() === 'true';
-		const existingUsers = await ds.getRepository(User).count();
-		if (!forceSeed && existingUsers > 0) {
-			console.log('Seed skipped: existing data detected (users > 0). Set FORCE_SEED=true to override.');
+		// Check if we should seed only new entities
+		const seedNewOnly = String(process.env.SEED_NEW_ONLY || '').toLowerCase() === 'true';
+		if (seedNewOnly) {
+			await seedNewEntitiesOnly(ds);
 			return;
 		}
+		
+		// Check if FORCE_SEED is enabled (will reseed even if data exists)
+		const forceSeed = String(process.env.FORCE_SEED || '').toLowerCase() === 'true';
+		if (forceSeed) {
+			console.log('⚠️  FORCE_SEED=true: Will check and insert data for all tables (may skip if already exists).\n');
+		} else {
+			console.log('ℹ️  Running in safe mode: Each table will be checked individually.\n');
+		}
 
-		// Lookup / config
-		await seedStatuses(ds);
-		await seedUserTypes(ds);
-		await seedRoles(ds);
-		await seedPaymentModes(ds);
-		await seedColours(ds);
-		await seedSizes(ds);
-		await seedFeatures(ds);
-		await seedReasons(ds);
-		await seedActivityConfigs(ds);
+		// Lookup / config tables - check each individually
+		await seedIfTableEmpty(ds.getRepository(Status), 'Status', () => seedStatuses(ds));
+		await seedIfTableEmpty(ds.getRepository(UserTypes), 'UserTypes', () => seedUserTypes(ds));
+		await seedIfTableEmpty(ds.getRepository(Role), 'Role', () => seedRoles(ds));
+		await seedIfTableEmpty(ds.getRepository(PaymentMode), 'PaymentMode', () => seedPaymentModes(ds));
+		await seedIfTableEmpty(ds.getRepository(Colour), 'Colour', () => seedColours(ds));
+		await seedIfTableEmpty(ds.getRepository(Size), 'Size', () => seedSizes(ds));
+		await seedIfTableEmpty(ds.getRepository(Feature), 'Feature', () => seedFeatures(ds));
+		await seedIfTableEmpty(ds.getRepository(Reason), 'Reason', () => seedReasons(ds));
+		await seedIfTableEmpty(ds.getRepository(ActivityRelTo), 'ActivityRelTo', () => seedActivityConfigs(ds));
 
-		// Hierarchical catalog data
-		const storeCategories = await seedStoreCategories(ds);
-		const brands = await seedBrands(ds);
-		const productCategories = await seedProductCategories(ds);
+		// Hierarchical catalog data - need to get results for dependencies
+		let storeCategories: StoreCategory[] = [];
+		if (!(await tableHasData(ds.getRepository(StoreCategory)))) {
+			storeCategories = await seedStoreCategories(ds);
+		} else {
+			console.log('⏭️  Skipped StoreCategory (table already has data)');
+			storeCategories = await ds.getRepository(StoreCategory).find({ take: 2 });
+		}
+
+		let brands: Brand[] = [];
+		if (!(await tableHasData(ds.getRepository(Brand)))) {
+			brands = await seedBrands(ds);
+		} else {
+			console.log('⏭️  Skipped Brand (table already has data)');
+			brands = await ds.getRepository(Brand).find({ take: 2 });
+		}
+
+		let productCategories: ProductCategory[] = [];
+		if (!(await tableHasData(ds.getRepository(ProductCategory)))) {
+			productCategories = await seedProductCategories(ds);
+		} else {
+			console.log('⏭️  Skipped ProductCategory (table already has data)');
+			productCategories = await ds.getRepository(ProductCategory).find({ take: 2 });
+		}
 
 		// Users and org-dependent
-		const users = await seedUsers(ds);
+		let users: User[] = [];
+		if (!(await tableHasData(ds.getRepository(User)))) {
+			users = await seedUsers(ds);
+		} else {
+			console.log('⏭️  Skipped User (table already has data)');
+			users = await ds.getRepository(User).find({ take: 2 });
+		}
 		const owner = users[1] || users[0];
+		if (!owner) {
+			console.error('❌ Error: No users found. Cannot seed dependent tables.');
+		}
 
 		// Stores and products
-		const stores = await seedStores(ds, users, storeCategories);
+		let stores: Stores[] = [];
+		if (!(await tableHasData(ds.getRepository(Stores)))) {
+			stores = await seedStores(ds, users, storeCategories);
+		} else {
+			console.log('⏭️  Skipped Stores (table already has data)');
+			stores = await ds.getRepository(Stores).find({ take: 1 });
+		}
 		const store = stores[0];
-		const products = await seedProducts(ds, brands, productCategories);
+
+		let products: Products[] = [];
+		if (!(await tableHasData(ds.getRepository(Products)))) {
+			products = await seedProducts(ds, brands, productCategories);
+		} else {
+			console.log('⏭️  Skipped Products (table already has data)');
+			products = await ds.getRepository(Products).find({ take: 1 });
+		}
 		const product = products[0];
 
-		// Operational data
-		await seedInventory(ds, store, product);
-		await seedBeat(ds, owner, store);
-		await seedActivities(ds, owner, store, product);
-		const visit = await seedVisits(ds, owner, store);
-		const order = await seedOrders(ds, owner, store, product);
-		await seedPayments(ds, owner, order);
-		await seedCollections(ds, order, store);
-		await seedCollectAmounts(ds, order);
-		await seedCollectPayments(ds, order);
+		// Operational data - check each table
+		if (store && product) {
+			await seedIfTableEmpty(ds.getRepository(Inventory), 'Inventory', () => seedInventory(ds, store, product));
+			await seedIfTableEmpty(ds.getRepository(Beat), 'Beat', () => seedBeat(ds, owner, store));
+			await seedIfTableEmpty(ds.getRepository(Activities), 'Activities', () => seedActivities(ds, owner, store, product));
+			
+			let visit: Visits | undefined;
+			if (!(await tableHasData(ds.getRepository(Visits)))) {
+				visit = await seedVisits(ds, owner, store);
+			} else {
+				console.log('⏭️  Skipped Visits (table already has data)');
+			}
+
+			let order: Orders | undefined;
+			if (!(await tableHasData(ds.getRepository(Orders)))) {
+				order = await seedOrders(ds, owner, store, product);
+			} else {
+				console.log('⏭️  Skipped Orders (table already has data)');
+				order = await ds.getRepository(Orders).findOne({ where: {} });
+			}
+
+			if (order) {
+				await seedIfTableEmpty(ds.getRepository(Payment), 'Payment', () => seedPayments(ds, owner, order!));
+				await seedIfTableEmpty(ds.getRepository(Collection), 'Collection', () => seedCollections(ds, order!, store));
+				await seedIfTableEmpty(ds.getRepository(CollectAmount), 'CollectAmount', () => seedCollectAmounts(ds, order!));
+				await seedIfTableEmpty(ds.getRepository(CollectPayment), 'CollectPayment', () => seedCollectPayments(ds, order!));
+			}
+		}
 
 		// HR and leave
-		await seedPolicy(ds);
-		await seedLeaves(ds, owner);
-		await seedHoliday(ds, owner);
+		await seedIfTableEmpty(ds.getRepository(PolicyHead), 'PolicyHead', () => seedPolicy(ds));
+		if (owner) {
+			await seedIfTableEmpty(ds.getRepository(LeaveHead), 'LeaveHead', () => seedLeaves(ds, owner));
+			await seedIfTableEmpty(ds.getRepository(Holiday), 'Holiday', () => seedHoliday(ds, owner));
+		}
 
 		// Competition and market
-		const competitor = await seedCompetitorBrand(ds);
-		await seedRCPAEntry(ds, owner, store, product, competitor);
+		let competitor: CompetitorBrand | undefined;
+		if (!(await tableHasData(ds.getRepository(CompetitorBrand)))) {
+			competitor = await seedCompetitorBrand(ds);
+		} else {
+			console.log('⏭️  Skipped CompetitorBrand (table already has data)');
+			competitor = await ds.getRepository(CompetitorBrand).findOne({ where: {} });
+		}
+
+		if (owner && store && product && competitor) {
+			await seedIfTableEmpty(ds.getRepository(RCPA), 'RCPA', () => seedRCPAEntry(ds, owner, store, product, competitor!));
+		}
 
 		// Learning
-		await seedLearning(ds, owner, product);
+		if (owner && product) {
+			await seedIfTableEmpty(ds.getRepository(Course), 'Course', () => seedLearning(ds, owner, product));
+		}
 
 		// Feedback, samples, gifts
-		await seedFeedback(ds, owner, store, product);
-		await seedSamples(ds, owner, store, product);
-		await seedGifts(ds, owner, store, product);
+		if (owner && store && product) {
+			await seedIfTableEmpty(ds.getRepository(FeedBack), 'FeedBack', () => seedFeedback(ds, owner, store, product));
+			await seedIfTableEmpty(ds.getRepository(Samples), 'Samples', () => seedSamples(ds, owner, store, product));
+			await seedIfTableEmpty(ds.getRepository(Gifts), 'Gifts', () => seedGifts(ds, owner, store, product));
+		}
 
 		// Misc
-		await seedWorkplace(ds, owner, store);
-		await seedOutletInventory(ds);
-		await seedTaxes(ds, owner);
-		await seedEdetailing(ds);
-		await seedTargets(ds, owner);
-		await seedDiscounts(ds);
-		await seedDistributors(ds);
-		console.log('Seeding completed successfully.');
+		if (owner && store) {
+			await seedIfTableEmpty(ds.getRepository(Workplace), 'Workplace', () => seedWorkplace(ds, owner, store));
+		}
+		await seedIfTableEmpty(ds.getRepository(OutletInventory), 'OutletInventory', () => seedOutletInventory(ds));
+		if (owner) {
+			await seedIfTableEmpty(ds.getRepository(Taxes), 'Taxes', () => seedTaxes(ds, owner));
+		}
+		await seedIfTableEmpty(ds.getRepository(Edetailing), 'Edetailing', () => seedEdetailing(ds));
+		if (owner) {
+			await seedIfTableEmpty(ds.getRepository(NewTarget), 'NewTarget', () => seedTargets(ds, owner));
+		}
+		await seedIfTableEmpty(ds.getRepository(Discount), 'Discount', () => seedDiscounts(ds));
+		await seedIfTableEmpty(ds.getRepository(Distributor), 'Distributor', () => seedDistributors(ds));
+
+		// ============================================
+		// NEW ENTITIES: PriceBook, PriceBookItem, ItemShippingAddress
+		// ============================================
+		console.log('\n📦 Checking new entities: PriceBook, PriceBookItem, ItemShippingAddress...');
+		
+		// Check and seed PriceBook dependencies first
+		let countries: Country[] = [];
+		if (!(await tableHasData(ds.getRepository(Country)))) {
+			countries = await seedCountries(ds);
+		} else {
+			console.log('⏭️  Skipped Country (table already has data)');
+			countries = await ds.getRepository(Country).find({ take: 1 });
+		}
+		const country = countries.length > 0 ? countries[0] : undefined;
+		if (!country) {
+			console.error('❌ Error: No country found. Seeding Country...');
+			countries = await seedCountries(ds);
+			if (countries.length > 0) {
+				console.log('✅ Country seeded successfully');
+			}
+		}
+
+		let states: State[] = [];
+		if (country) {
+			if (!(await tableHasData(ds.getRepository(State)))) {
+				states = await seedStates(ds, country);
+			} else {
+				console.log('⏭️  Skipped State (table already has data)');
+				states = await ds.getRepository(State).find({ take: 1 });
+			}
+		}
+		const state = states.length > 0 ? states[0] : undefined;
+		if (!state && country) {
+			console.error('❌ Error: No state found. Seeding State...');
+			states = await seedStates(ds, country);
+			if (states.length > 0) {
+				console.log('✅ State seeded successfully');
+			}
+		}
+
+		let districts: District[] = [];
+		if (state) {
+			if (!(await tableHasData(ds.getRepository(District)))) {
+				districts = await seedDistricts(ds, state);
+			} else {
+				console.log('⏭️  Skipped District (table already has data)');
+				districts = await ds.getRepository(District).find({ take: 1 });
+			}
+		}
+		const district = districts.length > 0 ? districts[0] : undefined;
+		if (!district && state) {
+			console.error('❌ Error: No district found. Seeding District...');
+			districts = await seedDistricts(ds, state);
+			if (districts.length > 0) {
+				console.log('✅ District seeded successfully');
+			}
+		}
+
+		// Check and seed Customers
+		let customers: Customer[] = [];
+		if (!owner) {
+			console.error('❌ Error: Owner (User) is required for Customer seeding');
+		} else {
+			if (!(await tableHasData(ds.getRepository(Customer)))) {
+				customers = await seedCustomers(ds, owner);
+			} else {
+				console.log('⏭️  Skipped Customer (table already has data)');
+				customers = await ds.getRepository(Customer).find({ take: 1 });
+			}
+		}
+		const customer = customers.length > 0 ? customers[0] : undefined;
+		if (!customer && owner) {
+			console.error('❌ Error: No customer found. Seeding Customer...');
+			customers = await seedCustomers(ds, owner);
+			if (customers.length > 0) {
+				console.log('✅ Customer seeded successfully');
+			}
+		}
+
+		// Check and seed SKUs
+		let skus: Sku[] = [];
+		if (!product) {
+			console.error('❌ Error: Product is required for SKU seeding');
+		} else {
+			if (!(await tableHasData(ds.getRepository(Sku)))) {
+				skus = await seedSkus(ds, product);
+			} else {
+				console.log('⏭️  Skipped Sku (table already has data)');
+				skus = await ds.getRepository(Sku).find({ take: 1 });
+			}
+		}
+		const sku = skus.length > 0 ? skus[0] : undefined;
+		if (!sku && product) {
+			console.error('❌ Error: No SKU found. Seeding SKU...');
+			skus = await seedSkus(ds, product);
+			if (skus.length > 0) {
+				console.log('✅ SKU seeded successfully');
+			}
+		}
+
+		// Check PriceBook
+		let priceBooks: PriceBook[] = [];
+		if (!owner) {
+			console.error('❌ Cannot seed PriceBook: Owner (User) is missing');
+		} else if (!customer) {
+			console.error('❌ Cannot seed PriceBook: Customer is missing');
+		} else if (!country) {
+			console.error('❌ Cannot seed PriceBook: Country is missing');
+		} else if (!state) {
+			console.error('❌ Cannot seed PriceBook: State is missing');
+		} else if (!district) {
+			console.error('❌ Cannot seed PriceBook: District is missing');
+		} else {
+			if (!(await tableHasData(ds.getRepository(PriceBook)))) {
+				console.log('📝 Seeding PriceBook...');
+				priceBooks = await seedPriceBooks(ds, owner, customer, country, state, district);
+				console.log('✅ Completed seeding PriceBook');
+			} else {
+				console.log('⏭️  Skipped PriceBook (table already has data)');
+				priceBooks = await ds.getRepository(PriceBook).find({ take: 1 });
+			}
+		}
+		const priceBook = priceBooks[0];
+
+		// Check PriceBookItem
+		if (!priceBook) {
+			console.error('❌ Cannot seed PriceBookItem: PriceBook is missing');
+		} else if (!sku) {
+			console.error('❌ Cannot seed PriceBookItem: SKU is missing');
+		} else {
+			await seedIfTableEmpty(ds.getRepository(PriceBookItem), 'PriceBookItem', () => 
+				seedPriceBookItems(ds, priceBook, sku)
+			);
+		}
+
+		// Check ItemShippingAddress
+		if (!customer) {
+			console.error('❌ Cannot seed ItemShippingAddress: Customer is missing');
+		} else if (!country) {
+			console.error('❌ Cannot seed ItemShippingAddress: Country is missing');
+		} else if (!state) {
+			console.error('❌ Cannot seed ItemShippingAddress: State is missing');
+		} else if (!district) {
+			console.error('❌ Cannot seed ItemShippingAddress: District is missing');
+		} else {
+			await seedIfTableEmpty(ds.getRepository(ItemShippingAddress), 'ItemShippingAddress', () => 
+				seedShippingAddresses(ds, customer, country, state, district)
+			);
+		}
+		
+		console.log('\n🎉 Seeding completed successfully.');
 	} catch (err) {
 		console.error('Seeding failed:', err);
 		process.exitCode = 1;
