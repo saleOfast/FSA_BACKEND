@@ -146,8 +146,7 @@ export class UpdateInventoryBatchDto {
   inspectionRef?: string;
 }
 export class DeleteInventoryBatchByIdDto {
-
-  @IsNotEmpty()
+  @Type(() => Number)   // ⭐ convert string → number
   @IsInt()
   batchId: number;
 }
@@ -232,8 +231,7 @@ export class GetInventoryBatchListDto {
 }
 
 export class GetInventoryBatchByIdDto {
-
-  @IsNotEmpty()
+  @Type(() => Number)   // ⭐ convert string → number
   @IsInt()
   batchId: number;
 }

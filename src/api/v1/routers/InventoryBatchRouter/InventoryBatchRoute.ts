@@ -39,7 +39,7 @@ router.put(
       const input: UpdateInventoryBatchDto = RequestHandler.Defaults.getBody<UpdateInventoryBatchDto>(req, UpdateInventoryBatchDto);
       const payload: IUser = RequestHandler.Custom.getUser(req);
 
-      const data = await inventoryBatchService.updateInventoryBatchById(input, payload);
+      const data = await inventoryBatchService.updateInventoryBatch(input, payload);
       ResponseHandler.sendResponse(res, data);
     } catch (error) {
       ResponseHandler.sendErrorResponse(res, error);
@@ -48,12 +48,12 @@ router.put(
 );
 
 router.get(
-  "/getById",
+  "/getById/:batchId",
   validateDtoMiddleware(GetInventoryBatchByIdDto),
   AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
   async (req: Request, res: Response) => {
     try {
-      const input: GetInventoryBatchByIdDto = RequestHandler.Defaults.getQuery<GetInventoryBatchByIdDto>(req, GetInventoryBatchByIdDto);
+      const input: GetInventoryBatchByIdDto = RequestHandler.Defaults.getParams<GetInventoryBatchByIdDto>(req, GetInventoryBatchByIdDto);
       const payload: IUser = RequestHandler.Custom.getUser(req);
 
       const data = await inventoryBatchService.getInventoryBatchById(input, payload);

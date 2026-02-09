@@ -285,8 +285,11 @@ async getAllInventory(payload: IUser): Promise<IApiResponse> {
 
       const inventories = await this.inventoryRepo.find({
         relations: ["product", "warehouse", "tax"],
-        where: { warehouseId ,inventoryId,
-        isDeleted: false,  },
+        where: { 
+          warehouseId: String(warehouseId),
+          inventoryId: inventoryId,
+          isDeleted: false,  
+        },
       });
 
       if (!inventories || inventories.length === 0) return { status: STATUSCODES.NOT_FOUND, message: "No inventory found" };

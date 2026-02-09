@@ -72,15 +72,11 @@ import { TabPermission } from './Entities/TabPermission.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
 import { Posm } from './Entities/posm.entity';
 import { Sku } from './Entities/sku.entity';
-<<<<<<< HEAD
-import { Batch} from './Entities/inventoryBatch.entity';
-=======
+import { Batch } from './Entities/inventoryBatch.entity';
 import { PriceBook } from './Entities/priceBook.entity';
 import { PriceBookItem } from './Entities/price_book_item.entity';
 import { ItemShippingAddress } from './Entities/shippingAddress.entity';
 import { Collection } from './Entities/collection.entity';
-
->>>>>>> 42a8faf16f81fe8a6eab042cd2e7fbec8fb17b51
 const dbConfig = config();
 const env = (dbConfig.environment || '').toLowerCase();
 const isLocal = env === 'local' || dbConfig.host === 'localhost' || dbConfig.host === '127.0.0.1';
@@ -103,14 +99,10 @@ export const AppDataSource = new DataSource({
 		UserTypes, FeedBack, Samples, Activities, JointWork, Sessions,
 		UserLeave, LeaveApplication,
 		ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
-		Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-<<<<<<< HEAD
-		Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku,Batch
-=======
-		Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku,
-		PriceBook, PriceBookItem, ItemShippingAddress, Collection
->>>>>>> 42a8faf16f81fe8a6eab042cd2e7fbec8fb17b51
-	],
+	Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
+	Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku, Batch,
+	PriceBook, PriceBookItem, ItemShippingAddress, Collection
+],
 	migrations: [path.join(__dirname, 'migrations', '*.ts')],
 	subscribers: [],
 	schema: 'public',

@@ -29,7 +29,7 @@ export interface IInventory {
   // Lookups
   skuId: number;
   productId: number;       // derived from SKU at save time
-  warehouseId?: number;
+  warehouseId?: string;
 
   // Quantities
   stockQuantity: number;   // physical stock
@@ -92,7 +92,7 @@ product: Products;
 
 
   @Column({ name: "warehouse_id",nullable: true })
-  warehouseId?: number;
+  warehouseId?: string;
 
 
   @ManyToOne(() => Warehouse)

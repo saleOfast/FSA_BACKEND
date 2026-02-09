@@ -56,11 +56,13 @@ class InventoryBatchController {
     }
 
     // 🔹 4. Create batch
+    const availableQty = currentStock - reservedStock;
     const batch = BatchRepository().create({
       ...input,
       reservedStock,
       status: finalStatus ?? BatchStatusEnum.ACTIVE,
       qualityStatus: qualityStatus ?? QualityStatusEnum.PENDING,
+      
       createdAt: new Date(),
         updatedAt: new Date(),
     });
@@ -71,11 +73,16 @@ class InventoryBatchController {
     inventory.stockQuantity += currentStock;
     await this.inventoryRepo.save(inventory);
 
-    return {
-      status: STATUSCODES.SUCCESS,
-      message: "Inventory batch created successfully",
-      data: batch,
-    };
+   return {
+  status: STATUSCODES.SUCCESS,
+  message: "Inventory batch created successfully",
+  data: {
+    ...batch,
+    availableQty: currentStock - reservedStock,
+    isExpired: expiryDate ? new Date(expiryDate) < new Date() : false,
+  },
+};
+
   } catch (error) {
     throw error;
   }
@@ -133,11 +140,18 @@ async getInventoryBatchById(
       };
     }
 
-    return {
-      status: STATUSCODES.SUCCESS,
-      message: "Inventory batch retrieved successfully",
-      data: batch,
-    };
+  return {
+  status: STATUSCODES.SUCCESS,
+  message: "Inventory batch retrieved successfully",
+  data: {
+    ...batch,
+    availableQty: batch.currentStock - batch.reservedStock,
+    isExpired: batch.expiryDate
+      ? new Date(batch.expiryDate) < new Date()
+      : false,
+  },
+};
+
   } catch (error) {
     throw error;
   }
@@ -154,19 +168,26 @@ async getInventoryBatchList(
       .andWhere("inventory.isDeleted = false")
       .getMany();
 
-    return {
-      status: STATUSCODES.SUCCESS,
-      message: "Inventory batch list retrieved successfully",
-      data: {
-        data,
-      },
-    };
+return {
+  status: STATUSCODES.SUCCESS,
+  message: "Inventory batch retrieved successfully",
+  data: {
+    ...data.map((batch) => ({
+      ...batch,
+      availableQty: batch.currentStock - batch.reservedStock,
+      isExpired: batch.expiryDate
+        ? new Date(batch.expiryDate) < new Date()
+        : false,
+    })),
+  },
+};
+
   } catch (error) {
     throw error;
   }
 }
 
-async updateInventoryBatchById(
+async updateInventoryBatch(
   input: UpdateInventoryBatchDto,
   payload: IUser
 ): Promise<IApiResponse> {
