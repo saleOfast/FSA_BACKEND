@@ -115,7 +115,7 @@ export class Batch
     name: "storage_condition",
     type: "enum",
     enum: StorageConditionEnum,
-    nullable: true,
+    default: StorageConditionEnum.AMBIENT
   })
   storageCondition: StorageConditionEnum;
 

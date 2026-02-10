@@ -63,6 +63,7 @@ import {taxRoute} from './TaxesRoute/tax.route'
 import {SalesOrderHeaderRoute} from './SalesOrderHeaderRoute/SalesOrderHeader.route'
 import { SalesOrderItemRoute } from "./SalesOrderItemRoute/SalesOrderItem.route";
 import { BatchRoute} from "./InventoryBatchRouter/InventoryBatchRoute";
+import { grnHeaderRouter } from "./GrnHeaderRouter/GrnHeader.route";
 
 const router = express.Router();
 /* Auth ROutes */
@@ -132,6 +133,7 @@ router.use('/tax',taxRoute)
 router.use('/SalesOrderHeader',SalesOrderHeaderRoute)
 router.use('/SalesOrderItem',SalesOrderItemRoute)
 router.use('/Batch',BatchRoute)
+router.use('/grnHeader',grnHeaderRouter)
 
 
 export { router as routes };

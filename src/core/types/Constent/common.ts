@@ -459,3 +459,9 @@ export enum StorageConditionEnum {
   FROZEN = "FROZEN",
 }
 
+export enum GrnStatusEnum {
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+  COMPLETED = 'COMPLETED',
+}
+
