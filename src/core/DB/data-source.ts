@@ -78,6 +78,7 @@ import { PriceBookItem } from './Entities/price_book_item.entity';
 import { ItemShippingAddress } from './Entities/shippingAddress.entity';
 import { Collection } from './Entities/collection.entity';
 import { GrnHeader } from './Entities/grnHeader.entity';
+import { GrnItem } from './Entities/grnItem.entity';
 
 const dbConfig = config();
 const env = (dbConfig.environment || '').toLowerCase();
@@ -103,7 +104,7 @@ export const AppDataSource = new DataSource({
 		ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 	Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
 	Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku, Batch,
-	PriceBook, PriceBookItem, ItemShippingAddress, Collection,GrnHeader
+	PriceBook, PriceBookItem, ItemShippingAddress, Collection,GrnHeader,GrnItem
 ],
 	migrations: [path.join(__dirname, 'migrations', '*.ts')],
 	subscribers: [],

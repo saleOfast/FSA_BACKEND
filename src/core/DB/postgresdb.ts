@@ -85,6 +85,7 @@ import{SalesOrderHeader} from './Entities/SalesOrderHeader.entity'
 import { SalesOrderItem} from './Entities/salesOrderItem.entity';
 import {Batch} from './Entities/inventoryBatch.entity';
 import { GrnHeader } from './Entities/grnHeader.entity';
+import { GrnItem } from './Entities/grnItem.entity';
 
 
 
@@ -143,7 +144,7 @@ class Postgresdb {
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
 				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, 
-				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress,SalesOrderHeader,SalesOrderItem,Batch,GrnHeader
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress,SalesOrderHeader,SalesOrderItem,Batch,GrnHeader,GrnItem
 			];
 			// Determine if we should use migrations or synchronize
 			const useMigrations = process.env.USE_MIGRATIONS === 'true';
