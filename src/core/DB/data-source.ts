@@ -79,7 +79,10 @@ import { ItemShippingAddress } from './Entities/shippingAddress.entity';
 import { Collection } from './Entities/collection.entity';
 import { GrnHeader } from './Entities/grnHeader.entity';
 import { GrnItem } from './Entities/grnItem.entity';
-
+import { DeliveryHeader } from './Entities/deliveryHeader.entity';
+import { DeliveryItem } from './Entities/deliveryItem.entity';
+import { SalesOrderItem } from './Entities/salesOrderItem.entity';
+import { SalesOrderHeader } from './Entities/SalesOrderHeader.entity';
 const dbConfig = config();
 const env = (dbConfig.environment || '').toLowerCase();
 const isLocal = env === 'local' || dbConfig.host === 'localhost' || dbConfig.host === '127.0.0.1';
@@ -104,7 +107,7 @@ export const AppDataSource = new DataSource({
 		ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 	Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
 	Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku, Batch,
-	PriceBook, PriceBookItem, ItemShippingAddress, Collection,GrnHeader,GrnItem
+	PriceBook, PriceBookItem, ItemShippingAddress, Collection, GrnHeader, GrnItem, DeliveryHeader, DeliveryItem,SalesOrderItem ,SalesOrderHeader 
 ],
 	migrations: [path.join(__dirname, 'migrations', '*.ts')],
 	subscribers: [],

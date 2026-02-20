@@ -7,11 +7,21 @@ import {UserRepository} from '../../../../core/DB/Entities/User.entity'
 import {CreateSalesOrderDto,UpdateSalesOrderDto,DeleteSalesOrderDto,GetSalesOrderByIdDto,ListSalesOrderDto} from "../../../../core/types/SalesOrderHeaderService/SalesOrderHeaderService"
 import{ OrderTypeEnum,OrderStatusEnum,PaymentModeEnum} from "../../../../core/types/Constent/common"
 
+import{ ShippingAddressRepository} from "../../../../core/DB/Entities/shippingAddress.entity"
+import { WarehouseRepository } from "../../../../core/DB/Entities/warehouse.entity";
+import { SalesOrderItemRepository } from "../../../../core/DB/Entities/salesOrderItem.entity";
+import {InventoryRepository } from "../../../../core/DB/Entities/inventory";
+
 class SalesOrderHeaderController {
     private salesOrderHeader= SalesOrderHeaderRepository()
     private Customer=CustomerRepository()
     private User =UserRepository()
+    private shippingAddressRepo = ShippingAddressRepository();
+    private warehouseRepo = WarehouseRepository();
+    private salesOrderItemRepo = SalesOrderItemRepository();
+    private inventoryRepo = InventoryRepository();
 
+   
     constructor() { }
 
 async createSalesOrderHeader(
@@ -45,7 +55,7 @@ async createSalesOrderHeader(
       remarks: input.remarks,
       salesUser,
       createdBy: createdByUser,
-      status: OrderStatusEnum.DRAFT,
+      status: input.status ?? OrderStatusEnum.DRAFT,
       subtotal: 0,
       otherCharges: 0,
       totalDiscount: 0,
@@ -382,7 +392,94 @@ async updateSalesOrderHeader(
 }
 
 
+async getConfirmedOrdersForDelivery(
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+
+    const data = await this.salesOrderHeader
+      .createQueryBuilder("so")
+
+      // ✅ Customer Join
+      .leftJoin("so.customer", "customer")
+
+      // ✅ Items Join
+      .leftJoin("so.Items", "item", "item.isDeleted = false")
+
+      // ✅ Inventory Join (sku match)
+      .leftJoin(
+        "inventory",
+        "inv",
+        "inv.sku_id = item.sku_id AND inv.is_deleted = false"
+      )
+
+      // ✅ Warehouse Join (from inventory)
+      .leftJoin(
+        "warehouses",
+        "warehouse",
+        "warehouse.warehouse_id = inv.warehouse_id"
+      )
+
+      // ✅ Filters
+      .where("so.status = :status", { status: OrderStatusEnum.CONFIRMED })
+      .andWhere("so.is_deleted = false")
+
+      // ✅ Select Required Fields Only
+      .select([
+        "so.so_id AS salesOrderId",
+        "CONCAT('SO-', so.so_id) AS salesOrderNo",
+        "so.orderDate AS orderDate",
+        "customer.customer_name AS customerName",
+
+        // Delivery Address from Customer (as you said same as customer)
+        `CONCAT(
+          COALESCE(customer.shipping_street, ''),
+          ', ',
+          COALESCE(customer.shipping_city, ''),
+          ' ',
+          COALESCE(customer.shipping_pin_code, '')
+        ) AS deliveryAddress`,
+
+        "warehouse.warehouse_name AS warehouseName",
+
+        "COUNT(DISTINCT item.sku_id) AS skuCount",
+        "COALESCE(SUM(item.saleQty),0) AS orderedQty",
+        "COALESCE(SUM(inv.stock_quantity),0) AS availableQty",
+
+        // Just field names for now (as you requested)
+        "0 AS deliveredQty",
+        "0 AS deliverableQty",
+      ])
+
+      .groupBy(`
+        so.so_id,
+        so.orderDate,
+        customer.customer_id,
+        customer.shipping_street,
+        customer.shipping_city,
+        customer.shipping_pin_code,
+        warehouse.warehouse_id,
+        warehouse.warehouse_name
+      `)
+
+      .getRawMany();
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Confirmed Orders fetched successfully",
+      data,
+    };
+
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
 }
+
+
+
+}
+
 
 
 

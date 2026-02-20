@@ -3,7 +3,7 @@ import { AccessTokenService, ResponseHandler, validateDtoMiddleware } from "../.
 import { RequestHandler } from "../../../../core/helper/RequestHander";
 import { JwtTokenTypes } from "../../../../core/types/Constent/common";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
-import {CreateSalesOrderDto,UpdateSalesOrderDto,DeleteSalesOrderDto,GetSalesOrderByIdDto,ListSalesOrderDto} from "../../../../core/types/SalesOrderHeaderService/SalesOrderHeaderService"
+import {CreateSalesOrderDto,UpdateSalesOrderDto,DeleteSalesOrderDto,GetSalesOrderByIdDto,ListSalesOrderDto, ListApprovedOrdersForDeliveryDto} from "../../../../core/types/SalesOrderHeaderService/SalesOrderHeaderService"
 import {SalesOrderHeaderService}from "../../Controllers/SalesOrderHeaderController/SalesOrderHeader.Controller"
 
 const router = express.Router();
@@ -145,6 +145,32 @@ router.get('/list', validateDtoMiddleware(ListSalesOrderDto),
     }
   }
 );
+
+
+router.get(['/approved-for-delivery'], validateDtoMiddleware( ListApprovedOrdersForDeliveryDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response)=>{
+    try{
+      const input: ListApprovedOrdersForDeliveryDto= RequestHandler.Defaults.getQuery< ListApprovedOrdersForDeliveryDto>(
+          req,
+        ListApprovedOrdersForDeliveryDto
+        );
+
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+
+      const salesOrderHeaderService = new SalesOrderHeaderService();
+
+      const data = await salesOrderHeaderService.getConfirmedOrdersForDelivery(
+        payload
+      );
+
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+    
+
+  })
 
 
 

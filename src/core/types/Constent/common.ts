@@ -465,3 +465,13 @@ export enum GrnStatusEnum {
   COMPLETED = 'COMPLETED',
 }
 
+export enum DeliveryStatusEnum {
+  DRAFT = 'DRAFT',
+  PICK_LIST = 'PICK_LIST',
+  PICKED = 'PICKED',
+  DISPATCHED = 'DISPATCHED',
+  IN_TRANSIT = 'IN_TRANSIT',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+}
+

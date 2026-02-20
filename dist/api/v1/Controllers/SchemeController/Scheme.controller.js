@@ -71,7 +71,7 @@ class SchemeController {
                     }
                 }
                 if (warehouseId) {
-                    const warehouse = yield this.warehouseRepository.findOne({ where: { warehouseId } });
+                    const warehouse = yield this.warehouseRepository.findOne({ where: { warehouseId: String(warehouseId) } });
                     if (!warehouse) {
                         return {
                             status: common_1.STATUSCODES.NOT_FOUND,
@@ -281,7 +281,8 @@ class SchemeController {
     getAllSchemes(input, payload) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const query = this.getRepositry.createQueryBuilder("scheme");
+                const query = this.getRepositry.createQueryBuilder("scheme")
+                    .where("scheme.isDeleted = :isDeleted", { isDeleted: false });
                 if (input.schemeType)
                     query.andWhere("scheme.schemeType = :schemeType", { schemeType: input.schemeType });
                 if (input.schemeNature)
@@ -302,8 +303,7 @@ class SchemeController {
                     query.andWhere("scheme.beatId = :beatId", { beatId: input.beatId });
                 if (input.isEnable !== undefined)
                     query.andWhere("scheme.isEnable = :isEnable", { isEnable: input.isEnable });
-                if (input.isDeleted !== undefined)
-                    query.andWhere("scheme.isDeleted = :isDeleted", { isDeleted: input.isDeleted });
+                // if (input.isDeleted !== undefined) query.andWhere("scheme.isDeleted = :isDeleted", { isDeleted: false });
                 if (input.startDateFrom)
                     query.andWhere("scheme.startDate >= :startDateFrom", { startDateFrom: input.startDateFrom });
                 if (input.startDateTo)
@@ -338,7 +338,7 @@ class SchemeController {
                 // If ID is provided, return exactly one scheme
                 if (id) {
                     const scheme = yield this.getRepositry.findOne({
-                        where: { id },
+                        where: { id, isDeleted: false },
                         relations: ["customer", "customerType", "products", "sku", "warehouse", "posm"],
                     });
                     if (!scheme) {
@@ -356,7 +356,7 @@ class SchemeController {
                 }
                 // If schemeName is provided, return all matching schemes
                 const schemes = yield this.getRepositry.find({
-                    where: { schemeName },
+                    where: { schemeName, isDeleted: false },
                     relations: ["customer", "customerType", "products", "sku", "warehouse", "posm"],
                 });
                 if (!schemes.length) {

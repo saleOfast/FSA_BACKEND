@@ -39,7 +39,7 @@ export class GrnHeader extends BaseEntity implements IGrnHeader{
   warehouseId: string;
 
   @ManyToOne(() => Warehouse)
-  @JoinColumn({ name: 'warehouse_id' })
+  @JoinColumn({ name: 'warehouseId' })
   warehouse: Warehouse;
 
   // Purchase Order FK (Optional)

@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetInventoryList = exports.DeleteInventoryDto = exports.UpdateInventoryDto = exports.CreateInventoryDto = exports.InventoryItemDto = void 0;
+exports.GetInventoryById = exports.GetInventoryList = exports.DeleteInventoryDto = exports.UpdateInventoryDto = exports.CreateInventoryDto = exports.InventoryItemDto = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
 class InventoryItemDto {
@@ -39,9 +39,8 @@ __decorate([
 ], InventoryItemDto.prototype, "productId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_transformer_1.Type)(() => Number),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
 ], InventoryItemDto.prototype, "warehouseId", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
@@ -129,9 +128,8 @@ class GetInventoryList {
 __decorate([
     (0, class_transformer_1.Transform)(({ value }) => parseInt(value)),
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_transformer_1.Type)(() => Number),
-    (0, class_validator_1.IsNumber)(),
-    __metadata("design:type", Number)
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
 ], GetInventoryList.prototype, "warehouseId", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
@@ -151,3 +149,12 @@ __decorate([
     __metadata("design:type", Number)
 ], GetInventoryList.prototype, "skuId", void 0);
 exports.GetInventoryList = GetInventoryList;
+class GetInventoryById {
+}
+__decorate([
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_transformer_1.Type)(() => Number),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], GetInventoryById.prototype, "inventoryId", void 0);
+exports.GetInventoryById = GetInventoryById;

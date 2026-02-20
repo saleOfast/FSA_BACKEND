@@ -23,6 +23,7 @@ import { PriceBook } from '../core/DB/Entities/priceBook.entity';
 import { PriceBookItem } from '../core/DB/Entities/price_book_item.entity';
 import { ItemShippingAddress } from '../core/DB/Entities/shippingAddress.entity';
 import { Collection } from '../core/DB/Entities/collection.entity';
+import { Warehouse } from '../core/DB/Entities/warehouse.entity';
 
 // Enums
 import {
@@ -42,14 +43,6 @@ import {
   POSMChannelTargetEnum,
   POSMAllocationTargetEnum,
   UserRole,
-<<<<<<< HEAD
-  WarehouseStatusEnum,
-  OwnershipTypeEnum,
-  BusinessRoleEnum,
-  franchise,
-  SEZ,
-  customerZone,
-=======
   PriceBookType,
   PriceBookStatus,
   Channel,
@@ -59,8 +52,7 @@ import {
   UOM,
   TaxInclusive,
   Status as StatusEnum,
-  PreferredDays,
->>>>>>> 42a8faf16f81fe8a6eab042cd2e7fbec8fb17b51
+  PreferredDays,ApprovalStatus as PriceBookApprovalStatus
 } from '../core/types/Constent/common';
 
 type AnyRecord = Record<string, unknown>;
@@ -499,7 +491,7 @@ async function seedDiscounts(
       approvalStatus: ApprovalStatus.APPROVED,
       validFrom: new Date(),
       validTill: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 90 days from now
-    },
+    },  
     {
       discountName: 'Volume Discount',
       discountType: DiscountType.SLAB,
@@ -527,6 +519,8 @@ async function seedDiscounts(
       minimumOrderValue: 1000,
       status: DiscountStatus.ACTIVE,
       approvalStatus: ApprovalStatus.APPROVED,
+      
+
       validFrom: new Date(),
       validTill: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
     }
@@ -703,7 +697,7 @@ async function seedPriceBooks(
       effectiveTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       version: 1,
       status: PriceBookStatus.ACTIVE,
-      approvalStatus: ApprovalStatus.APPROVED,
+      approvalStatus: PriceBookApprovalStatus.APPROVED,
       createdBy: user.emp_id,
       isDeleted: false
     },
@@ -718,7 +712,8 @@ async function seedPriceBooks(
       effectiveTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       version: 1,
       status: PriceBookStatus.DRAFT,
-      approvalStatus: ApprovalStatus.PENDING,
+     approvalStatus: PriceBookApprovalStatus.PENDING,
+
       createdBy: user.emp_id,
       isDeleted: false
     }
@@ -732,6 +727,7 @@ async function seedPriceBooks(
   console.log(`✅ Seeded ${saved.length} price books`);
   return saved;
 }
+console.log("Approval Status Runtime:", ApprovalStatus.APPROVED)
 
 // Seed PriceBookItems
 async function seedPriceBookItems(
@@ -902,11 +898,7 @@ async function seedCustomerDataInternal(ds: DataSource): Promise<void> {
       taxes.push(defaultTax);
     }
 
-<<<<<<< HEAD
-    // Seed in dependency order - countries, states, districts must exist before warehouse
-=======
     // Seed in dependency order
->>>>>>> 42a8faf16f81fe8a6eab042cd2e7fbec8fb17b51
     const countries = await seedCountries(ds);
     const states = await seedStates(ds, countries);
     const districts = await seedDistricts(ds, states, countries);

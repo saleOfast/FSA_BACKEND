@@ -5,7 +5,7 @@ import { Beat } from "./beat.entity";
 import { CollectPayment } from "./collect_payment.entity";
 import { Discount } from "./discount.entity";
 import { Distributor } from "./distributors.entity";
-import { Inventory } from "./inventory.entity";
+import { Inventory } from "./inventory";
 import { Orders } from "./orders.entity";
 import { OutletInventory } from "./outlet_inventory.entity";
 import { Products } from "./products.entity";

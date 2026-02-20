@@ -64,7 +64,8 @@ import {SalesOrderHeaderRoute} from './SalesOrderHeaderRoute/SalesOrderHeader.ro
 import { SalesOrderItemRoute } from "./SalesOrderItemRoute/SalesOrderItem.route";
 import { BatchRoute} from "./InventoryBatchRouter/InventoryBatchRoute";
 import { grnHeaderRouter } from "./GrnHeaderRouter/GrnHeader.route";
-import {  GrnItemRouter } from "./GrnItemRouter/GrnItem.route" 
+import {  GrnItemRouter } from "./GrnItemRouter/GrnItem.route";
+import { DeliveryRoute } from "./DeliveryRoute/Delivery.route";
 
 const router = express.Router();
 /* Auth ROutes */
@@ -136,6 +137,6 @@ router.use('/SalesOrderItem',SalesOrderItemRoute)
 router.use('/Batch',BatchRoute)
 router.use('/grnHeader',grnHeaderRouter)
 router.use('/grnItem',GrnItemRouter)
-
+router.use('/delivery', DeliveryRoute);
 
 export { router as routes };

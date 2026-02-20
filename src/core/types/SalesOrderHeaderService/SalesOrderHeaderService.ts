@@ -82,6 +82,11 @@ export class CreateSalesOrderDto {
 
   @IsOptional()
   remarks?: string;
+
+
+    @IsOptional()
+  @IsEnum(OrderStatusEnum)
+  status?: OrderStatusEnum;
 }
 
 export class UpdateSalesOrderDto {
@@ -215,6 +220,57 @@ export class ListSalesOrderDto {
   @IsOptional()
   @IsIn(['createdDate', 'orderDate'])
   sortBy?: 'createdDate' | 'orderDate' = 'createdDate';
+
+  @IsOptional()
+  @IsIn(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+}
+
+
+export class ListApprovedOrdersForDeliveryDto {
+
+  /* ================= FILTERS ================= */
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  customerId?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Type(() => Number)
+  warehouseId?: number;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  fromDate?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  toDate?: Date;
+
+  /* ================= PAGINATION ================= */
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  @Type(() => Number)
+  limit?: number = 20;
+
+  /* ================= SORTING ================= */
+
+  @IsOptional()
+  @IsIn(['orderDate', 'createdDate'])
+  sortBy?: 'orderDate' | 'createdDate' = 'orderDate';
 
   @IsOptional()
   @IsIn(['ASC', 'DESC'])
