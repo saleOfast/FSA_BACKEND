@@ -14,6 +14,10 @@ import {
   GetDeliveryByIdDto,
   DeleteDeliveryDto,
   ListDeliveryDto,
+  CreateDeliveryItemDto,
+  CancelDeliveryDto,
+  ListDeliveryItemDto,
+  GetDeliveryItemByIdDto,
 } from "../../../../core/types/DeliveryService/DeliveryService";
 import { DeliveryService } from "../../Controllers/DeliveryController/Delivery.Controller";
 
@@ -115,6 +119,118 @@ router.delete(
       const payload: IUser = RequestHandler.Custom.getUser(req);
       const service = new DeliveryService();
       const data = await service.deleteDelivery(input, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+
+router.post(
+  "/:deliveryId/items/create",
+  validateDtoMiddleware(CreateDeliveryItemDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const { deliveryId } = req.params;
+
+      const input = RequestHandler.Defaults.getBody<CreateDeliveryItemDto>(
+        req,
+        CreateDeliveryItemDto
+      );
+
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+
+      const service = new DeliveryService();
+
+      const data = await service.createDeliveryItem(
+        deliveryId,
+        input,
+        payload
+      );
+
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+// Cancel a delivery
+router.patch(
+  "/cancel/:deliveryId",
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const { deliveryId } = req.params; // <-- get deliveryId from URL
+      const input = { deliveryId } as CancelDeliveryDto;
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const service = new DeliveryService();
+
+      const data = await service.cancelDelivery(input, payload);
+
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.get(
+  "/items/list",
+  validateDtoMiddleware(ListDeliveryItemDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const input = RequestHandler.Defaults.getQuery<ListDeliveryItemDto>(
+        req,
+        ListDeliveryItemDto
+      );
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const service = new DeliveryService();
+      const data = await service.listDeliveryItems(input, payload);
+
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.get(
+  "/items/:deliveryItemId",
+  validateDtoMiddleware(GetDeliveryItemByIdDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const input = RequestHandler.Defaults.getParams<GetDeliveryItemByIdDto>(
+        req,
+        GetDeliveryItemByIdDto
+      );
+
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const service = new DeliveryService();
+      const data = await service.getDeliveryItemById(input,payload);
+
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.delete('/items/delete/:deliveryItemId',
+  validateDtoMiddleware(GetDeliveryItemByIdDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const input = RequestHandler.Defaults.getParams<GetDeliveryItemByIdDto>(
+        req,
+        GetDeliveryItemByIdDto);
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const service = new DeliveryService();
+      const data = await service.deleteDeliveryItem(input, payload);
       ResponseHandler.sendResponse(res, data);
     } catch (error) {
       ResponseHandler.sendErrorResponse(res, error);

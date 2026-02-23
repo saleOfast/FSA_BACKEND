@@ -1,8 +1,10 @@
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -14,6 +16,10 @@ import { Type } from "class-transformer";
 import { DeliveryStatusEnum } from "../Constent/common";
 
 export class CreateDeliveryItemDto {
+
+  @IsString()
+  deliveryId:string;
+
   @IsInt()
   @Type(() => Number)
   orderItemId: number;
@@ -161,4 +167,69 @@ export class ListDeliveryDto {
   @Min(1)
   @Type(() => Number)
   limit?: number = 20;
+}
+
+export class CancelDeliveryDto {
+  @IsUUID()
+  deliveryId: string;
+}
+
+
+
+export class ListDeliveryItemDto {
+
+  // Filter by Delivery
+  @IsOptional()
+  @IsUUID()
+  deliveryId?: string;
+
+  // Filter by Order Item
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  orderItemId?: number;
+
+  // Filter by SKU
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  skuId?: number;
+
+  // Filter by Product
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  productId?: number;
+
+  // Include deleted records (optional)
+  @IsOptional()
+  @IsBoolean()
+  isDeleted?: boolean;
+
+  // Pagination
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 10;
+}
+
+export class GetDeliveryItemByIdDto {
+  @IsInt()
+  @Type(() => Number)
+  deliveryItemId: number;
+}
+
+export class DeleteDeliveryItemDto {
+
+  @Type(() => Number)   // important for param transformation
+  @IsInt()
+  @IsNotEmpty()
+  deliveryItemId: number;
 }
