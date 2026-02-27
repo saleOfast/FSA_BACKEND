@@ -75,6 +75,10 @@ class WarehouseController {
   entity.shippingCity = input.shippingCity;
   entity.shippingPinCode = input.shippingPinCode;
 
+  entity.shippingCountryName = country.countryName;
+entity.shippingStateName = state.stateName;
+entity.shippingDistrictName = district.districtName;
+
   // Tax / Compliance
   entity.gstNo = input.gstNo ?? undefined;
   entity.vatRegistrationNo = input.vatRegistrationNo ?? undefined;

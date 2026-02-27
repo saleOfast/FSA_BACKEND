@@ -18,6 +18,7 @@ import{ ISalesOrderItem } from '../../types/SalesOderItemService/salesOrderItemS
 import { Discount } from './discount.entity';
 import {Scheme} from './scheme.entity'
 import { Taxes } from './tax.entity';
+import { Warehouse } from './warehouse.entity';
 import { DbConnections} from "../postgresdb";
 
 @Entity('sales_order_item')
@@ -98,6 +99,13 @@ tax: Taxes;
 
   @Column({ type: 'decimal', precision: 12, scale: 2 })
   grossAmount: number;
+
+@ManyToOne(() => Warehouse)
+@JoinColumn({ name: 'warehouse_id' })
+warehouse: Warehouse;
+
+@Column({ name: 'warehouse_name', type: 'varchar', length: 150 })
+warehouseName: string;
 
   /* -------------------- Audit -------------------- */
 

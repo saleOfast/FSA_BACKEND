@@ -20,6 +20,7 @@ export interface ISalesOrderItem {
   createdAt?: Date;
   updatedAt?: Date;
   isDeleted?: boolean;
+  warehouseId: string;
 }
 
 export class CreateSalesOrderItemDto {
@@ -55,6 +56,10 @@ export class CreateSalesOrderItemDto {
   @IsInt()
   @IsNotEmpty()
   taxId: number;
+
+  @IsString()
+  @IsNotEmpty()
+  warehouseId: string;
 }
 
 export class UpdateSalesOrderItemDto {

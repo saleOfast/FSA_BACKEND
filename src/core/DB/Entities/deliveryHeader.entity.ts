@@ -26,7 +26,7 @@ export class DeliveryHeader extends BaseEntity {
     type: "enum",
     enum: DeliveryStatusEnum,
     name: "delivery_status",
-    default: DeliveryStatusEnum.DRAFT,
+    default: DeliveryStatusEnum.PENDING,
   })
   deliveryStatus: DeliveryStatusEnum;
 
@@ -44,11 +44,11 @@ export class DeliveryHeader extends BaseEntity {
   @JoinColumn({ name: "customer_id" })
   customer: Customer;
 
-  @Column({ name: "warehouse_id", type: "uuid" })
+  @Column({ name: "warehouse_id" ,nullable: false})
   warehouseId: string;
 
   @ManyToOne(() => Warehouse)
-  @JoinColumn({ name: "warehouse_id" })
+  @JoinColumn({ name: "warehouse_id", referencedColumnName: "warehouseId" })
   warehouse: Warehouse;
 
   @Column({ name: "delivery_date", type: "date", nullable: true })
@@ -72,8 +72,13 @@ export class DeliveryHeader extends BaseEntity {
   @Column({ name: "dispatch_date", type: "date", nullable: true })
   dispatchDate: Date | null;
 
+  @Column({ name: "remarks", type: "text", nullable: true })
+  remark: string | null;
+
   @OneToMany(() => DeliveryItem, (item) => item.delivery)
   items: DeliveryItem[];
+
+
 
   @CreateDateColumn({ name: "created_at" })
   createdAt: Date;

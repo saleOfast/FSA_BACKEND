@@ -36,7 +36,7 @@ export interface ISalesOrderHeader {
   schemeAmount?: number;
   taxAmount?: number;
   grandTotal?: number;
-
+  // warehouseId: string;
   // Audit
   createdDate?: Date;
   updatedAt?: Date;
@@ -87,6 +87,10 @@ export class CreateSalesOrderDto {
     @IsOptional()
   @IsEnum(OrderStatusEnum)
   status?: OrderStatusEnum;
+
+  // @IsString()
+  // @IsNotEmpty()
+  // warehouseId: string;
 }
 
 export class UpdateSalesOrderDto {

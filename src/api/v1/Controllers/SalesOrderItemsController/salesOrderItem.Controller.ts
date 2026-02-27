@@ -15,6 +15,9 @@ import { updateSalesOrderHeaderAmounts } from '../../../../core/helper/updateSal
 import { Products,ProductRepository } from "../../../../core/DB/Entities/products.entity";
 import { ShippingAddressRepository } from "../../../../core/DB/Entities/shippingAddress.entity"
 
+import { Warehouse, WarehouseRepository }  from "../../../../core/DB/Entities/warehouse.entity";
+import { InventoryRepository } from "../../../../core/DB/Entities/inventory"
+
 export class SalesOrderItemController {
   private salesOrderHeaderRepository = SalesOrderHeaderRepository();
   private salesOrderItem = SalesOrderItemRepository();
@@ -24,10 +27,12 @@ export class SalesOrderItemController {
   private taxRepository = TaxesRepository();
   private products = ProductRepository()
   private shippingAddress= ShippingAddressRepository()
+  private warehouse=WarehouseRepository()
+  private inventory=InventoryRepository()
 
   constructor() { }
 
- public async createSalesOrderItem(
+public async createSalesOrderItem(
   input: CreateSalesOrderItemDto,
   payload: IUser
 ): Promise<IApiResponse> {
@@ -40,10 +45,13 @@ export class SalesOrderItemController {
       discountId,
       schemeId,
       taxId,
-      skuId
+      skuId,
+      warehouseId
     } = input;
 
-    /* ---------- Validate Sales Order ---------- */
+    /* =====================================================
+       1️⃣ Validate Sales Order
+    ====================================================== */
     if (!salesOrderId) {
       return {
         status: STATUSCODES.BAD_REQUEST,
@@ -62,28 +70,40 @@ export class SalesOrderItemController {
       };
     }
 
-    /* ---------- Fetch SKU ---------- */
+    /* =====================================================
+       2️⃣ Validate SKU
+    ====================================================== */
     const sku = await this.skuRepository.findOne({
       where: { skuId, isDeleted: false }
     });
 
     if (!sku) {
-      return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid SKU' };
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'Invalid SKU'
+      };
     }
 
     const basePrice = Number(sku.basePrice);
     const uom = sku.vom;
 
-    /* ---------- Fetch Product ---------- */
+    /* =====================================================
+       3️⃣ Validate Product
+    ====================================================== */
     const product = await this.products.findOne({
       where: { productId, isDeleted: false }
     });
 
     if (!product) {
-      return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Product' };
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'Invalid Product'
+      };
     }
 
-    /* ---------- Fetch Shipping Address ---------- */
+    /* =====================================================
+       4️⃣ Validate Shipping Address
+    ====================================================== */
     const shippingAddress = await this.shippingAddress.findOne({
       where: { addressId: shippingAddressId, isDeleted: false }
     });
@@ -95,21 +115,70 @@ export class SalesOrderItemController {
       };
     }
 
-    /* ---------- Fetch Tax ---------- */
+    /* =====================================================
+       5️⃣ Validate Warehouse
+    ====================================================== */
+    const warehouse = await this.warehouse.findOne({
+      where: { warehouseId, isDeleted: false }
+    });
+
+    if (!warehouse) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'Invalid Warehouse'
+      };
+    }
+
+    /* =====================================================
+       6️⃣ Validate SKU exists in Warehouse (Inventory Check)
+    ====================================================== */
+    const inventory = await this.inventory.findOne({
+      where: {
+        sku: { skuId },
+        warehouse: { warehouseId },
+        isDeleted: false
+      },
+      relations: ['sku', 'warehouse']
+    });
+
+    if (!inventory) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'This SKU is not available in selected warehouse'
+      };
+    }
+
+    if (inventory.stockQuantity < saleQty) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: 'Insufficient stock in selected warehouse'
+      };
+    }
+
+    /* =====================================================
+       7️⃣ Fetch Tax
+    ====================================================== */
     let tax;
     let taxPercent = 0;
 
     if (taxId) {
-      tax = await this.taxRepository.findOne({ where: { taxId } });
+      tax = await this.taxRepository.findOne({
+        where: { taxId }
+      });
 
       if (!tax) {
-        return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Tax' };
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: 'Invalid Tax'
+        };
       }
 
       taxPercent = Number(tax.taxPercentage);
     }
 
-    /* ---------- Fetch Discount ---------- */
+    /* =====================================================
+       8️⃣ Fetch Discount
+    ====================================================== */
     let discount;
     let discountPercentage = 0;
 
@@ -128,7 +197,9 @@ export class SalesOrderItemController {
       discountPercentage = Number(discount.discountPercentage);
     }
 
-    /* ---------- Calculations ---------- */
+    /* =====================================================
+       9️⃣ Calculations
+    ====================================================== */
     const amounts = calculateSalesOrderAmounts({
       saleQty,
       basePrice,
@@ -136,11 +207,15 @@ export class SalesOrderItemController {
       taxPercent
     });
 
-    /* ---------- Create Item ---------- */
+    /* =====================================================
+       🔟 Create Sales Order Item
+    ====================================================== */
     const item = this.salesOrderItem.create({
       salesOrder: salesOrderHeader,
       product: product,
       sku: sku,
+      warehouse: warehouse,                       // FK relation
+      warehouseName: warehouse.warehouseName,     // Snapshot name stored in DB
       shippingAddress: shippingAddress,
       saleQty,
       basePrice,
@@ -150,12 +225,15 @@ export class SalesOrderItemController {
       tax: tax,
       taxPercentage: taxPercent,
       discount: discount,
-      ...amounts
+      ...amounts,
+      // createdBy: payload.userId
     });
 
     const savedItem = await this.salesOrderItem.save(item);
 
-    /* ---------- Update Header Amount ---------- */
+    /* =====================================================
+       1️⃣1️⃣ Update Header Amounts
+    ====================================================== */
     await updateSalesOrderHeaderAmounts(salesOrderId);
 
     return {
@@ -165,6 +243,7 @@ export class SalesOrderItemController {
     };
 
   } catch (error) {
+    console.error(error);
     throw error;
   }
 }

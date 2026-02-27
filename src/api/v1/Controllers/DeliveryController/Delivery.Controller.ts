@@ -1,3 +1,4 @@
+import { In, MoreThan } from "typeorm";
 import { STATUSCODES } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
@@ -13,9 +14,9 @@ import {
 } from "../../../../core/types/DeliveryService/DeliveryService";
 import { DeliveryHeader, DeliveryHeaderRepository } from "../../../../core/DB/Entities/deliveryHeader.entity";
 import { DeliveryItem, DeliveryItemRepository } from "../../../../core/DB/Entities/deliveryItem.entity";
-import { SalesOrderHeaderRepository } from "../../../../core/DB/Entities/SalesOrderHeader.entity";
+import { SalesOrderHeaderRepository,SalesOrderHeader } from "../../../../core/DB/Entities/SalesOrderHeader.entity";
 import { SalesOrderItemRepository,SalesOrderItem } from "../../../../core/DB/Entities/salesOrderItem.entity";
-import { WarehouseRepository } from "../../../../core/DB/Entities/warehouse.entity";
+import { WarehouseRepository,Warehouse } from "../../../../core/DB/Entities/warehouse.entity";
 import { DeliveryStatusEnum, OrderStatusEnum } from "../../../../core/types/Constent/common";
 import { BatchRepository, Batch } from "../../../../core/DB/Entities/inventoryBatch.entity";
 import { Inventory, InventoryRepository } from "../../../../core/DB/Entities/inventory";
@@ -30,95 +31,9 @@ class DeliveryController {
 private inventoryRepo=InventoryRepository()
   constructor() {}
 
+
 async createDeliveryHeader(
   input: CreateDeliveryDto,
-  payload: IUser
-): Promise<IApiResponse> {
-  try {
-    // ==============================
-    // 1️⃣ Validate Sales Order
-    // ==============================
-    const salesOrder = await this.salesOrderRepo.findOne({
-      where: { soId: input.salesOrderId, isDeleted: false },
-      relations: ["customer"],
-    });
-
-    if (!salesOrder) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Sales order not found",
-        data: null,
-      };
-    }
-
-    if (salesOrder.status !== OrderStatusEnum.CONFIRMED) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Only confirmed sales orders can create delivery",
-        data: null,
-      };
-    }
-
-    // ==============================
-    // 2️⃣ Validate Warehouse
-    // ==============================
-    const warehouse = await this.warehouseRepo.findOne({
-      where: { warehouseId: input.warehouseId, isDeleted: false },
-    });
-
-    if (!warehouse) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Warehouse not found",
-        data: null,
-      };
-    }
-
-    // ==============================
-    // 3️⃣ Create Delivery Header ONLY
-    // ==============================
-    const deliveryHeader = this.deliveryRepo.create({
-      salesOrderId: input.salesOrderId,
-      customerId: salesOrder.customer.customerId,
-      warehouseId: input.warehouseId,
-      deliveryStatus:  input.deliveryStatus?? DeliveryStatusEnum.DRAFT,
-      deliveryDate: input.deliveryDate
-        ? new Date(input.deliveryDate)
-        : null,
-      vehicleNumber: input.vehicleNumber ?? null,
-      transporterName: input.transporterName ?? null,
-      driverName: input.driverName ?? null,
-      driverMobile: input.driverMobile ?? null,
-      ewayBillNo: input.ewayBillNo ?? null,
-      dispatchDate: input.dispatchDate
-        ? new Date(input.dispatchDate)
-        : null,
-      // createdBy: payload.emp_id,
-    });
-
-    await this.deliveryRepo.save(deliveryHeader);
-
-    // ==============================
-    // 4️⃣ Fetch Saved Header
-    // ==============================
-    const saved = await this.deliveryRepo.findOne({
-      where: { deliveryId: deliveryHeader.deliveryId },
-      relations: ["salesOrder", "customer", "warehouse"],
-    });
-
-    return {
-      status: STATUSCODES.SUCCESS,
-      message: "Delivery header created successfully",
-      data: saved,
-    };
-  } catch (error) {
-    throw error;
-  }
-}
-
-async updateDeliveryHeader(
-  deliveryId: string,
-  input: UpdateDeliveryHeaderDto,
   payload: IUser
 ): Promise<IApiResponse> {
 
@@ -126,143 +41,270 @@ async updateDeliveryHeader(
 
   return await connection.transaction(async (manager) => {
 
+    const salesOrderRepo = manager.getRepository(SalesOrderHeader);
+    const warehouseRepo = manager.getRepository(Warehouse);
+    const deliveryRepo = manager.getRepository(DeliveryHeader);
+
+    // 1️⃣ Fetch Sales Order
+    const salesOrder = await salesOrderRepo.findOne({
+      where: { soId: input.salesOrderId, isDeleted: false },
+      relations: ["customer", "Items", "Items.warehouse"],
+    });
+
+    if (!salesOrder)
+      return { status: 404, message: "Sales Order not found", data: null };
+
+    const customer = salesOrder.customer;
+
+    if (!customer)
+      return { status: 400, message: "Customer not found", data: null };
+
+    // 2️⃣ Get Warehouses from SO Items
+    const warehouseIds = salesOrder.Items
+      ?.map((item) => item.warehouse?.warehouseId)
+      .filter(Boolean);
+
+    if (!warehouseIds?.length)
+      return { status: 400, message: "No warehouse assigned", data: null };
+
+    const warehouses = await warehouseRepo.find({
+      where: { warehouseId: In(warehouseIds), isDeleted: false },
+    });
+
+    // 3️⃣ Smart Warehouse Selection
+ const normalize = (val?: string) =>
+  val?.trim().toLowerCase();
+
+let selectedWarehouse =
+  // 1️⃣ City Match
+  warehouses.find(
+    (w) =>
+      normalize(w.shippingCity) === normalize(customer.shippingCity) &&
+      normalize(w.shippingDistrictName) === normalize(customer.shippingDistrict) &&
+      normalize(w.shippingStateName) === normalize(customer.shippingState)
+  ) ||
+
+  // 2️⃣ District Match
+  warehouses.find(
+    (w) =>
+      normalize(w.shippingDistrictName) === normalize(customer.shippingDistrict) &&
+      normalize(w.shippingStateName) === normalize(customer.shippingState)
+  ) ||
+
+  // 3️⃣ State Match
+  warehouses.find(
+    (w) =>
+      normalize(w.shippingStateName) === normalize(customer.shippingState)
+  );
+
+    if (!selectedWarehouse)
+      return {
+        status: 400,
+        message: "No nearby warehouse found",
+        data: null,
+      };
+
+    // 4️⃣ Create Header with PENDING
+    const delivery = deliveryRepo.create({
+      deliveryStatus: DeliveryStatusEnum.PENDING,
+      salesOrder,
+      customer,
+      warehouse: selectedWarehouse,
+      deliveryDate: input.deliveryDate ?? null,
+      vehicleNumber: input.vehicleNumber ?? null,
+      transporterName: input.transporterName ?? null,
+      driverName: input.driverName ?? null,
+      driverMobile: input.driverMobile ?? null,
+      ewayBillNo: input.ewayBillNo ?? null,
+      dispatchDate: null,
+      remark: input.remark ?? null,
+      // createdBy: payload.userId,
+    });
+
+    const saved = await deliveryRepo.save(delivery);
+
+    return {
+      status: 201,
+      message: "Delivery Header Created Successfully",
+      data: saved,
+    };
+  });
+}
+
+async dispatchDelivery(
+  deliveryId: string,
+  input: UpdateDeliveryHeaderDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  const connection = this.deliveryRepo.manager.connection;
+
+  return await connection.transaction(async (manager) => {
     const deliveryRepo = manager.getRepository(DeliveryHeader);
     const deliveryItemRepo = manager.getRepository(DeliveryItem);
     const inventoryRepo = manager.getRepository(Inventory);
 
-    // 1️⃣ Lock Delivery Header ONLY (No relations here)
     const delivery = await deliveryRepo.findOne({
       where: { deliveryId, isDeleted: false },
-      lock: { mode: "pessimistic_write" },
+      relations: ["items", "items.product", "warehouse", "salesOrder"],
     });
 
-    if (!delivery) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Delivery not found",
-        data: null,
-      };
-    }
+    if (!delivery) return { status: 404, message: "Delivery not found", data: null };
+    if (delivery.deliveryStatus !== DeliveryStatusEnum.PENDING)
+      return { status: 400, message: "Only PENDING deliveries can be dispatched", data: null };
+    if (!delivery.items?.length)
+      return { status: 400, message: "No items to dispatch", data: null };
 
-    // 2️⃣ Prevent modification if CANCELLED
-    if (delivery.deliveryStatus === DeliveryStatusEnum.CANCELLED) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Cancelled delivery cannot be modified",
-        data: null,
-      };
-    }
+    let totalOrdered = 0;
+    let totalDispatched = 0;
 
-    const previousStatus = delivery.deliveryStatus;
+    for (const reqItem of input.items) {
+      // Include soft-deleted items
+      const item = delivery.items.find(i => i.deliveryItemId === reqItem.deliveryItemId);
+      if (!item)
+        return { status: 400, message: `Delivery item ID ${reqItem.deliveryItemId} not found`, data: null };
 
-    // 3️⃣ Fetch Items Separately (IMPORTANT for Postgres)
-    const items = await deliveryItemRepo.find({
-      where: { deliveryId: delivery.deliveryId, isDeleted: false },
-    });
+      const inventory = await inventoryRepo.findOne({
+        where: {
+          product: { productId: item.product.productId },
+          warehouse: { warehouseId: delivery.warehouse.warehouseId },
+          isDeleted: false,
+        },
+        lock: { mode: "pessimistic_write" },
+      });
 
-    // 4️⃣ Update Basic Fields
-    if (input.deliveryDate !== undefined)
-      delivery.deliveryDate = new Date(input.deliveryDate);
+      const availableStock = inventory?.stockQuantity ?? 0;
+      const actualDispatched = Math.min(reqItem.dispatchedQty, availableStock);
 
-    if (input.vehicleNumber !== undefined)
-      delivery.vehicleNumber = input.vehicleNumber;
+      // Update dispatchedQty regardless of isDeleted
+      item.dispatchedQty = actualDispatched;
 
-    if (input.transporterName !== undefined)
-      delivery.transporterName = input.transporterName;
-
-    if (input.driverName !== undefined)
-      delivery.driverName = input.driverName;
-
-    if (input.driverMobile !== undefined)
-      delivery.driverMobile = input.driverMobile;
-
-    if (input.ewayBillNo !== undefined)
-      delivery.ewayBillNo = input.ewayBillNo;
-
-    if (input.dispatchDate !== undefined)
-      delivery.dispatchDate = input.dispatchDate
-  ? new Date(input.dispatchDate)
-  : null;
-
-    // 5️⃣ Handle Status Change
-    if (input.deliveryStatus !== undefined) {
-
-      // ❌ Prevent double dispatch
-      if (
-        previousStatus === DeliveryStatusEnum.DISPATCHED &&
-        input.deliveryStatus === DeliveryStatusEnum.DISPATCHED
-      ) {
-        return {
-          status: STATUSCODES.BAD_REQUEST,
-          message: "Delivery already dispatched",
-          data: null,
-        };
+      // Reduce inventory safely
+      if (inventory && actualDispatched > 0) {
+        inventory.stockQuantity -= actualDispatched;
+        await inventoryRepo.save(inventory);
       }
 
-      // 🚚 DISPATCH LOGIC
-      if (
-        previousStatus !== DeliveryStatusEnum.DISPATCHED &&
-        input.deliveryStatus === DeliveryStatusEnum.DISPATCHED
-      ) {
+      // Remaining stock for response
+      (item as any).remainingStock = inventory?.stockQuantity ?? 0;
 
-        if (!items.length) {
-          return {
-            status: STATUSCODES.BAD_REQUEST,
-            message: "Cannot dispatch delivery without items",
-            data: null,
-          };
-        }
+      // Save delivery item including soft-deleted ones
+      await deliveryItemRepo.save(item, { reload: false });
 
-        for (const item of items) {
-
-          // Lock inventory row
-          const inventory = await inventoryRepo.findOne({
-            where: {
-              skuId: item.skuId,
-              warehouseId: delivery.warehouseId,
-              isDeleted: false,
-            },
-            lock: { mode: "pessimistic_write" },
-          });
-
-          if (!inventory) {
-            throw new Error(`Inventory not found for SKU ${item.skuId}`);
-          }
-
-          // ❌ Stock validation
-          if (inventory.stockQuantity < item.dispatchedQty) {
-            return {
-              status: STATUSCODES.BAD_REQUEST,
-              message: `Insufficient stock for SKU ${item.skuId}`,
-              data: null,
-            };
-          }
-
-          // Reduce stock safely
-          inventory.stockQuantity -= item.dispatchedQty;
-          await inventoryRepo.save(inventory);
-        }
-      }
-
-      delivery.deliveryStatus = input.deliveryStatus;
+      totalOrdered += item.orderedQty;
+      totalDispatched += actualDispatched;
     }
 
-    // 6️⃣ Save Delivery
+    // Update delivery status
+    if (totalDispatched === 0) {
+      delivery.deliveryStatus = DeliveryStatusEnum.PENDING;
+    } else if (totalDispatched < totalOrdered) {
+      delivery.deliveryStatus = DeliveryStatusEnum.PARTIAL_DELIVERED;
+    } else {
+      delivery.deliveryStatus = DeliveryStatusEnum.FULLY_DELIVERED;
+    }
+
+    delivery.dispatchDate = new Date();
     await deliveryRepo.save(delivery);
 
-    // 7️⃣ Fetch Updated Delivery with relations (NO LOCK NOW)
+    // Fetch updated delivery for response
     const updated = await deliveryRepo.findOne({
       where: { deliveryId },
-      relations: ["salesOrder", "customer", "warehouse", "items"],
+      relations: ["items", "items.product", "warehouse", "salesOrder"],
     });
 
+    // Attach remaining stock for all items
+    if (updated) {
+      for (const item of updated.items) {
+        const inventory = await inventoryRepo.findOne({
+          where: {
+            product: { productId: item.product.productId },
+            warehouse: { warehouseId: updated.warehouse.warehouseId },
+            isDeleted: false,
+          },
+        });
+        (item as any).remainingStock = inventory?.stockQuantity ?? 0;
+      }
+    }
+
     return {
-      status: STATUSCODES.SUCCESS,
-      message: "Delivery updated successfully",
+      status: 200,
+      message: "Delivery dispatched successfully",
       data: updated,
     };
   });
 }
+
+
+async updateDeliveryHeader(
+  deliveryId: string,
+  input: UpdateDeliveryHeaderDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  const connection = this.deliveryRepo.manager.connection;
+
+  return await connection.transaction(async (manager) => {
+    const deliveryRepo = manager.getRepository(DeliveryHeader);
+
+    // 1️⃣ Fetch delivery
+    const delivery = await deliveryRepo.findOne({
+      where: { deliveryId, isDeleted: false },
+      relations: ["items", "warehouse", "salesOrder"],
+    });
+
+    if (!delivery) {
+      return { status: 404, message: "Delivery not found", data: null };
+    }
+
+    // 2️⃣ Prevent update if already dispatched or cancelled
+    if ([DeliveryStatusEnum.DISPATCHED, DeliveryStatusEnum.FULLY_DELIVERED, DeliveryStatusEnum.CANCELLED].includes(delivery.deliveryStatus)) {
+      return {
+        status: 400,
+        message: `Cannot update delivery with status ${delivery.deliveryStatus}`,
+        data: null,
+      };
+    }
+
+    // 3️⃣ Update allowed fields
+    if (input.deliveryDate !== undefined) delivery.deliveryDate = new Date(input.deliveryDate);
+    if (input.vehicleNumber !== undefined) delivery.vehicleNumber = input.vehicleNumber;
+    if (input.transporterName !== undefined) delivery.transporterName = input.transporterName;
+    if (input.driverName !== undefined) delivery.driverName = input.driverName;
+    if (input.driverMobile !== undefined) delivery.driverMobile = input.driverMobile;
+    if (input.ewayBillNo !== undefined) delivery.ewayBillNo = input.ewayBillNo;
+    if (input.dispatchDate !== undefined) delivery.dispatchDate = new Date(input.dispatchDate);
+
+    // 4️⃣ Optional: Update status if provided but only to allowed values
+    if (input.deliveryStatus !== undefined) {
+      if ([DeliveryStatusEnum.PENDING, DeliveryStatusEnum.PARTIAL_DELIVERED].includes(input.deliveryStatus)) {
+        delivery.deliveryStatus = input.deliveryStatus;
+      } else {
+        return {
+          status: 400,
+          message: `Cannot set delivery status to ${input.deliveryStatus} via update`,
+          data: null,
+        };
+      }
+    }
+
+    // 5️⃣ Save delivery
+    await deliveryRepo.save(delivery);
+
+    // 6️⃣ Fetch updated delivery
+    const updated = await deliveryRepo.findOne({
+      where: { deliveryId },
+      relations: ["items", "items.product", "warehouse", "salesOrder"],
+    });
+
+    return {
+      status: 200,
+      message: "Delivery header updated successfully",
+      data: updated,
+    };
+  });
+}
+
+
+
   async getDeliveryById(input: GetDeliveryByIdDto, payload: IUser): Promise<IApiResponse> {
     try {
       const delivery = await this.deliveryRepo.findOne({
@@ -352,200 +394,94 @@ async createDeliveryItem(
     const batchRepo = manager.getRepository(Batch);
     const inventoryRepo = manager.getRepository(Inventory);
 
-    // ===============================
     // 1️⃣ Lock Delivery Header
-    // ===============================
     const delivery = await deliveryRepo.findOne({
       where: { deliveryId, isDeleted: false },
       lock: { mode: "pessimistic_write" },
     });
 
-    if (!delivery) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Delivery not found",
-        data: null,
-      };
-    }
+    if (!delivery) return { status: STATUSCODES.NOT_FOUND, message: "Delivery not found", data: null };
+    if (delivery.deliveryStatus !== DeliveryStatusEnum.PENDING)
+      return { status: STATUSCODES.BAD_REQUEST, message: "Items can only be added in PENDING status", data: null };
 
-    if (delivery.deliveryStatus !== DeliveryStatusEnum.DRAFT) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Items can only be added in DRAFT status",
-        data: null,
-      };
-    }
-
-    // ===============================
-    // 2️⃣ Lock Sales Order Item (NO relations here)
-    // ===============================
+    // 2️⃣ Lock Sales Order Item
     const orderItem = await salesOrderItemRepo.findOne({
       where: { id: input.orderItemId, isDeleted: false },
       lock: { mode: "pessimistic_write" },
     });
+    if (!orderItem) return { status: STATUSCODES.NOT_FOUND, message: "Sales order item not found", data: null };
 
-    if (!orderItem) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Sales order item not found",
-        data: null,
-      };
-    }
-
-    // Fetch relations separately (no lock)
     const orderItemWithRelations = await salesOrderItemRepo.findOne({
       where: { id: orderItem.id },
       relations: ["salesOrder", "sku", "product"],
     });
+    if (!orderItemWithRelations)
+      return { status: STATUSCODES.NOT_FOUND, message: "Sales order item details not found", data: null };
 
-    if (!orderItemWithRelations) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Sales order item details not found",
-        data: null,
-      };
-    }
+    if (orderItemWithRelations.salesOrder.soId !== delivery.salesOrderId)
+      return { status: STATUSCODES.BAD_REQUEST, message: "Order item does not belong to this delivery's sales order", data: null };
 
-    // Validate Sales Order match
-    if (orderItemWithRelations.salesOrder.soId !== delivery.salesOrderId) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Order item does not belong to this delivery's sales order",
-        data: null,
-      };
-    }
-
-    // ===============================
-    // 3️⃣ Prevent Duplicate in Same Delivery
-    // ===============================
+    // 3️⃣ Prevent duplicate
     const existing = await deliveryItemRepo.findOne({
-      where: {
-        deliveryId,
-        orderItemId: input.orderItemId,
-        isDeleted: false,
-      },
+      where: { deliveryId, orderItemId: input.orderItemId, isDeleted: false },
     });
+    if (existing)
+      return { status: STATUSCODES.BAD_REQUEST, message: "Delivery item already exists in this delivery", data: null };
 
-    if (existing) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Delivery item already exists in this delivery",
-        data: null,
-      };
-    }
-
-    // ===============================
-    // 4️⃣ Deliverable Qty Calculation
-    // ===============================
+    // 4️⃣ Calculate deliverable quantity
     const orderedQty = orderItem.saleQty;
 
     const totalDeliveredResult = await deliveryItemRepo
       .createQueryBuilder("di")
       .select("COALESCE(SUM(di.dispatchedQty),0)", "total")
-      .where("di.orderItemId = :orderItemId", {
-        orderItemId: input.orderItemId,
-      })
+      .where("di.orderItemId = :orderItemId", { orderItemId: input.orderItemId })
       .andWhere("di.isDeleted = false")
       .getRawOne();
 
     const alreadyDelivered = Number(totalDeliveredResult.total);
     const deliverableQty = orderedQty - alreadyDelivered;
-
-    if (deliverableQty <= 0) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "No quantity left to deliver",
-        data: null,
-      };
-    }
+    if (deliverableQty <= 0)
+      return { status: STATUSCODES.BAD_REQUEST, message: "No quantity left to deliver", data: null };
 
     const dispatchedQty = input.dispatchedQty ?? deliverableQty;
+    if (dispatchedQty <= 0 || dispatchedQty > deliverableQty)
+      return { status: STATUSCODES.BAD_REQUEST, message: `Only ${deliverableQty} quantity left to deliver`, data: null };
 
-    if (dispatchedQty <= 0) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Dispatched quantity must be greater than 0",
-        data: null,
-      };
-    }
-
-    if (dispatchedQty > deliverableQty) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: `Only ${deliverableQty} quantity left to deliver`,
-        data: null,
-      };
-    }
-
-    // ===============================
-    // 5️⃣ Lock Inventory Row
-    // ===============================
+    // 5️⃣ Lock Inventory
     const inventory = await inventoryRepo.findOne({
-      where: {
-        skuId: orderItemWithRelations.sku.skuId,
-        warehouseId: delivery.warehouseId,
-        isDeleted: false,
-      },
+      where: { skuId: orderItemWithRelations.sku.skuId, warehouseId: delivery.warehouseId, isDeleted: false },
       lock: { mode: "pessimistic_write" },
     });
+    if (!inventory) return { status: STATUSCODES.NOT_FOUND, message: "Inventory not found for this SKU", data: null };
 
-    if (!inventory) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Inventory not found for this SKU",
-        data: null,
-      };
-    }
-
-    // Calculate allocated qty in DRAFT deliveries
+    // 6️⃣ Check available stock
     const allocatedResult = await deliveryItemRepo
       .createQueryBuilder("di")
       .leftJoin("di.delivery", "delivery")
       .select("COALESCE(SUM(di.dispatchedQty),0)", "total")
-      .where("di.skuId = :skuId", {
-        skuId: orderItemWithRelations.sku.skuId,
-      })
-      .andWhere("delivery.warehouseId = :warehouseId", {
-        warehouseId: delivery.warehouseId,
-      })
-      .andWhere("delivery.deliveryStatus = :status", {
-        status: DeliveryStatusEnum.DRAFT,
-      })
+      .where("di.skuId = :skuId", { skuId: orderItemWithRelations.sku.skuId })
+      .andWhere("delivery.warehouseId = :warehouseId", { warehouseId: delivery.warehouseId })
+      .andWhere("delivery.deliveryStatus = :status", { status: DeliveryStatusEnum.PENDING })
       .andWhere("delivery.isDeleted = false")
       .andWhere("di.isDeleted = false")
       .getRawOne();
 
     const alreadyAllocated = Number(allocatedResult.total);
     const availableStock = inventory.stockQuantity - alreadyAllocated;
+    if (dispatchedQty > availableStock)
+      return { status: STATUSCODES.BAD_REQUEST, message: `Only ${availableStock} quantity available in stock`, data: null };
 
-    if (dispatchedQty > availableStock) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: `Only ${availableStock} quantity available in stock`,
-        data: null,
-      };
-    }
-
-    // ===============================
-    // 6️⃣ Batch Validation (Optional)
-    // ===============================
+    // 7️⃣ Batch validation
     if (input.batchId) {
-      const batch = await batchRepo.findOne({
-        where: { batchId: input.batchId, isDeleted: false },
-      });
-
-      if (!batch) {
-        return {
-          status: STATUSCODES.NOT_FOUND,
-          message: "Batch not found",
-          data: null,
-        };
-      }
+      const batch = await batchRepo.findOne({ where: { batchId: input.batchId, isDeleted: false } });
+      if (!batch) return { status: STATUSCODES.NOT_FOUND, message: "Batch not found", data: null };
     }
 
-    // ===============================
-    // 7️⃣ Create Delivery Item
-    // ===============================
+    // 8️⃣ Deduct stock
+    inventory.stockQuantity -= dispatchedQty;
+    await inventoryRepo.save(inventory);
+
+    // 9️⃣ Create delivery item
     const deliveryItem = deliveryItemRepo.create({
       deliveryId: delivery.deliveryId,
       orderItemId: orderItem.id,
@@ -555,12 +491,11 @@ async createDeliveryItem(
       dispatchedQty: dispatchedQty,
       batchId: input.batchId ?? null,
     });
-
     await deliveryItemRepo.save(deliveryItem);
 
     return {
       status: STATUSCODES.SUCCESS,
-      message: "Delivery item created successfully",
+      message: "Delivery item created successfully, stock deducted",
       data: deliveryItem,
     };
   });
@@ -606,8 +541,8 @@ async updateDeliveryItem(
       };
     }
 
-    // 3️⃣ Allow update only in DRAFT status
-    if (delivery.deliveryStatus !== DeliveryStatusEnum.DRAFT) {
+    // 3️⃣ Allow update only in PENDING status
+    if (delivery.deliveryStatus !== DeliveryStatusEnum.PENDING) {
       return {
         status: STATUSCODES.BAD_REQUEST,
         message: "Items can only be edited in DRAFT status",
@@ -676,79 +611,81 @@ async cancelDelivery(
     const deliveryItemRepo = manager.getRepository(DeliveryItem);
     const inventoryRepo = manager.getRepository(Inventory);
 
-    // 1️⃣ Lock Delivery Header ONLY
+    // 1️⃣ Lock Delivery Header
     const delivery = await deliveryRepo.findOne({
       where: { deliveryId: input.deliveryId, isDeleted: false },
       lock: { mode: "pessimistic_write" },
     });
 
     if (!delivery) {
-      return {
-        status: STATUSCODES.NOT_FOUND,
-        message: "Delivery not found",
-        data: null,
-      };
+      return { status: STATUSCODES.NOT_FOUND, message: "Delivery not found", data: null };
     }
 
-    // 2️⃣ Prevent double cancel
     if (delivery.deliveryStatus === DeliveryStatusEnum.CANCELLED) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Delivery is already cancelled",
-        data: null,
-      };
+      return { status: STATUSCODES.BAD_REQUEST, message: "Delivery is already cancelled", data: null };
     }
+
+    // 2️⃣ Fetch delivery items
+    const items = await deliveryItemRepo.find({
+      where: { deliveryId: delivery.deliveryId, isDeleted: false },
+      lock: { mode: "pessimistic_write" },
+    });
 
     const updatedInventory: any[] = [];
 
-    // 3️⃣ If already dispatched → restore inventory
-    if (delivery.deliveryStatus === DeliveryStatusEnum.DISPATCHED) {
+    // 3️⃣ Restore stock for each item
+    for (const item of items) {
 
-      // Fetch items separately (Postgres safe)
-      const items = await deliveryItemRepo.find({
-        where: { deliveryId: delivery.deliveryId, isDeleted: false },
+      if (item.dispatchedQty <= 0) continue; // skip if nothing was dispatched
+
+      // Find all batches to choose the best one to restore to
+      const inventories = await inventoryRepo.find({
+        where: { 
+          skuId: item.skuId, 
+          warehouseId: delivery.warehouseId, 
+          isDeleted: false 
+        },
+        order: { expiryDate: "DESC", createdAt: "DESC" }, // Restore to freshest/newest batch
+        lock: { mode: "pessimistic_write" },
       });
 
-      for (const item of items) {
-
-        // Lock inventory row
-        const inventory = await inventoryRepo.findOne({
-          where: {
-            skuId: item.skuId,
-            warehouseId: delivery.warehouseId,
-            isDeleted: false,
-          },
-          lock: { mode: "pessimistic_write" },
-        });
-
-        if (!inventory) {
-          throw new Error(`Inventory not found for SKU ${item.skuId}`);
-        }
-
-        // Restore dispatched qty
-        inventory.stockQuantity += item.dispatchedQty;
-
-        await inventoryRepo.save(inventory);
-
-        updatedInventory.push({
-          skuId: inventory.skuId,
-          warehouseId: inventory.warehouseId,
-          restoredQty: item.dispatchedQty,
-          currentStock: inventory.stockQuantity,
-        });
+      if (!inventories.length) {
+        // Edge case: All batches deleted? 
+        // We cannot easily restore. Throwing error to alert user.
+        throw new Error(`No active inventory batch found for SKU ${item.skuId} to restore stock.`);
       }
+
+      const targetBatch = inventories[0];
+      const restoredQty = item.dispatchedQty;
+
+      // Restore stock
+      targetBatch.stockQuantity += restoredQty;
+      await inventoryRepo.save(targetBatch);
+
+      // Reset dispatchedQty
+      item.dispatchedQty = 0;
+      await deliveryItemRepo.save(item);
+
+      // Push info for response
+      updatedInventory.push({
+        skuId: item.skuId,
+        warehouseId: delivery.warehouseId,
+        restoredQty: restoredQty,
+        batchId: targetBatch.inventoryId, // useful for debugging
+        newStock: targetBatch.stockQuantity
+      });
     }
 
-    // 4️⃣ Update status to CANCELLED
+    // 4️⃣ Update delivery status
     delivery.deliveryStatus = DeliveryStatusEnum.CANCELLED;
     await deliveryRepo.save(delivery);
 
     return {
       status: STATUSCODES.SUCCESS,
-      message: "Delivery cancelled successfully",
+      message: "Delivery cancelled and inventory restored",
       data: {
         deliveryId: delivery.deliveryId,
-        updatedInventory,
+        updatedInventory, // includes restored quantities
       },
     };
   });
@@ -885,10 +822,10 @@ async deleteDeliveryItem(
     }
 
     // 3️⃣ Allow delete only in DRAFT
-    if (delivery.deliveryStatus !== DeliveryStatusEnum.DRAFT) {
+    if (delivery.deliveryStatus !== DeliveryStatusEnum.PENDING) {
       return {
         status: STATUSCODES.BAD_REQUEST,
-        message: "Items can only be deleted in DRAFT status",
+        message: "Items can only be deleted in PENDING status",
         data: null,
       };
     }

@@ -41,6 +41,26 @@ router.post(
 );
 
 router.put(
+  "/dispatch/:deliveryId",
+  validateDtoMiddleware(UpdateDeliveryHeaderDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const deliveryId = req.params.deliveryId;
+      const input = RequestHandler.Defaults.getBody<UpdateDeliveryHeaderDto>(req, UpdateDeliveryHeaderDto);
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const service = new DeliveryService();
+      const data = await service.dispatchDelivery(deliveryId, input, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+
+
+router.put(
   "/update/:deliveryId",
   validateDtoMiddleware(UpdateDeliveryHeaderDto),
   AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),

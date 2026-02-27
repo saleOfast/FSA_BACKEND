@@ -5,6 +5,7 @@ import {OrderStatusEnum,OrderTypeEnum,PaymentModeEnum} from '../../types/Consten
 import { DbConnections} from "../postgresdb";
 import {ISalesOrderHeader } from '../../types/SalesOrderHeaderService/SalesOrderHeaderService'
 import {SalesOrderItem } from '../Entities/salesOrderItem.entity'
+import { Warehouse } from "./warehouse.entity"
 
 @Entity("sales_order_header")
 export class SalesOrderHeader extends BaseEntity implements ISalesOrderHeader {
@@ -102,6 +103,12 @@ updatedAt: Date;
 @Column({name:"is_deleted" , default:false})
 isDeleted:boolean
 
+// @ManyToOne(() => Warehouse)
+// @JoinColumn({ name: "warehouse_id", referencedColumnName: "warehouseId" })
+// warehouse: Warehouse;
+
+// @Column({ name: "warehouse_id" ,nullable: false})
+// warehouseId: string;
 }
 
 export const SalesOrderHeaderRepository = (): Repository<SalesOrderHeader> => {

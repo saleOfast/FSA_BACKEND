@@ -134,8 +134,6 @@ async DeleteSalesOrderHeader(input:DeleteSalesOrderDto, payload:IUser):Promise<I
     throw error;
   }
 }
-
-
 async GetSalesOrderHeaderById(
   input: GetSalesOrderByIdDto,
   payload: IUser
@@ -205,7 +203,6 @@ async GetSalesOrderHeaderById(
     throw error;
   }
 }
-
 
 async listSalesOrderHeader(
   input: ListSalesOrderDto,
@@ -391,91 +388,93 @@ async updateSalesOrderHeader(
   }
 }
 
-
-async getConfirmedOrdersForDelivery(
-  payload: IUser
-): Promise<IApiResponse> {
+async getConfirmedOrdersForDelivery(payload: IUser): Promise<IApiResponse> {
   try {
+  const data = await this.salesOrderHeader
+  .createQueryBuilder("so")
 
-    const data = await this.salesOrderHeader
-      .createQueryBuilder("so")
+  // Customer Join
+  .leftJoin("so.customer", "customer")
 
-      // ✅ Customer Join
-      .leftJoin("so.customer", "customer")
-
-      // ✅ Items Join
+  // Items Join
       .leftJoin("so.Items", "item", "item.isDeleted = false")
 
-      // ✅ Inventory Join (sku match)
+      // ✅ FIXED: Join aggregated inventory to prevent fan-out (double counting)
       .leftJoin(
-        "inventory",
+        (qb) =>
+          qb
+            .subQuery()
+            .select("inv.sku_id", "sku_id")
+            .addSelect("inv.warehouse_id", "warehouse_id")
+            .addSelect("SUM(inv.stock_quantity)", "stock_quantity")
+            .from("inventory", "inv")
+            .where("inv.is_deleted = false")
+            .groupBy("inv.sku_id, inv.warehouse_id"),
         "inv",
-        "inv.sku_id = item.sku_id AND inv.is_deleted = false"
+        "inv.sku_id = item.sku_id"
       )
 
-      // ✅ Warehouse Join (from inventory)
+      // Warehouse Join
       .leftJoin(
         "warehouses",
         "warehouse",
         "warehouse.warehouse_id = inv.warehouse_id"
       )
 
-      // ✅ Filters
-      .where("so.status = :status", { status: OrderStatusEnum.CONFIRMED })
-      .andWhere("so.is_deleted = false")
+      // Delivery Items Join
+      .leftJoin(
+        "delivery_items",
+        "di",
+        "di.order_item_id = item.id AND di.is_deleted = false"
+      )
 
-      // ✅ Select Required Fields Only
-      .select([
-        "so.so_id AS salesOrderId",
-        "CONCAT('SO-', so.so_id) AS salesOrderNo",
-        "so.orderDate AS orderDate",
-        "customer.customer_name AS customerName",
+  // Filters
+  .where("so.status = :status", { status: OrderStatusEnum.CONFIRMED })
+  .andWhere("so.is_deleted = false")
 
-        // Delivery Address from Customer (as you said same as customer)
-        `CONCAT(
-          COALESCE(customer.shipping_street, ''),
-          ', ',
-          COALESCE(customer.shipping_city, ''),
-          ' ',
-          COALESCE(customer.shipping_pin_code, '')
-        ) AS deliveryAddress`,
+  // Select fields
+  .select([
+    "so.so_id AS salesOrderId",
+    "CONCAT('SO-', so.so_id) AS salesOrderNo",
+    "so.orderDate AS orderDate",
+    "customer.customer_name AS customerName",
+    `CONCAT(
+      COALESCE(customer.shipping_street, ''),
+      ', ',
+      COALESCE(customer.shipping_city, ''),
+      ' ',
+      COALESCE(customer.shipping_pin_code, '')
+    ) AS deliveryAddress`,
+    "warehouse.warehouse_name AS warehouseName",
+    "COUNT(DISTINCT item.sku_id) AS skuCount",
+    "COALESCE(SUM(item.saleQty), 0) AS orderedQty",
+    "COALESCE(SUM(inv.stock_quantity), 0) AS availableQty",
+    "COALESCE(SUM(di.dispatched_qty), 0) AS deliveredQty",
+    `COALESCE(SUM(item.saleQty), 0) - COALESCE(SUM(di.dispatched_qty), 0) AS deliverableQty`
+  ])
 
-        "warehouse.warehouse_name AS warehouseName",
-
-        "COUNT(DISTINCT item.sku_id) AS skuCount",
-        "COALESCE(SUM(item.saleQty),0) AS orderedQty",
-        "COALESCE(SUM(inv.stock_quantity),0) AS availableQty",
-
-        // Just field names for now (as you requested)
-        "0 AS deliveredQty",
-        "0 AS deliverableQty",
-      ])
-
-      .groupBy(`
-        so.so_id,
-        so.orderDate,
-        customer.customer_id,
-        customer.shipping_street,
-        customer.shipping_city,
-        customer.shipping_pin_code,
-        warehouse.warehouse_id,
-        warehouse.warehouse_name
-      `)
-
-      .getRawMany();
+  .groupBy(`
+    so.so_id,
+    so.orderDate,
+    customer.customer_id,
+    customer.shipping_street,
+    customer.shipping_city,
+    customer.shipping_pin_code,
+    warehouse.warehouse_id,
+    warehouse.warehouse_name
+  `)
+  .getRawMany();
 
     return {
       status: STATUSCODES.SUCCESS,
       message: "Confirmed Orders fetched successfully",
       data,
     };
-
   } catch (error) {
     console.log(error);
     throw error;
   }
 }
-
 
 
 }

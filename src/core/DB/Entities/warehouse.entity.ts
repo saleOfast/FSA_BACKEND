@@ -78,6 +78,15 @@ status: WarehouseStatusEnum;
   @JoinColumn({ name: "shipping_district_id" })
   shippingDistrict: District;
 
+  @Column({ name: "shipping_country_name", length: 100, nullable: true })
+shippingCountryName: string;
+
+@Column({ name: "shipping_state_name", length: 100, nullable: true })
+shippingStateName: string;
+
+@Column({ name: "shipping_district_name", length: 100, nullable: true })
+shippingDistrictName: string;
+
   @Column({ name: "shipping_street", type: "text" , nullable: false })
   shippingStreet: string;
 

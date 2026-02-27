@@ -41,8 +41,14 @@ export class CreateDeliveryDto {
   @Type(() => Number)
   salesOrderId: number;
 
-  @IsUUID()
-  warehouseId: string;
+  @IsString()
+  @MaxLength(1000)
+  remark: string;
+  // @IsUUID()
+  // warehouseId: string;
+
+  // @IsString()
+  // warehouseName: string;
 
   @IsOptional()
   @IsEnum(DeliveryStatusEnum)
@@ -86,6 +92,9 @@ export class UpdateDeliveryHeaderDto {
   @IsOptional()
   @IsEnum(DeliveryStatusEnum)
   deliveryStatus?: DeliveryStatusEnum;
+
+   @IsArray()
+  items: UpdateDeliveryItemDto[];
 
   @IsOptional()
   @IsDateString()
