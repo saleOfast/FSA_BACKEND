@@ -14,6 +14,7 @@ import { DbConnections } from "../postgresdb";
 import { ICustomer } from "../../types/CustomerService/CustomerService";
 import { User } from "./User.entity";
 import { Beat } from "./beat.entity";
+import {Warehouse} from './warehouse.entity'
 import { IUserReference } from "../../types/Profile/Profile.types";
 
 @Entity({ name: "customers" })
@@ -186,6 +187,13 @@ export class Customer extends BaseEntity implements ICustomer {
 
   @DeleteDateColumn({ type: 'timestamp', nullable: true })
   deletedAt?: Date;
+
+  // @ManyToOne(() => Warehouse, { nullable: true })
+  // @JoinColumn({ name: 'warehouse_id' })
+  // warehouse?: Warehouse;
+
+  @Column({ name: 'warehouse_name', nullable: true })
+  warehouseName?: string;
 
   // Helper method to set createdBy from a User entity
   setCreatedByUser(user: User) {
