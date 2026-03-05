@@ -3,20 +3,20 @@ import { AccessTokenService, ResponseHandler, validateDtoMiddleware } from "../.
 import { RequestHandler } from "../../../../core/helper/RequestHander";
 import { JwtTokenTypes } from "../../../../core/types/Constent/common";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
-import { CreateWarehouse, DeleteWarehouseById, GetWarehouseById, GetWarehouseList, UpdateWarehouse } from "../../../../core/types/warehouseService/warehouseService";
+import { CreateWarehouseDto,GetWarehouseById,GetWarehouseList,DeleteWarehouseById ,UpdateWarehouse} from "../../../../core/types/warehouseService/warehouseService";
 import { WarehouseService } from "../../Controllers/warehouseController/warehouseController";
 const router = express.Router();
 
 router.post(
 	'/create',
-	validateDtoMiddleware(CreateWarehouse),
+	validateDtoMiddleware(CreateWarehouseDto),
 	AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
 	async (req: Request, res: Response) => {
 		try {
-			const input: CreateWarehouse = RequestHandler.Defaults.getBody<CreateWarehouse>(req, CreateWarehouse);
+			const input: CreateWarehouseDto = RequestHandler.Defaults.getBody<CreateWarehouseDto>(req, CreateWarehouseDto);
 			const payload: IUser = RequestHandler.Custom.getUser(req);
 			const service = new WarehouseService();
-			const data = await service.create(input, payload);
+			const data = await service.createWarehouse(input, payload);
 			ResponseHandler.sendResponse(res, data);
 		} catch (error) {
 			ResponseHandler.sendErrorResponse(res, error);
@@ -47,8 +47,9 @@ router.get(
 	async (req: Request, res: Response) => {
 		try {
 			const input: GetWarehouseList = RequestHandler.Defaults.getQuery<GetWarehouseList>(req, GetWarehouseList);
+			const payload: IUser = RequestHandler.Custom.getUser(req);
 			const service = new WarehouseService();
-			const data = await service.list(input);
+			const data = await service.list(input,payload);
 			ResponseHandler.sendResponse(res, data);
 		} catch (error) {
 			ResponseHandler.sendErrorResponse(res, error);
@@ -56,22 +57,28 @@ router.get(
 	}
 );
 
-router.post(
-	'/update',
-	validateDtoMiddleware(UpdateWarehouse),
-	AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
-	async (req: Request, res: Response) => {
-		try {
-			const input: UpdateWarehouse = RequestHandler.Defaults.getBody<UpdateWarehouse>(req, UpdateWarehouse);
-			const payload: IUser = RequestHandler.Custom.getUser(req);
-			const service = new WarehouseService();
-			const data = await service.update(input, payload);
-			ResponseHandler.sendResponse(res, data);
-		} catch (error) {
-			ResponseHandler.sendErrorResponse(res, error);
-		}
-	}
+router.put(
+  '/update/:warehouseId',
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  validateDtoMiddleware(UpdateWarehouse),
+  async (req: Request, res: Response) => {
+    try {
+      const input: UpdateWarehouse = {
+        ...req.body,
+        warehouseId: req.params.warehouseId, // ✅ string UUID
+      };
+
+      const payload = RequestHandler.Custom.getUser(req);
+      const service = new WarehouseService();
+
+      const data = await service.update(input, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
 );
+
 
 router.delete(
 	'/delete/:warehouseId',

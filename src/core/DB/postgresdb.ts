@@ -81,6 +81,13 @@ import { Sku } from './Entities/sku.entity';
 import { PriceBook } from './Entities/priceBook.entity';
 import { PriceBookItem } from './Entities/price_book_item.entity';
 import { ItemShippingAddress } from './Entities/shippingAddress.entity';
+import{SalesOrderHeader} from './Entities/SalesOrderHeader.entity'
+import { SalesOrderItem} from './Entities/salesOrderItem.entity';
+import {Batch} from './Entities/inventoryBatch.entity';
+import { GrnHeader } from './Entities/grnHeader.entity';
+import { GrnItem } from './Entities/grnItem.entity';
+import { DeliveryHeader } from './Entities/deliveryHeader.entity';
+import { DeliveryItem } from './Entities/deliveryItem.entity';
 
 
 
@@ -139,7 +146,7 @@ class Postgresdb {
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
 				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, 
-				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress,SalesOrderHeader,SalesOrderItem,Batch,GrnHeader,GrnItem,DeliveryHeader,DeliveryItem
 			];
 			// Determine if we should use migrations or synchronize
 			const useMigrations = process.env.USE_MIGRATIONS === 'true';

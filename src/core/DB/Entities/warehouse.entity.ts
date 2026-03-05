@@ -1,139 +1,153 @@
 import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, ManyToOne, JoinColumn } from "typeorm";
 import { DbConnections } from "../postgresdb";
 import { User } from "./User.entity";
+import {WarehouseStatusEnum,OwnershipTypeEnum,BusinessRoleEnum ,franchise,SEZ,customerZone} from "../../../core/types/Constent/common"
+import{Country} from"./country.entity"
+import {State} from"./state.entity"
+import {District} from"./district.entity"
+import { Taxes } from "./tax.entity";
+import { CustomerType } from "./customerType.entity";
 
-export enum WarehouseStatus {
-	ACTIVE = 'ACTIVE',
-	INACTIVE = 'INACTIVE',
-}
 
-export enum WarehouseType {
-	DISTRIBUTION_CENTER = 'Distribution Center',
-	COLD_STORAGE = 'Cold Storage',
-	STORAGE = 'Storage',
-}
 
-// Interface for user info object
-export interface IUserInfo {
-	id: number;
-	name: string;
-}
+
 
 @Entity({ name: 'warehouses' })
 export class Warehouse extends BaseEntity {
-	@PrimaryGeneratedColumn({ name: 'warehouse_id' })
-	warehouseId: number;
+	 @PrimaryGeneratedColumn("uuid", { name: "warehouse_id" })
+  warehouseId: string;
 
-	@Column({ name: 'warehouse_name', unique: true })
-	warehouseName: string;
+  @Column({ name: "warehouse_code", length: 30, unique: true, nullable: false })
+  warehouseCode: string;
 
-	// picklist
-	@Column({ name: 'type', type: 'enum', enum: WarehouseType, nullable: true, default: WarehouseType.STORAGE })
-	warehouseType?: WarehouseType;
+  @Column({ name: "warehouse_name", length: 100 ,nullable: false})
+  warehouseName: string;
 
-	// location
-	@Column({ name: 'address' })
-	address: string;
+@Column({
+  type: "enum",
+  enum: WarehouseStatusEnum,
+  enumName: "warehouse_status_enum",
+  default: WarehouseStatusEnum.DRAFT,
+})
+status: WarehouseStatusEnum;
 
-	@Column({ name: 'city' })
-	city: string;
 
-	@Column({ name: 'state' })
-	state: string;
+  @Column({ name: "active_flag", default: true })
+  activeFlag: boolean;
 
-	@Column({ name: 'zip' })
-	zip: string;
+  @Column({ type: "date", name: "effective_from" ,nullable: false })
+  effectiveFrom: Date;
 
-	// manager refs
-	@ManyToOne(() => User, { nullable: true })
-	@JoinColumn({ name: 'manager_id' })
-	manager?: User;
+  @Column({ type: "date", name: "effective_to", nullable: true })
+  effectiveTo?: Date;
 
-	@Column({ name: 'manager_id', nullable: true })
-	managerId?: number;
+  @Column({ type: "enum", enum: OwnershipTypeEnum, name: "ownership_type", nullable: false })
+  ownershipType: OwnershipTypeEnum;
 
-	@Column({ name: 'email', nullable: true })
-	email?: string;
+  @Column({ type: "enum", enum: BusinessRoleEnum, name: "business_role", nullable: false })
+  businessRole: BusinessRoleEnum;
 
-	// optional duplicate if you want to persist phone even if user changes
-	@Column({ name: 'manager_phone', nullable: true })
-	managerPhone?: string;
 
-	@Column({ name: 'contact_person', nullable: true })
-	contactPerson?: string;
+  // @ManyToOne(()=>Taxes)
+  // @JoinColumn({ name: "tax_id" })
+  // tax: Taxes;
 
-	@Column({ name: 'contact_name', nullable: true })
-	contactName?: string;
+  @Column({ name: "legal_entity_id" })
+  legalEntityId!:number;
 
-	@Column({ name: 'capacity', type: 'int', nullable: true })
-	capacity?: number;
 
-	@Column({ name: 'status', type: 'enum', enum: WarehouseStatus, default: WarehouseStatus.ACTIVE })
-	status: WarehouseStatus;
+  // @ManyToOne(()=> CustomerType)
+  // @JoinColumn({ name: "customer_type_id" })
+  // customerType: CustomerType;
+  @Column({ name: "parent_partner_id"})
+  parentPartnerId!:number;
 
-	@Column({ name: 'operational_hours', nullable: true })
-	operationalHours?: string;
+  @Column({name:"franchise",type:"enum",enum:franchise})
+  franchise: franchise;
 
-	@CreateDateColumn({ type: 'timestamp', name: 'created_date', default: () => 'CURRENT_TIMESTAMP' })
-	createdDate: Date;
+  @ManyToOne(()=> Country)
+  @JoinColumn({ name: "shipping_country_id" })
+  shippingCountry: Country;
 
-	@UpdateDateColumn({ type: 'timestamp', name: 'last_updated_date', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-	lastUpdatedDate: Date;
+  @ManyToOne(()=> State)
+  @JoinColumn({ name: "shipping_state_id" })
+  shippingState: State;
 
-	@ManyToOne(() => User, { nullable: true })
-	@JoinColumn({ name: 'created_by' })
-	createdByUser?: User;
 
-	@Column({ name: 'created_by', nullable: true })
-	createdBy?: number;
+  @ManyToOne(()=> District)
+  @JoinColumn({ name: "shipping_district_id" })
+  shippingDistrict: District;
 
-	@Column({ name: 'created_by_name', nullable: true })
-	createdByName?: string;
+  @Column({ name: "shipping_country_name", length: 100, nullable: true })
+shippingCountryName: string;
 
-	@ManyToOne(() => User, { nullable: true })
-	@JoinColumn({ name: 'last_modified_by' })
-	lastModifiedByUser?: User;
+@Column({ name: "shipping_state_name", length: 100, nullable: true })
+shippingStateName: string;
 
-	@Column({ name: 'last_modified_by', nullable: true })
-	lastModifiedBy?: number;
+@Column({ name: "shipping_district_name", length: 100, nullable: true })
+shippingDistrictName: string;
 
-	@Column({ name: 'last_modified_by_name', nullable: true })
-	lastModifiedByName?: string;
+  @Column({ name: "shipping_street", type: "text" , nullable: false })
+  shippingStreet: string;
 
-	// Virtual properties that combine ID and name
-	get createdByInfo(): IUserInfo | null {
-		if (!this.createdBy) return null;
-		return {
-			id: this.createdBy,
-			name: this.createdByName || 'Unknown User'
-		};
-	}
+  @Column({ name: "shipping_city", length: 100, nullable: false })
+  shippingCity: string;
 
-	get lastModifiedByInfo(): IUserInfo | null {
-		if (!this.lastModifiedBy) return null;
-		return {
-			id: this.lastModifiedBy,
-			name: this.lastModifiedByName || 'Unknown User'
-		};
-	}
+  @Column({ name: "shipping_pin_code", length: 20, nullable: false })
+  shippingPinCode: string;
 
-	// Method to get formatted data for API responses
-	toResponseFormat() {
-		const response: any = { ...this };
-		
-		// Replace individual fields with combined objects
-		if (this.createdBy) {
-			response.createdBy = this.createdByInfo;
-			delete response.createdByName;
-		}
-		
-		if (this.lastModifiedBy) {
-			response.lastModifiedBy = this.lastModifiedByInfo;
-			delete response.lastModifiedByName;
-		}
-		
-		return response;
-	}
+  @Column({ name: "gst_no", length: 20, nullable: true })
+  gstNo?: string;
+
+  @Column({ name: "vat_registration_no", length: 50, nullable: true })
+  vatRegistrationNo?: string;
+
+  @Column({ name: "tax_registration_type", length: 50, nullable: true })
+  taxRegistrationType?: string;
+
+  @Column({ name:"sez",type:"enum",enum:SEZ})
+  sez: SEZ;
+
+  @Column({ name: "custom_zone", type:"enum", enum:customerZone })
+  customZone: customerZone;
+
+  @Column({ name: "allows_sales", nullable: false })
+  allowsSales: boolean;
+
+  @Column({ name: "allows_purchase",  nullable: false })
+  allowsPurchase: boolean;
+
+
+  @Column({ name: "allows_returns", nullable: false })
+  allowsReturns: boolean;
+
+  @Column({ name: "supports_batch", default: false })
+  supportsBatch: boolean;
+
+  @Column({ name: "supports_expiry", default: false })
+  supportsExpiry: boolean;
+
+  @Column({ name: "supports_serial", default: false })
+  supportsSerial: boolean;
+
+  @Column({ name: "temperature_controlled", default: false })
+  temperatureControlled: boolean;
+
+  @Column({ name: "cross_docking_flag", default: false })
+  crossDockingFlag: boolean;
+
+  @Column({ name: "consignment_flag", default: false })
+  consignmentFlag: boolean;
+
+  @CreateDateColumn({ name: "created_at" })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: "updated_at" })
+  updatedAt: Date;
+  
+@Column({ name: "is_deleted", default: false })
+isDeleted: boolean;
+
 }
 
 export const WarehouseRepository = (): Repository<Warehouse> => {

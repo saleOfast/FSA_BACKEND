@@ -31,9 +31,8 @@ export class InventoryItemDto {
   productId?: number; // optional, can come from SKU
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  warehouseId?: number;
+  @IsString()
+  warehouseId?: string;
 
   @IsNotEmpty()
   @Type(() => Number)
@@ -111,9 +110,8 @@ export class DeleteInventoryDto {
 export class GetInventoryList {
   @Transform(({ value }) => parseInt(value))
   @IsNotEmpty()
-  @Type(() => Number)
-  @IsNumber()
-  warehouseId: number;
+  @IsString()
+  warehouseId?: string;
 
  @IsOptional()
   @Type(() => Number)

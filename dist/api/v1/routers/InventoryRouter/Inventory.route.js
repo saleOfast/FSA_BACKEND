@@ -60,13 +60,11 @@ router.get("/getList/:warehouseId", (0, validationMiddleware_1.validateDtoMiddle
         validationMiddleware_1.ResponseHandler.sendErrorResponse(res, error);
     }
 }));
-// =======================
-// GET ALL INVENTORY
-// =======================
-router.get("/getAll", validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get("/getById/:inventoryId", (0, validationMiddleware_1.validateDtoMiddleware)(InventoryService_1.GetInventoryById), validationMiddleware_1.AccessTokenService.validateTokenMiddleware(common_1.JwtTokenTypes.AUTH_TOKEN), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const input = RequestHander_1.RequestHandler.Defaults.getParams(req, InventoryService_1.GetInventoryById);
         const payload = RequestHander_1.RequestHandler.Custom.getUser(req);
-        const data = yield inventoryService.getAllInventory(payload);
+        const data = yield inventoryService.getInventoryById(input, payload);
         validationMiddleware_1.ResponseHandler.sendResponse(res, data);
     }
     catch (error) {

@@ -374,3 +374,102 @@ export enum YesNo {
   YES = "YES",
   NO = "NO",
 }
+
+export enum OrderTypeEnum {
+  REGULAR = "Regular",
+  VAN_SALES = "Van Sales",
+  SECONDARY = "Secondary",
+  PRE_SELL = "Pre-sell",
+}
+
+export enum OrderStatusEnum {
+  DRAFT = "Draft",
+  CONFIRMED = "Confirmed",
+  ALLOCATED = "Allocated",
+  INVOICED = "Invoiced",
+  CANCELLED = "Cancelled",
+}
+export enum PaymentModeEnum {
+  CASH = "CASH",
+  UPI = "UPI",
+  CHEQUE = "CHEQUE",
+  NEFT = "NEFT",
+  RTGS = "RTGS",
+}
+
+
+export enum WarehouseStatusEnum {
+  DRAFT = "DRAFT",
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  CLOSED = "CLOSED",
+}
+
+export enum OwnershipTypeEnum {
+  COMPANY = "COMPANY",
+  DISTRIBUTOR = "DISTRIBUTOR",
+
+}
+
+export enum BusinessRoleEnum {
+  PLANT = "PLANT",
+  PRIMARY = "PRIMARY",
+  // REGIONAL_DC = "REGIONAL_DC",
+  // DEPOT = "DEPOT",
+  // DIRECT_STORE = "DIRECT_STORE",
+  // TRANSIT_HUB = "TRANSIT_HUB",
+  // RETURN_CENTER = "RETURN_CENTER",
+}
+
+export enum franchise{
+  YES = "YES",
+  NO = "NO",
+}
+
+export enum SEZ{
+  YES = "YES",
+  NO = "NO",
+}
+
+export enum customerZone{
+  NORTH = "NORTH",
+  SOUTH = "SOUTH",
+  EAST = "EAST",
+  WEST = "WEST",
+
+}
+
+
+export enum BatchStatusEnum {
+  ACTIVE = "ACTIVE",
+  BLOCKED = "BLOCKED",
+  EXPIRED = "EXPIRED",
+  QUARANTINE = "QUARANTINE",
+}
+
+export enum QualityStatusEnum {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum StorageConditionEnum {
+  AMBIENT = "AMBIENT",
+  COLD_CHAIN = "COLD_CHAIN",
+  FROZEN = "FROZEN",
+}
+
+export enum GrnStatusEnum {
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum DeliveryStatusEnum {
+  PENDING= 'PENDING',
+  DISPATCHED = 'DISPATCHED',
+  PARTIAL_DELIVERED = 'PARTIAL_DELIVERED',
+ FULLY_DELIVERED = 'FULLY_DELIVERED',
+  CANCELLED = 'CANCELLED',
+}
+

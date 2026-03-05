@@ -8,10 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DbConnections = void 0;
 const typeorm_1 = require("typeorm");
 const config_1 = require("../config");
+const path_1 = __importDefault(require("path"));
 const policyHead_entity_1 = require("./Entities/policyHead.entity");
 const policyHeadType_entity_1 = require("./Entities/policyHeadType.entity");
 const expenseManagement_entity_1 = require("./Entities/expenseManagement.entity");
@@ -82,6 +86,16 @@ const TabPermission_entity_1 = require("./Entities/TabPermission.entity");
 const systemPermission_entity_1 = require("./Entities/systemPermission.entity");
 const posm_entity_1 = require("./Entities/posm.entity");
 const sku_entity_1 = require("./Entities/sku.entity");
+const priceBook_entity_1 = require("./Entities/priceBook.entity");
+const price_book_item_entity_1 = require("./Entities/price_book_item.entity");
+const shippingAddress_entity_1 = require("./Entities/shippingAddress.entity");
+const SalesOrderHeader_entity_1 = require("./Entities/SalesOrderHeader.entity");
+const salesOrderItem_entity_1 = require("./Entities/salesOrderItem.entity");
+const inventoryBatch_entity_1 = require("./Entities/inventoryBatch.entity");
+const grnHeader_entity_1 = require("./Entities/grnHeader.entity");
+const grnItem_entity_1 = require("./Entities/grnItem.entity");
+const deliveryHeader_entity_1 = require("./Entities/deliveryHeader.entity");
+const deliveryItem_entity_1 = require("./Entities/deliveryItem.entity");
 const { userName, password, host, port, dbName, isSynchronize } = (0, config_1.config)();
 const dbConfig = { userName, password, host, port, dbName, isSynchronize };
 class Postgresdb {
@@ -118,28 +132,25 @@ class Postgresdb {
                     userLeave_entity_1.UserLeave, userLeaveApplication_entity_1.LeaveApplication,
                     activityRelatedTo_entity_1.ActivityRelTo, activityType_entity_1.ActivityType, nextActionOn_entity_1.NextActionOn, status_entity_1.Status, workplace_entity_1.Workplace, holidays_entity_1.Holiday,
                     dar_entity_1.Dar, eDetailing_entity_1.Edetailing, rcpa_entity_1.RCPA, tax_entity_1.Taxes, giftDistribution_entity_1.Gifts, new_target_entity_1.NewTarget,
-                    inventory_1.Inventory, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, customer_entity_1.Customer, customerType_entity_1.CustomerType, country_entity_1.Country, state_entity_1.State, district_entity_1.District, profile_entity_1.Profile, ObjectPermission_entity_1.ObjectPermission, Tab_entity_1.Tab, TabPermission_entity_1.TabPermission, systemPermission_entity_1.SystemPermission, posm_entity_1.Posm, sku_entity_1.Sku
+                    inventory_1.Inventory, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, customer_entity_1.Customer, customerType_entity_1.CustomerType, country_entity_1.Country, state_entity_1.State, district_entity_1.District, profile_entity_1.Profile, ObjectPermission_entity_1.ObjectPermission, Tab_entity_1.Tab, TabPermission_entity_1.TabPermission, systemPermission_entity_1.SystemPermission, posm_entity_1.Posm,
+                    inventory_1.Inventory, warehouse_entity_1.Warehouse, sales_return_entity_1.SalesReturn, customer_entity_1.Customer, customerType_entity_1.CustomerType, country_entity_1.Country, state_entity_1.State, district_entity_1.District, profile_entity_1.Profile, ObjectPermission_entity_1.ObjectPermission, Tab_entity_1.Tab, TabPermission_entity_1.TabPermission, systemPermission_entity_1.SystemPermission, sku_entity_1.Sku, priceBook_entity_1.PriceBook, price_book_item_entity_1.PriceBookItem, shippingAddress_entity_1.ItemShippingAddress, SalesOrderHeader_entity_1.SalesOrderHeader, salesOrderItem_entity_1.SalesOrderItem, inventoryBatch_entity_1.Batch, grnHeader_entity_1.GrnHeader, grnItem_entity_1.GrnItem, deliveryHeader_entity_1.DeliveryHeader, deliveryItem_entity_1.DeliveryItem
                 ];
-                const dbConn = new typeorm_1.DataSource({
-                    type: 'postgres',
-                    url: this.connectionUrl,
-                    // Use synchronize only in local development, disable in production/dev when using migrations
-                    synchronize: JSON.parse(this.isSync),
-                    logging: true,
-                    ssl: isLocal ? false : { rejectUnauthorized: false },
-                    entities,
-                    // Uncomment to enable migrations at runtime (optional)
-                    // migrations: [path.join(__dirname, 'migrations', '*.ts')],
-                    schema: 'public',
-                    extra: {
+                // Determine if we should use migrations or synchronize
+                const useMigrations = process.env.USE_MIGRATIONS === 'true';
+                const shouldSynchronize = !useMigrations && JSON.parse(this.isSync);
+                const dbConn = new typeorm_1.DataSource(Object.assign(Object.assign({ type: 'postgres', url: this.connectionUrl, 
+                    // Disable synchronize when using migrations
+                    synchronize: shouldSynchronize, logging: true, ssl: isLocal ? false : { rejectUnauthorized: false }, entities }, (useMigrations && {
+                    migrations: [path_1.default.join(__dirname, 'migrations', '*.ts')],
+                    migrationsRun: false, // Set to true to auto-run migrations on app start
+                })), { schema: 'public', extra: {
                         keepAlive: true,
                         timeZone: 'IST',
                         host: this.dbConfig.host,
                         port: this.dbConfig.port,
                         user: this.dbConfig.userName,
                         password: this.dbConfig.password
-                    }
-                });
+                    } }));
                 this.isConnected = true;
                 this.masterConnection = yield dbConn.initialize();
                 console.log('Connected to host', postgresDBUrl);

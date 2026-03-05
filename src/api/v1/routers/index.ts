@@ -7,7 +7,7 @@ import { StoreRoute } from "./StoreRouter/Store.route";
 import { BeatRoute } from "./BeatRouter/Beat.route";
 import { ProductRoute } from "./ProductRouter/Product.route";
 import { BrandRouter } from "./BrandRouter/Brand.route";
-import { OrderRouter } from "./OrderRouter/Order.route";
+// import { OrderRouter } from "./OrderRouter/Order.route";
 import { InventoryRouter } from "./InventoryRouter/Inventory.route";
 import { SchemeRoute } from "./SchemeRouter/SchemeRoute";
 import { UsersListRoute } from "./UserRouter/user.route";
@@ -60,6 +60,12 @@ import {PriceBookRoute} from "./PriceBookRouter/priceBook.route"
 import { PriceBookItmRoute } from "./PriceBookItmRoute/priceBookItm.route";
 import {ShippingAddressRouter} from './ShippingAddressRoute/shippingAddress.route'
 import {taxRoute} from './TaxesRoute/tax.route'
+import {SalesOrderHeaderRoute} from './SalesOrderHeaderRoute/SalesOrderHeader.route'
+import { SalesOrderItemRoute } from "./SalesOrderItemRoute/SalesOrderItem.route";
+import { BatchRoute} from "./InventoryBatchRouter/InventoryBatchRoute";
+import { grnHeaderRouter } from "./GrnHeaderRouter/GrnHeader.route";
+import {  GrnItemRouter } from "./GrnItemRouter/GrnItem.route";
+import { DeliveryRoute } from "./DeliveryRoute/Delivery.route";
 
 const router = express.Router();
 /* Auth ROutes */
@@ -71,7 +77,7 @@ router.use('/store', StoreRoute);
 router.use('/beat', BeatRoute);
 router.use('/product', ProductRoute);
 router.use('/brand', BrandRouter);
-router.use('/order', OrderRouter);
+// router.use('/order', OrderRouter);
 router.use('/inventory', InventoryRouter);
 router.use('/scheme', SchemeRoute);
 router.use('/users', UsersListRoute);
@@ -126,6 +132,11 @@ router.use('/priceBook', PriceBookRoute);
 router.use('/priceBookItem', PriceBookItmRoute );
 router.use('/ShippingAddress',ShippingAddressRouter)
 router.use('/tax',taxRoute)
-
+router.use('/SalesOrderHeader',SalesOrderHeaderRoute)
+router.use('/SalesOrderItem',SalesOrderItemRoute)
+router.use('/Batch',BatchRoute)
+router.use('/grnHeader',grnHeaderRouter)
+router.use('/grnItem',GrnItemRouter)
+router.use('/delivery', DeliveryRoute);
 
 export { router as routes };

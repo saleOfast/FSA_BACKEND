@@ -22,7 +22,6 @@ const activities_jointWork_entity_1 = require("./activities.jointWork.entity");
 const workplace_entity_1 = require("./workplace.entity");
 const holidays_entity_1 = require("./holidays.entity");
 const rcpa_entity_1 = require("./rcpa.entity");
-const tax_entity_1 = require("./tax.entity");
 const giftDistribution_entity_1 = require("./giftDistribution.entity");
 const new_target_entity_1 = require("./new.target.entity");
 const profile_entity_1 = require("./profile.entity");
@@ -162,10 +161,6 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => activities_entity_1.Activities, (activity) => activity.user),
     __metadata("design:type", Array)
 ], User.prototype, "activities", void 0);
-__decorate([
-    (0, typeorm_1.OneToMany)(() => tax_entity_1.Taxes, (tax) => tax.user),
-    __metadata("design:type", Array)
-], User.prototype, "taxes", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => workplace_entity_1.Workplace, (workplace) => workplace.user),
     __metadata("design:type", Array)
