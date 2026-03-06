@@ -4,7 +4,7 @@ import { IUser } from "../../../../core/types/AuthService/AuthService";
 import { Customer,CustomerRepository } from "../../../../core/DB/Entities/customer.entity";
 import { SalesOrderHeader,SalesOrderHeaderRepository } from "../../../../core/DB/Entities/SalesOrderHeader.entity";
 import {UserRepository} from '../../../../core/DB/Entities/User.entity'
-import {CreateSalesOrderDto,UpdateSalesOrderDto,DeleteSalesOrderDto,GetSalesOrderByIdDto,ListSalesOrderDto} from "../../../../core/types/SalesOrderHeaderService/SalesOrderHeaderService"
+import {CreateSalesOrderDto,UpdateSalesOrderDto,DeleteSalesOrderDto,GetSalesOrderByIdDto,ListSalesOrderDto, ListApprovedOrdersForDeliveryDto} from "../../../../core/types/SalesOrderHeaderService/SalesOrderHeaderService"
 import{ OrderTypeEnum,OrderStatusEnum,PaymentModeEnum} from "../../../../core/types/Constent/common"
 
 import{ ShippingAddressRepository} from "../../../../core/DB/Entities/shippingAddress.entity"
@@ -388,82 +388,131 @@ async updateSalesOrderHeader(
   }
 }
 
-async getConfirmedOrdersForDelivery(payload: IUser): Promise<IApiResponse> {
+async getConfirmedOrdersForDelivery(
+  input: ListApprovedOrdersForDeliveryDto,
+  payload: IUser
+): Promise<IApiResponse> {
   try {
-  const data = await this.salesOrderHeader
-  .createQueryBuilder("so")
-
-  // Customer Join
-  .leftJoin("so.customer", "customer")
-
-  // Items Join
+    const qb = this.salesOrderHeader
+      .createQueryBuilder("so")
+      .leftJoin("so.customer", "customer")
       .leftJoin("so.Items", "item", "item.isDeleted = false")
 
-      // ✅ FIXED: Join aggregated inventory to prevent fan-out (double counting)
+      // inventory aggregation
       .leftJoin(
-        (qb) =>
-          qb
+        (sub) =>
+          sub
             .subQuery()
-            .select("inv.sku_id", "sku_id")
-            .addSelect("inv.warehouse_id", "warehouse_id")
-            .addSelect("SUM(inv.stock_quantity)", "stock_quantity")
+            .select("inv.sku_id", "skuId")
+            .addSelect("inv.warehouse_id", "warehouseId")
+            .addSelect("SUM(inv.stock_quantity)", "stockQuantity")
             .from("inventory", "inv")
             .where("inv.is_deleted = false")
-            .groupBy("inv.sku_id, inv.warehouse_id"),
+            .groupBy("inv.sku_id")
+            .addGroupBy("inv.warehouse_id"),
         "inv",
-        "inv.sku_id = item.sku_id"
+        'inv."skuId" = item."sku_id" AND inv."warehouseId" = item."warehouse_id"'
       )
 
-      // Warehouse Join
       .leftJoin(
         "warehouses",
         "warehouse",
-        "warehouse.warehouse_id = inv.warehouse_id"
+        'warehouse.warehouse_id = item."warehouse_id"'
       )
 
-      // Delivery Items Join
       .leftJoin(
-        "delivery_items",
+        "dispatch_item",
         "di",
-        "di.order_item_id = item.id AND di.is_deleted = false"
+        'di.sales_order_item_id = item.id AND di.is_deleted = false'
       )
 
-  // Filters
-  .where("so.status = :status", { status: OrderStatusEnum.CONFIRMED })
-  .andWhere("so.is_deleted = false")
+      .where("so.status = :status", {
+        status: OrderStatusEnum.CONFIRMED,
+      })
+      .andWhere("so.is_deleted = false");
 
-  // Select fields
-  .select([
-    "so.so_id AS salesOrderId",
-    "CONCAT('SO-', so.so_id) AS salesOrderNo",
-    "so.orderDate AS orderDate",
-    "customer.customer_name AS customerName",
-    `CONCAT(
-      COALESCE(customer.shipping_street, ''),
-      ', ',
-      COALESCE(customer.shipping_city, ''),
-      ' ',
-      COALESCE(customer.shipping_pin_code, '')
-    ) AS deliveryAddress`,
-    "warehouse.warehouse_name AS warehouseName",
-    "COUNT(DISTINCT item.sku_id) AS skuCount",
-    "COALESCE(SUM(item.saleQty), 0) AS orderedQty",
-    "COALESCE(SUM(inv.stock_quantity), 0) AS availableQty",
-    "COALESCE(SUM(di.dispatched_qty), 0) AS deliveredQty",
-    `COALESCE(SUM(item.saleQty), 0) - COALESCE(SUM(di.dispatched_qty), 0) AS deliverableQty`
-  ])
+    // optional filters
+    if (input.customerId) {
+      qb.andWhere("customer.customer_id = :customerId", {
+        customerId: input.customerId,
+      });
+    }
 
-  .groupBy(`
-    so.so_id,
-    so.orderDate,
-    customer.customer_id,
-    customer.shipping_street,
-    customer.shipping_city,
-    customer.shipping_pin_code,
-    warehouse.warehouse_id,
-    warehouse.warehouse_name
-  `)
-  .getRawMany();
+    if (input.warehouseId) {
+      qb.andWhere('so."warehouse_id" = :warehouseId', {
+        warehouseId: input.warehouseId,
+      });
+    }
+
+    if (input.fromDate) {
+      qb.andWhere("so.orderDate >= :fromDate", {
+        fromDate: input.fromDate,
+      });
+    }
+
+    if (input.toDate) {
+      qb.andWhere("so.orderDate <= :toDate", {
+        toDate: input.toDate,
+      });
+    }
+
+    qb
+      .select('so."so_id"', "salesOrderId")
+      .addSelect("so.orderDate", "orderDate")
+      .addSelect("customer.customer_name", "customerName")
+      .addSelect("customer.shipping_street", "shippingStreet")
+      .addSelect("customer.shipping_city", "shippingCity")
+      .addSelect("customer.shipping_pin_code", "shippingPinCode")
+      .addSelect("warehouse.warehouse_name", "warehouseName")
+
+      .addSelect("COUNT(DISTINCT item.id)", "skuCount")
+
+      .addSelect("COALESCE(SUM(item.saleQty),0)", "orderedQty")
+
+      .addSelect('COALESCE(SUM(inv."stockQuantity"),0)', "availableQty")
+
+      .addSelect("COALESCE(SUM(di.dispatched_qty),0)", "dispatchedQty")
+
+      // remaining qty
+      .addSelect(
+        "COALESCE(SUM(item.saleQty),0) - COALESCE(SUM(di.dispatched_qty),0)",
+        "remainingQty"
+      )
+
+      // deliverable qty
+      .addSelect(
+        `LEAST(
+            COALESCE(SUM(inv."stockQuantity"),0),
+            COALESCE(SUM(item.saleQty),0) - COALESCE(SUM(di.dispatched_qty),0)
+        )`,
+        "deliverableQty"
+      )
+
+      .groupBy('so."so_id"')
+      .addGroupBy("so.orderDate")
+      .addGroupBy("customer.customer_id")
+      .addGroupBy("customer.customer_name")
+      .addGroupBy("customer.shipping_street")
+      .addGroupBy("customer.shipping_city")
+      .addGroupBy("customer.shipping_pin_code")
+      .addGroupBy("warehouse.warehouse_name");
+
+    const rows = await qb.getRawMany();
+
+    const data = rows.map((row) => ({
+      salesOrderId: row.salesOrderId,
+      salesOrderNo: `SO-${row.salesOrderId}`,
+      orderDate: row.orderDate,
+      customerName: row.customerName,
+      deliveryAddress: `${row.shippingStreet || ""}, ${row.shippingCity || ""} ${row.shippingPinCode || ""}`.trim(),
+      warehouseName: row.warehouseName,
+      skuCount: Number(row.skuCount) || 0,
+      orderedQty: Number(row.orderedQty) || 0,
+      availableQty: Number(row.availableQty) || 0,
+      dispatchedQty: Number(row.dispatchedQty) || 0,
+      remainingQty: Number(row.remainingQty) || 0,
+      deliverableQty: Number(row.deliverableQty) || 0,
+    }));
 
     return {
       status: STATUSCODES.SUCCESS,
@@ -471,15 +520,11 @@ async getConfirmedOrdersForDelivery(payload: IUser): Promise<IApiResponse> {
       data,
     };
   } catch (error) {
-    console.log(error);
     throw error;
   }
 }
 
-
 }
-
-
 
 
 

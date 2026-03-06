@@ -299,6 +299,23 @@ export enum CurrencyType {
   USD = "USD",
   EUR = "EUR",
 }
+
+export enum InvoiceDocumentTypeEnum {
+    TAX_INVOICE = 'Tax Invoice',
+    PROFORMA_INVOICE = 'Proforma Invoice',
+    CREDIT_NOTE = 'Credit Note',
+    DEBIT_NOTE = 'Debit Note',
+    REVERSE_INVOICE = 'Reverse Invoice',
+}
+
+export enum InvoiceStatusEnum {
+    DRAFT = 'Draft',
+    APPROVED = 'Approved',
+    SENT = 'Sent',
+    CANCELLED = 'Cancelled',
+    PAID = 'Paid',
+    PARTIALLY_PAID = 'Partial Paid',
+}
 export enum PriceBookStatus {
   DRAFT = "DRAFT",
   ACTIVE = "ACTIVE",
@@ -465,11 +482,10 @@ export enum GrnStatusEnum {
   COMPLETED = 'COMPLETED',
 }
 
-export enum DeliveryStatusEnum {
+export enum DispatchedStatusEnum {
   PENDING= 'PENDING',
-  DISPATCHED = 'DISPATCHED',
-  PARTIAL_DELIVERED = 'PARTIAL_DELIVERED',
- FULLY_DELIVERED = 'FULLY_DELIVERED',
+  PARTIALLY_DISPATCHED = 'PARTIALLY_DISPATCHED',
+  FULLY_DISPATCHED = 'FULLY_DISPATCHED',
   CANCELLED = 'CANCELLED',
 }
 

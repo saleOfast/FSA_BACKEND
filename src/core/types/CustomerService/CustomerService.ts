@@ -70,6 +70,7 @@ export interface ICustomer {
   lastModifiedDate?: Date;
   isDeleted: boolean;
   deletedAt?: Date;
+  warehouseName?: string;
 }
 
 export class CreateCustomer {
@@ -251,6 +252,10 @@ export class CreateCustomer {
   @IsOptional()
   @IsBoolean()
   discountEligibility?: boolean;
+
+  @IsOptional()
+  @IsString()
+  warehouseName?: string;
 }
 
 export class UpdateCustomer {
@@ -436,6 +441,10 @@ export class UpdateCustomer {
   @IsOptional()
   @IsBoolean()
   discountEligibility?: boolean;
+
+  @IsOptional()
+  @IsString()
+  warehouseName?: string;
 }
 
 export class GetCustomerById {

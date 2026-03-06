@@ -65,7 +65,8 @@ import { SalesOrderItemRoute } from "./SalesOrderItemRoute/SalesOrderItem.route"
 import { BatchRoute} from "./InventoryBatchRouter/InventoryBatchRoute";
 import { grnHeaderRouter } from "./GrnHeaderRouter/GrnHeader.route";
 import {  GrnItemRouter } from "./GrnItemRouter/GrnItem.route";
-import { DeliveryRoute } from "./DeliveryRoute/Delivery.route";
+import { DispatchRoute} from "./DispatchRoute/Dispatch.route";
+// import InvoiceRoute from "./InvoiceRoute/Invoice.route";
 
 const router = express.Router();
 /* Auth ROutes */
@@ -137,6 +138,7 @@ router.use('/SalesOrderItem',SalesOrderItemRoute)
 router.use('/Batch',BatchRoute)
 router.use('/grnHeader',grnHeaderRouter)
 router.use('/grnItem',GrnItemRouter)
-router.use('/delivery', DeliveryRoute);
+router.use('/dispatch', DispatchRoute);
+// router.use('/invoice', InvoiceRoute);
 
 export { router as routes };

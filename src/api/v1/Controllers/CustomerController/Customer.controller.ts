@@ -12,12 +12,14 @@ import {
 import { Customer, CustomerRepository } from "../../../../core/DB/Entities/customer.entity";
 import { UserRepository } from "../../../../core/DB/Entities/User.entity";
 import { BeatRepository } from "../../../../core/DB/Entities/beat.entity";
+import { WarehouseRepository,Warehouse } from "../../../../core/DB/Entities/warehouse.entity"
 import { ILike } from "typeorm";
 
 class CustomerController {
   private customerRepository = CustomerRepository();
   private userRepository = UserRepository();
   private beatRepository = BeatRepository();
+  private warehouseRepository=WarehouseRepository();
 
   constructor() { }
 
@@ -66,7 +68,8 @@ class CustomerController {
         lastPaymentDate,
         averageMonthlySales,
         outstandingAmount,
-        discountEligibility
+        discountEligibility,
+        warehouseName
       } = input;
 
       const { emp_id } = payload;
@@ -142,6 +145,17 @@ class CustomerController {
         }
       }
 
+      const existingWarehouse= await this.warehouseRepository.findOne({
+        where:{warehouseName, isDeleted: false}
+
+      })
+      if(warehouseName && !existingWarehouse){
+        return {message:"Warehouse not found", status: STATUSCODES.NOT_FOUND}
+      }
+
+
+
+
       const newCustomer = new Customer();
       newCustomer.parentId = parentId;
       newCustomer.customerName = customerName;
@@ -198,6 +212,7 @@ class CustomerController {
       newCustomer.averageMonthlySales = averageMonthlySales;
       newCustomer.outstandingAmount = outstandingAmount || 0;
       newCustomer.discountEligibility = discountEligibility;
+      newCustomer.warehouseName=warehouseName;
 
       // Set audit fields
       newCustomer.setCreatedByUser(user);
@@ -300,6 +315,22 @@ class CustomerController {
         }
       }
 
+
+      if (updateData.warehouseName) {
+  const warehouse = await this.warehouseRepository.findOne({
+    where: { warehouseName: updateData.warehouseName, isDeleted: false }
+  });
+
+  if (!warehouse) {
+    return {
+      message: "Warehouse not found",
+      status: STATUSCODES.NOT_FOUND
+    };
+  }
+
+  customer.warehouseName = warehouse.warehouseName;
+}
+
       // Update fields
       if (updateData.parentId !== undefined) customer.parentId = updateData.parentId;
       if (updateData.customerName) customer.customerName = updateData.customerName;
@@ -356,6 +387,7 @@ class CustomerController {
       if (updateData.averageMonthlySales !== undefined) customer.averageMonthlySales = updateData.averageMonthlySales;
       if (updateData.outstandingAmount !== undefined) customer.outstandingAmount = updateData.outstandingAmount;
       if (updateData.discountEligibility !== undefined) customer.discountEligibility = updateData.discountEligibility;
+      if (updateData.warehouseName !== undefined) customer.warehouseName = updateData.warehouseName;
 
       // Update audit fields
       customer.setModifiedByUser(user);

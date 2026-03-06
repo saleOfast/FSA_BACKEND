@@ -161,6 +161,7 @@ router.get(['/approved-for-delivery'], validateDtoMiddleware( ListApprovedOrders
       const salesOrderHeaderService = new SalesOrderHeaderService();
 
       const data = await salesOrderHeaderService.getConfirmedOrdersForDelivery(
+        input,
         payload
       );
 
