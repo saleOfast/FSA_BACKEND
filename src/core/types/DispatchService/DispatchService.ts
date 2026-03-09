@@ -162,8 +162,9 @@ export class UpdateDispatchItemDto {
   dispatchedQty: number;
 
   @IsOptional()
+  @IsInt()
   @Type(() => Number)
-  batchId: number;
+  batchId?: number;   
 }
 
 /* =========================================================

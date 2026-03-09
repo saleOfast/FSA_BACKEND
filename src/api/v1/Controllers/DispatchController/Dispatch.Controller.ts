@@ -609,9 +609,16 @@ const agg = await this.dispatchItemRepo
           : DispatchedStatusEnum.PARTIALLY_DISPATCHED;
           item.sku = item.sku;
 
-             if (input.batchId) {
-      item.batch = { batchId: input.batchId } as any;
-    }
+            // ✅ batch update logic
+      if (input.batchId !== undefined) {
+        if (input.batchId === 0 || input.batchId === null) {
+          
+          item.batch = null as any;
+        } else {
+          item.batch = { batchId: input.batchId } as Batch;
+        }
+      }
+
 
 
       await this.dispatchItemRepo.save(item);
