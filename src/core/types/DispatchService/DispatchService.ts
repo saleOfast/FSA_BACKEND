@@ -70,8 +70,9 @@ export class CreateDispatchDto {
 
 export class CreateDispatchItemDto {
 
-  @IsUUID()
-  dispatchId: string;
+  @Type(() => Number)
+  @IsInt()
+  dispatchId: number;
 
   @IsInt()
   @Type(() => Number)
@@ -82,9 +83,9 @@ export class CreateDispatchItemDto {
   @Type(() => Number)
   dispatchedQty: number;
 
-  @IsInt()
-  @Type(() => Number)
-  productId: number;
+  // @IsInt()
+  // @Type(() => Number)
+  // productId: number;
 
   @IsInt()
   @Type(() => Number)
@@ -147,9 +148,13 @@ export class UpdateDispatchHeaderDto {
 ========================================================= */
 
 export class UpdateDispatchItemDto {
+  @Type(() => Number)
+  @IsInt()
+  dispatchItemId: number;
 
-  @IsUUID()
-  dispatchItemId: string;
+
+    @Type(() => Number)
+  dispatchId: number;
 
   @IsInt()
   @Min(0)
@@ -168,8 +173,9 @@ export class UpdateDispatchItemDto {
 
 export class GetDispatchByIdDto {
 
-  @IsUUID()
-  dispatchId: string;
+    @Type(() => Number)
+  @IsInt()
+  dispatchId: number;
 }
 
 /* =========================================================
@@ -217,8 +223,8 @@ export class ListDispatchDto {
 export class ListDispatchItemDto {
 
   @IsOptional()
-  @IsUUID()
-  dispatchId?: string;
+  @IsInt()
+  dispatchId?: number;
 
   @IsOptional()
   @IsInt()
@@ -253,8 +259,9 @@ export class ListDispatchItemDto {
 
 export class GetDispatchItemByIdDto {
 
-  @IsUUID()
-  dispatchItemId: string;
+  @Type(() => Number)
+  @IsInt()
+  dispatchItemId: number;
 }
 
 /* =========================================================
@@ -262,8 +269,7 @@ export class GetDispatchItemByIdDto {
 ========================================================= */
 
 export class DeleteDispatchItemDto {
-
-  @IsUUID()
-  @IsNotEmpty()
-  dispatchItemId: string;
+  @IsInt()
+  @Type(() => Number)
+  dispatchItemId: number;
 }

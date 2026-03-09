@@ -489,3 +489,10 @@ export enum DispatchedStatusEnum {
   CANCELLED = 'CANCELLED',
 }
 
+/** Delivery (record) status: Intransit / Fully Delivered / Partial Delivered */
+export enum DeliveryStatusEnum {
+  IN_TRANSIT = 'IN_TRANSIT',
+  PARTIAL_DELIVERED = 'PARTIAL_DELIVERED',
+  FULLY_DELIVERED = 'FULLY_DELIVERED',
+}
+
