@@ -233,7 +233,7 @@ async createDispatchHeader(
     try {
       const dispatch = await this.dispatchRepo.findOne({
         where: { dispatchId: input.dispatchId, isDeleted: false },
-        relations: ["items", "items.salesOrderItem", "items.product", "items.batch"],
+        relations: ["items", "items.salesOrderItem", "items.product", "items.salesOrderItem.sku", "items.batch"],
       });
 
       if (!dispatch) {
@@ -458,7 +458,7 @@ async createDispatchHeader(
     try {
       const item = await this.dispatchItemRepo.findOne({
         where: { dispatchItemId: input.dispatchItemId, isDeleted: false },
-        relations: ["dispatch", "salesOrderItem"],
+        relations: ["dispatch", "salesOrderItem","salesOrderItem.sku","batch"],
       });
 
       if (!item) {
@@ -511,22 +511,42 @@ const agg = await this.dispatchItemRepo
 
       const remainingQty = orderedQty - (alreadyDispatchedOther + input.dispatchedQty);
 
+
       item.dispatchedQty = input.dispatchedQty;
       item.remainingQty = remainingQty;
       item.dispatchStatus =
-        remainingQty === 0
-          ? DispatchedStatusEnum.FULLY_DISPATCHED
-          : DispatchedStatusEnum.PARTIALLY_DISPATCHED;
+      remainingQty === 0
+      ? DispatchedStatusEnum.FULLY_DISPATCHED
+      : DispatchedStatusEnum.PARTIALLY_DISPATCHED;
+
+      // ✅ batch update logic
+      if (input.batchId !== undefined) {
+        if (input.batchId === 0 || input.batchId === null) {
+          
+          item.batch = null as any;
+        } else {
+          item.batch = { batchId: input.batchId } as Batch;
+        }
+      }
 
       await this.dispatchItemRepo.save(item);
 
       // Recalculate header
       await this.recalculateDispatchStatus(dispatch.dispatchId);
-
+          
+      const updatedItem = await this.dispatchItemRepo.findOne({
+      where: { dispatchItemId: item.dispatchItemId },
+      relations: [
+        "dispatch",
+        "salesOrderItem",
+        "salesOrderItem.sku",
+        "batch"
+      ],
+    });
       return {
         status: STATUSCODES.SUCCESS,
         message: "Dispatch item updated successfully",
-        data: item,
+        data: updatedItem,
       };
     } catch (error) {
       throw error;
