@@ -11,41 +11,39 @@ import {
   Repository,
 } from "typeorm";
 import { DbConnections } from "../postgresdb";
-import { DispatchedStatusEnum } from "../../types/Constent/common";
-import { SalesOrderHeader } from "./SalesOrderHeader.entity";
-import { Warehouse } from "./warehouse.entity";
-import { Customer } from "./customer.entity";
-import { DispatchItem } from "./dispatchItem.entity";
+import { DeliveryStatusEnum } from "../../types/Constent/common";
+import { DispatchHeader } from "./dispatchHeader.entity";
+import { DeliveryItem } from "./deliveryItem.entity";
 
-@Entity("dispatch_header")
-export class DispatchHeader extends BaseEntity {
+@Entity("delivery_header")
+export class DeliveryHeader extends BaseEntity {
+  @PrimaryGeneratedColumn( { name: "delivery_id" })
+  deliveryId: number;
 
-  @PrimaryGeneratedColumn( { name: "dispatch_id" ,type: "int"})
+  @Column({ name: "dispatch_id", type: "int" })
   dispatchId: number;
+
+  @ManyToOne(() => DispatchHeader)
+  @JoinColumn({ name: "dispatch_id" })
+  dispatch: DispatchHeader;
 
   @Column({
     type: "enum",
-    enum: DispatchedStatusEnum,
-    name: "dispatch_status",
-    default:DispatchedStatusEnum.PENDING,
+    enum: DeliveryStatusEnum,
+    name: "delivery_status",
+    default: DeliveryStatusEnum.IN_TRANSIT,
   })
-  dispatchStatus: DispatchedStatusEnum;
-
-  @Column({ name: "sales_order_id" })
-  salesOrderId: number;
-
-  @ManyToOne(() => SalesOrderHeader)
-  @JoinColumn({ name: "sales_order_id" })
-  salesOrder: SalesOrderHeader;
+  deliveryStatus: DeliveryStatusEnum;
 
   @Column({ name: "customer_name", type: "varchar", length: 200 })
   customerName: string;
 
-  // @ManyToOne(() => Customer)
-  // @JoinColumn({ name: "customer_id" })
-  // customer: Customer;
+  @Column({ name: "delivery_address", type: "text", nullable: true })
+  deliveryAddress: string | null;
 
-  // ✅ Warehouse Name Instead of ID
+  @Column({ name: "customer_mobile", type: "varchar", length: 20, nullable: true })
+  customerMobile: string | null;
+
   @Column({ name: "warehouse_name", type: "varchar", length: 200 })
   warehouseName: string;
 
@@ -64,16 +62,14 @@ export class DispatchHeader extends BaseEntity {
   @Column({ name: "eway_bill_no", type: "varchar", length: 50, nullable: true })
   ewayBillNo: string | null;
 
-  @Column({ name: "dispatch_date", type: "date", nullable: true })
-  dispatchDate: Date | null;
+  @Column({ name: "delivery_date", type: "date", nullable: true })
+  deliveryDate: Date | null;
 
   @Column({ name: "remarks", type: "text", nullable: true })
   remarks: string | null;
 
-    @OneToMany(() => DispatchItem, (item) => item.dispatch, {
-    cascade: true,   // optional (agar header ke sath items save karna ho)
-  })
-  items: DispatchItem[];
+  @OneToMany(() => DeliveryItem, (item) => item.delivery, { cascade: true })
+  items: DeliveryItem[];
 
   @CreateDateColumn({ name: "created_at" })
   createdAt: Date;
@@ -85,6 +81,6 @@ export class DispatchHeader extends BaseEntity {
   isDeleted: boolean;
 }
 
-export const DispatchHeaderRepository = (): Repository<DispatchHeader> => {
-  return DbConnections.AppDbConnection.getConnection().getRepository(DispatchHeader);
+export const DeliveryHeaderRepository = (): Repository<DeliveryHeader> => {
+  return DbConnections.AppDbConnection.getConnection().getRepository(DeliveryHeader);
 };

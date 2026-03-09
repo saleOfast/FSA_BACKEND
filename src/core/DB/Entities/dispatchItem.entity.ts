@@ -20,8 +20,8 @@ import { DispatchedStatusEnum } from "../../types/Constent/common";
 @Entity("dispatch_item")
 export class DispatchItem extends BaseEntity {
 
-  @PrimaryGeneratedColumn("uuid", { name: "dispatch_item_id" })
-  dispatchItemId: string;
+  @PrimaryGeneratedColumn( { name: "dispatch_item_id" })
+  dispatchItemId: number;
 
   // ✅ Dispatch FK
   @ManyToOne(() => DispatchHeader, (dispatch) => dispatch.items, {

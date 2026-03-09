@@ -179,7 +179,7 @@ async createDispatchHeader(
   ): Promise<IApiResponse> {
     try {
       const dispatch = await this.dispatchRepo.findOne({
-        where: { dispatchId, isDeleted: false },
+        where: { dispatchId: Number(dispatchId), isDeleted: false },
         relations: ["items"],
       });
 
@@ -231,10 +231,16 @@ async createDispatchHeader(
     payload: IUser
   ): Promise<IApiResponse> {
     try {
-      const dispatch = await this.dispatchRepo.findOne({
-        where: { dispatchId: input.dispatchId, isDeleted: false },
-        relations: ["items", "items.salesOrderItem", "items.product", "items.batch"],
-      });
+    const dispatch = await this.dispatchRepo
+  .createQueryBuilder("dispatch")
+  .leftJoinAndSelect("dispatch.items", "items")
+  .leftJoinAndSelect("items.salesOrderItem", "salesOrderItem")
+  .leftJoinAndSelect("salesOrderItem.sku", "sku")
+  .leftJoinAndSelect("items.product", "product")
+  .leftJoinAndSelect("items.batch", "batch")
+  .where("dispatch.dispatchId = :dispatchId", { dispatchId: input.dispatchId })
+  .andWhere("dispatch.isDeleted = false")
+  .getOne();
 
       if (!dispatch) {
         return {
@@ -294,6 +300,88 @@ async createDispatchHeader(
     }
   }
 
+  /**
+   * List Dispatches eligible for Delivery creation
+   * Only headers with status PARTIALLY_DISPATCHED or FULLY_DISPATCHED.
+   * Dispatched Qty (sum of dispatch items) is treated as Deliverable Qty.
+   */
+  async listDispatchesForDelivery(
+    input: ListDispatchDto,
+    payload: IUser
+  ): Promise<IApiResponse> {
+    try {
+      const qb = this.dispatchRepo
+        .createQueryBuilder("d")
+        .leftJoin("d.salesOrder", "so")
+        .leftJoin("so.customer", "customer")
+        .leftJoin("d.items", "di", "di.isDeleted = false")
+        .where("d.isDeleted = false")
+        .andWhere("d.dispatchStatus IN (:...statuses)", {
+          statuses: [
+            DispatchedStatusEnum.PARTIALLY_DISPATCHED,
+            DispatchedStatusEnum.FULLY_DISPATCHED,
+          ],
+        });
+
+      if (input.salesOrderId) {
+        qb.andWhere("d.salesOrderId = :salesOrderId", {
+          salesOrderId: input.salesOrderId,
+        });
+      }
+
+      qb
+        .select("d.dispatchId", "dispatchId")
+        .addSelect("so.soId", "salesOrderId")
+        .addSelect("so.orderDate", "orderDate")
+        .addSelect("customer.customerName", "customerName")
+        .addSelect("customer.shippingStreet", "shippingStreet")
+        .addSelect("customer.shippingCity", "shippingCity")
+        .addSelect("customer.shippingPinCode", "shippingPinCode")
+        .addSelect("d.warehouseName", "warehouseName")
+        .addSelect("COUNT(DISTINCT di.dispatchItemId)", "skuCount")
+        .addSelect("COALESCE(SUM(di.orderedQty), 0)", "orderedQty")
+        .addSelect("COALESCE(SUM(di.dispatchedQty), 0)", "deliverableQty")
+        .groupBy("d.dispatchId")
+        .addGroupBy("so.soId")
+        .addGroupBy("so.orderDate")
+        .addGroupBy("customer.customerId")
+        .addGroupBy("customer.shippingStreet")
+        .addGroupBy("customer.shippingCity")
+        .addGroupBy("customer.shippingPinCode")
+        .addGroupBy("d.warehouseName");
+
+      const rows = await qb.getRawMany();
+
+      const data = rows.map((row: any) => {
+        const ordered = Number(row.orderedQty) || 0;
+        const deliverable = Number(row.deliverableQty) || 0;
+
+        return {
+          dispatchId: row.dispatchId,
+          salesOrderId: row.salesOrderId,
+          salesOrderNo: `SO-${row.salesOrderId}`,
+          orderDate: row.orderDate,
+          customerName: row.customerName,
+          deliveryAddress: `${row.shippingStreet || ""}, ${row.shippingCity || ""} ${
+            row.shippingPinCode || ""
+          }`.trim(),
+          warehouseName: row.warehouseName,
+          skuCount: Number(row.skuCount) || 0,
+          orderedQty: ordered,
+          deliverableQty: deliverable,
+        };
+      });
+
+      return {
+        status: STATUSCODES.SUCCESS,
+        message: "Dispatches for delivery fetched successfully",
+        data,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   /** Soft delete a Dispatch header (only when still pending) */
   async deleteDispatch(
     input: DeleteDispatchDto,
@@ -301,7 +389,7 @@ async createDispatchHeader(
   ): Promise<IApiResponse> {
     try {
       const dispatch = await this.dispatchRepo.findOne({
-        where: { dispatchId: input.dispatchId, isDeleted: false },
+        where: { dispatchId: Number(input.dispatchId), isDeleted: false },
         relations: ["items"],
       });
 
@@ -342,7 +430,7 @@ async createDispatchHeader(
   ): Promise<IApiResponse> {
     try {
       const dispatch = await this.dispatchRepo.findOne({
-        where: { dispatchId, isDeleted: false },
+        where: { dispatchId: Number(dispatchId), isDeleted: false },
         relations: ["items"],
       });
 
@@ -458,7 +546,7 @@ async createDispatchHeader(
     try {
       const item = await this.dispatchItemRepo.findOne({
         where: { dispatchItemId: input.dispatchItemId, isDeleted: false },
-        relations: ["dispatch", "salesOrderItem"],
+        relations: ["dispatch", "salesOrderItem","salesOrderItem.sku","batch"],
       });
 
       if (!item) {
@@ -493,9 +581,11 @@ const agg = await this.dispatchItemRepo
   .createQueryBuilder("di")
   .select("COALESCE(SUM(di.dispatched_qty), 0)", "total")
   .where("di.sales_order_item_id = :itemId", { itemId: orderItem.id })
+  .where("di.batch_id = :batchId", { batchId: input.batchId })
   .andWhere("di.dispatch_item_id <> :currentId", {
     currentId: item.dispatchItemId,
   })
+ 
   .andWhere("di.is_deleted = false")
   .getRawOne();
       const alreadyDispatchedOther = Number(agg.total) || 0;
@@ -517,16 +607,32 @@ const agg = await this.dispatchItemRepo
         remainingQty === 0
           ? DispatchedStatusEnum.FULLY_DISPATCHED
           : DispatchedStatusEnum.PARTIALLY_DISPATCHED;
+          item.sku = item.sku;
+
+             if (input.batchId) {
+      item.batch = { batchId: input.batchId } as any;
+    }
+
 
       await this.dispatchItemRepo.save(item);
 
       // Recalculate header
       await this.recalculateDispatchStatus(dispatch.dispatchId);
 
+          const updatedItem = await this.dispatchItemRepo.findOne({
+      where: { dispatchItemId: item.dispatchItemId },
+      relations: [
+        "dispatch",
+        "salesOrderItem",
+        "salesOrderItem.sku",
+        "batch"
+      ],
+    });
+
       return {
         status: STATUSCODES.SUCCESS,
         message: "Dispatch item updated successfully",
-        data: item,
+        data: updatedItem,
       };
     } catch (error) {
       throw error;
@@ -665,7 +771,7 @@ const agg = await this.dispatchItemRepo
   }
 
   /** Helper: recompute header dispatchStatus from its items */
-  private async recalculateDispatchStatus(dispatchId: string): Promise<void> {
+  private async recalculateDispatchStatus(dispatchId: number): Promise<void> {
     const dispatch = await this.dispatchRepo.findOne({
       where: { dispatchId, isDeleted: false },
       relations: ["items"],

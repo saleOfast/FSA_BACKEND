@@ -94,6 +94,23 @@ router.get(
   }
 );
 
+router.get(
+  "/for-delivery",
+  validateDtoMiddleware(ListDispatchDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const input = RequestHandler.Defaults.getQuery<ListDispatchDto>(req, ListDispatchDto);
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const service = new DeliveryService();
+      const data = await service.listDispatchesForDelivery(input, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
 router.delete(
   "/delete/:dispatchId",
   validateDtoMiddleware(DeleteDispatchDto),
