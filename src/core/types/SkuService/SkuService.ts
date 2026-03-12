@@ -26,6 +26,7 @@ export interface ISku {
     createdAt: Date;
     updatedAt: Date;
     remarks?: string;
+      hsnCode?: string;
 }
 
 export class CreateSkuRequest {
@@ -56,6 +57,8 @@ export class CreateSkuRequest {
     @IsOptional()
     @IsNumber()
     taxId?: number;
+
+    
 
     @IsOptional()
     @IsString()
@@ -142,6 +145,10 @@ export class UpdateSkuRequest {
     @IsOptional()
     @IsNumber()
     taxId?: number;
+
+    @IsOptional()
+    @IsString()
+    hsnCode?: string;
 
     @IsOptional()
     @IsString()

@@ -42,6 +42,9 @@ export class Sku extends BaseEntity implements ISku {
     @Column({ name: 'tax_id', nullable: true })
     taxId?: number;
 
+     @Column({name: "hsn_code", type: "varchar", length: 20, nullable: true })
+      hsnCode: string;
+
     @ManyToOne(() => Taxes, { nullable: true })
     @JoinColumn({ name: 'tax_id' })
     tax?: Taxes;

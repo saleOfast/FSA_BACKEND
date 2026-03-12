@@ -67,7 +67,7 @@ import { grnHeaderRouter } from "./GrnHeaderRouter/GrnHeader.route";
 import {  GrnItemRouter } from "./GrnItemRouter/GrnItem.route";
 import { DispatchRoute} from "./DispatchRoute/Dispatch.route";
 import { DeliveryRecordRoute } from "./DeliveryRecordRoute/DeliveryRecord.route";
-// import InvoiceRoute from "./InvoiceRoute/Invoice.route";
+import {InvoiceRoute} from "./InvoiceRoute/Invoice.route";
 
 const router = express.Router();
 /* Auth ROutes */
@@ -141,6 +141,6 @@ router.use('/grnHeader',grnHeaderRouter)
 router.use('/grnItem',GrnItemRouter)
 router.use('/delivery', DeliveryRecordRoute);
 router.use('/dispatch', DispatchRoute);
-// router.use('/invoice', InvoiceRoute);
+router.use('/invoice', InvoiceRoute);
 
 export { router as routes };

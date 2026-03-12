@@ -56,14 +56,17 @@ class SkuController {
             }
 
             // Validate tax if provided
-            if (taxId) {
-                const tax = await this.taxRepository.findOne({
-                    where: { taxId: Number(taxId) }
-                });
-                if (!tax) {
-                    return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
+          let taxData: any = null;
+
+if (taxId) {
+    taxData = await this.taxRepository.findOne({
+        where: { taxId: Number(taxId) }
+    });
+
+    if (!taxData) {
+        return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
+    }
+}
 
             // Validate scheme if provided
             if (schemeId) {
@@ -93,6 +96,7 @@ class SkuController {
                 mrp,
                 basePrice,
                 taxId,
+                 hsnCode: taxData?.hsnCode || null,
                 barcode,
                 caseSize,
                 shelfLifeDays,
@@ -108,9 +112,16 @@ class SkuController {
                 remarks
             });
 
-            await this.skuRepository.save(sku);
-
-            return { message: "SKU created successfully.", status: STATUSCODES.SUCCESS };
+        const skuData=    await this.skuRepository.save(sku);
+return {
+    message: "SKU created successfully.",
+    status: STATUSCODES.SUCCESS,
+    data: {
+      ...skuData,
+       
+        hsnCode: taxData?.hsnCode || null
+    }
+}
         } catch (error) {
             throw error;
         }
@@ -139,15 +150,17 @@ class SkuController {
             }
 
             // Validate tax if provided
-            if (updateData.taxId) {
-                const tax = await this.taxRepository.findOne({
-                    where: { taxId: Number(updateData.taxId) }
-                });
-                if (!tax) {
-                    return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
+        let taxData: any = null;
 
+if (updateData.taxId) {
+    taxData = await this.taxRepository.findOne({
+        where: { taxId: Number(updateData.taxId) }
+    });
+
+    if (!taxData) {
+        return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
+    }
+}
             // Validate scheme if provided
             if (updateData.schemeId) {
                 const scheme = await this.schemeRepository.findOne({
@@ -176,7 +189,10 @@ class SkuController {
             if (updateData.vom !== undefined) updateObject.vom = updateData.vom;
             if (updateData.mrp !== undefined) updateObject.mrp = updateData.mrp;
             if (updateData.basePrice !== undefined) updateObject.basePrice = updateData.basePrice;
-            if (updateData.taxId !== undefined) updateObject.taxId = updateData.taxId;
+          if (updateData.taxId !== undefined) {
+    updateObject.taxId = updateData.taxId;
+    updateObject.hsnCode = taxData?.hsnCode || null;
+}
             if (updateData.barcode !== undefined) updateObject.barcode = updateData.barcode;
             if (updateData.caseSize !== undefined) updateObject.caseSize = updateData.caseSize;
             if (updateData.shelfLifeDays !== undefined) updateObject.shelfLifeDays = updateData.shelfLifeDays;

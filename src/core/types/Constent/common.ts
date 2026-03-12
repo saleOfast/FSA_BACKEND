@@ -312,9 +312,9 @@ export enum InvoiceStatusEnum {
     DRAFT = 'Draft',
     APPROVED = 'Approved',
     SENT = 'Sent',
-    CANCELLED = 'Cancelled',
-    PAID = 'Paid',
-    PARTIALLY_PAID = 'Partial Paid',
+    // CANCELLED = 'Cancelled',
+    // PAID = 'Paid',
+    // PARTIALLY_PAID = 'Partial Paid',
 }
 export enum PriceBookStatus {
   DRAFT = "DRAFT",

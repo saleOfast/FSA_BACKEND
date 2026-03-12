@@ -1,4 +1,5 @@
 import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from "class-validator";
+import { Type } from "class-transformer";
 import { InvoiceDocumentTypeEnum, InvoiceStatusEnum } from "../Constent/common";
 
 export class CreateInvoiceDto {
@@ -10,9 +11,10 @@ export class CreateInvoiceDto {
   @IsNotEmpty()
   invoiceDate: string; // ISO Date String
 
-  @IsUUID()
+  @IsNumber()
+  @Type(() => Number)
   @IsNotEmpty()
-  deliveryId: string;
+  deliveryId: number;
 
   @IsString()
   @IsOptional()
@@ -60,7 +62,134 @@ export class UpdateInvoiceDto {
 }
 
 export class GetInvoiceByIdDto {
+
+  @Type(() => Number)
+  @IsNotEmpty()
+  invoiceId: number;
+}
+
+export class ListInvoiceDto {
+  @IsOptional()
+  @IsEnum(InvoiceStatusEnum)
+  status?: InvoiceStatusEnum;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  customerId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number = 20;
+}
+
+export class DeleteInvoiceDto {
+  @Type(() => Number)
+  @IsNotEmpty()
+  invoiceId: number;
+}
+
+// -------- Invoice Item DTOs --------
+
+export class CreateInvoiceItemStandaloneDto {
   @IsUUID()
   @IsNotEmpty()
   invoiceId: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  skuId: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  productId: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @Min(1)
+  quantity: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  unitPrice: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  discountId?: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  schemeId?: number;
+}
+
+export class UpdateInvoiceItemDto {
+  @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  invoiceItemId: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  quantity?: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  unitPrice?: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  discountId?: number;
+
+  @IsNumber()
+  @Type(() => Number)
+  @IsOptional()
+  schemeId?: number;
+}
+
+export class GetInvoiceItemByIdDto {
+  @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  invoiceItemId: number;
+}
+
+export class DeleteInvoiceItemDto {
+  @IsNumber()
+  @Type(() => Number)
+  @IsNotEmpty()
+  invoiceItemId: number;
+}
+
+export class ListInvoiceItemDto {
+  @IsOptional()
+  @IsUUID()
+  invoiceId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number = 20;
 }

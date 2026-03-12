@@ -12,7 +12,7 @@ import {
 } from "typeorm";
 import { DbConnections } from "../postgresdb";
 import { InvoiceDocumentTypeEnum, InvoiceStatusEnum } from "../../types/Constent/common";
-import { DeliveryHeader } from "./dispatchHeader.entity";
+import { DeliveryHeader } from "./deliveryHeader.entity";
 import { SalesOrderHeader } from "./SalesOrderHeader.entity";
 import { Customer } from "./customer.entity";
 import { Warehouse } from "./warehouse.entity";
@@ -21,8 +21,8 @@ import { InvoiceItem } from "./invoiceItem.entity";
 
 @Entity("invoice_header")
 export class InvoiceHeader extends BaseEntity {
-  @PrimaryGeneratedColumn("uuid", { name: "invoice_id" })
-  invoiceId: string;
+  @PrimaryGeneratedColumn( { name: "invoice_id", type: "int" })
+  invoiceId: number;
 
   @Column({
     type: "enum",
@@ -38,8 +38,8 @@ export class InvoiceHeader extends BaseEntity {
   @Column({ name: "invoice_date", type: "date" })
   invoiceDate: Date;
 
-  @Column({ name: "delivery_id", type: "uuid" })
-  deliveryId: string;
+  @Column({ name: "delivery_id", type: "int" })
+  deliveryId: number;
 
   @ManyToOne(() => DeliveryHeader)
   @JoinColumn({ name: "delivery_id" })
@@ -52,8 +52,8 @@ export class InvoiceHeader extends BaseEntity {
   @JoinColumn({ name: "sales_order_id" })
   salesOrder: SalesOrderHeader;
 
-  @Column({ name: "customer_id", type: "int" })
-  customerId: number;
+  @Column({ name: "customer_name", type: "varchar", length: 200 })
+  customerName: string;
 
   @ManyToOne(() => Customer)
   @JoinColumn({ name: "customer_id" })
@@ -67,6 +67,9 @@ export class InvoiceHeader extends BaseEntity {
 
   @Column({ name: "warehouse_id", type: "uuid" })
   warehouseId: string;
+
+  @Column({ name: "warehouse_name", type: "varchar", length: 200, nullable: true })
+warehouseName: string;
 
   @ManyToOne(() => Warehouse)
   @JoinColumn({ name: "warehouse_id" })
