@@ -70,15 +70,7 @@ export class InventoryItemDto {
   @IsNumber()
   taxId?: number;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  schemeId?: number;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  discountId?: number;
 }
 
 export class CreateInventoryDto {

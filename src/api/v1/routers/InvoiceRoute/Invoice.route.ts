@@ -14,6 +14,7 @@ import {
   GetInvoiceItemByIdDto,
   ListInvoiceItemDto,
   DeleteInvoiceItemDto,
+  ReadyForInvoiceResponseDto,
 } from "../../../../core/types/InvoiceService/InvoiceService";
 import { InvoiceService } from "../../Controllers/InvoiceController/Invoice.Controller";
 
@@ -201,6 +202,28 @@ router.delete(
       ResponseHandler.sendResponse(res, data);
     } catch (error) {
       ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.get(
+  "/ready-for-invoice",validateDtoMiddleware(ReadyForInvoiceResponseDto),
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+
+      const service = new InvoiceService();
+
+      const data = await service.getReadyForInvoice(payload);
+
+      ResponseHandler.sendResponse(res, data);
+
+    } catch (error) {
+
+      ResponseHandler.sendErrorResponse(res, error);
+
     }
   }
 );

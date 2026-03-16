@@ -11,12 +11,13 @@ import {
   GetInvoiceItemByIdDto,
   ListInvoiceItemDto,
   DeleteInvoiceItemDto,
+  ReadyForInvoiceResponseDto
 } from "../../../../core/types/InvoiceService/InvoiceService";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import {  STATUSCODES} from "../../../../core/types/Constent/common";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
 import { DispatchHeader } from "../../../../core/DB/Entities/dispatchHeader.entity";
-import { DeliveryHeader } from "../../../../core/DB/Entities/deliveryHeader.entity";
+import { DeliveryHeader, DeliveryHeaderRepository } from "../../../../core/DB/Entities/deliveryHeader.entity";
 import { Customer } from "../../../../core/DB/Entities/customer.entity";
 import { Warehouse } from "../../../../core/DB/Entities/warehouse.entity";
 import { InvoiceStatusEnum } from "../../../../core/types/Constent/common";
@@ -25,6 +26,7 @@ import { InvoiceStatusEnum } from "../../../../core/types/Constent/common";
 class InvoiceController {
   private invoiceRepo = InvoiceHeaderRepository();
   private invoiceItemRepo = InvoiceItemRepository();
+  private deliveryRepo = DeliveryHeaderRepository();
   
   
 
@@ -527,6 +529,57 @@ async createInvoice(
       data: null,
     };
   }
+
+async getReadyForInvoice(
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+
+    const deliveries = await this.deliveryRepo.find({
+      where: { isDeleted: false },
+      relations: [
+        "dispatch",
+        "dispatch.salesOrder",
+        "dispatch.salesOrder.customer"
+      ]
+    });
+
+    const result: ReadyForInvoiceResponseDto[] = deliveries.map((delivery) => {
+
+      const dto = new ReadyForInvoiceResponseDto();
+
+      dto.deliveryNo = delivery.deliveryId;
+
+      dto.salesOrderNo =
+        delivery.dispatch?.salesOrder?.soId ?? undefined;
+
+      dto.customerName =
+        delivery.dispatch?.salesOrder?.customer?.customerName ?? undefined;
+
+      dto.warehouseName =
+        delivery.warehouseName ?? undefined;
+
+      dto.amount =
+        Number(delivery.dispatch?.salesOrder?.grandTotal) ?? 0;
+
+      dto.pendingQty = 0;
+
+      return dto;
+    });
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Ready for Invoice deliveries fetched successfully",
+      data: result
+    };
+
+  } catch (error: any) {
+    throw error;
+  }
 }
+  
+}
+
+
 
 export { InvoiceController as InvoiceService };

@@ -79,19 +79,19 @@ export class Sku extends BaseEntity implements ISku {
     @Column({ type: 'text', nullable: true })
     image?: string; // Image for mobile apps / POS systems
 
-    @Column({ name: 'scheme_id', nullable: true })
-    schemeId?: number;
+    // @Column({ name: 'scheme_id', nullable: true })
+    // schemeId?: number;
 
-    @ManyToOne(() => Scheme, { nullable: true })
-    @JoinColumn({ name: 'scheme_id' })
-    scheme?: Scheme;
+    // @ManyToOne(() => Scheme, { nullable: true })
+    // @JoinColumn({ name: 'scheme_id' })
+    // scheme?: Scheme;
 
-    @Column({ name: 'discount_id', nullable: true })
-    discountId?: number;
+    // @Column({ name: 'discount_id', nullable: true })
+    // discountId?: number;
 
-    @ManyToOne(() => Discount, { nullable: true })
-    @JoinColumn({ name: 'discount_id' })
-    discount?: Discount;
+    // @ManyToOne(() => Discount, { nullable: true })
+    // @JoinColumn({ name: 'discount_id' })
+    // discount?: Discount;
 
     @Column({ name: 'is_deleted', default: false })
     isDeleted: boolean;

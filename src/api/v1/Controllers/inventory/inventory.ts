@@ -80,8 +80,7 @@ async createInventory(
         : undefined;
 
       inventory.taxId = item.taxId;
-      inventory.schemeId = item.schemeId;
-      inventory.discountId = item.discountId;
+
 
       inventories.push(inventory);
     }
@@ -166,13 +165,7 @@ async createInventory(
         existing.taxId = item.taxId;
       }
 
-      if (item.schemeId !== undefined) {
-        existing.schemeId = item.schemeId;
-      }
-
-      if (item.discountId !== undefined) {
-        existing.discountId = item.discountId;
-      }
+ 
 
       const saved = await this.inventoryRepo.save(existing);
       updatedItems.push(saved);

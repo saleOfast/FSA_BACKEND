@@ -100,13 +100,13 @@ export class CreateSkuRequest {
     @IsString()
     image?: string;
 
-    @IsOptional()
-    @IsNumber()
-    schemeId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // schemeId?: number;
 
-    @IsOptional()
-    @IsNumber()
-    discountId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // discountId?: number;
 
     @IsOptional()
     @IsString()
@@ -190,13 +190,13 @@ export class UpdateSkuRequest {
     @IsString()
     image?: string;
 
-    @IsOptional()
-    @IsNumber()
-    schemeId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // schemeId?: number;
 
-    @IsOptional()
-    @IsNumber()
-    discountId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // discountId?: number;
 
     @IsOptional()
     @IsString()

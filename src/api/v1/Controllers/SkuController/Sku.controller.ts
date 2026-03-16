@@ -40,8 +40,7 @@ class SkuController {
                 launchDate,
                 discontinueDate,
                 image,
-                schemeId,
-                discountId,
+        
                 remarks
             } = input;
 
@@ -68,26 +67,9 @@ if (taxId) {
     }
 }
 
-            // Validate scheme if provided
-            if (schemeId) {
-                const scheme = await this.schemeRepository.findOne({
-                    where: { id: Number(schemeId), isDeleted: false }
-                });
-                if (!scheme) {
-                    return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
+      
 
-            // Validate discount if provided
-            if (discountId) {
-                const discount = await this.discountRepository.findOne({
-                    where: { discountId: Number(discountId) }
-                });
-                if (!discount) {
-                    return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
-
+    
             const sku = this.skuRepository.create({
                 skuName,
                 productId,
@@ -107,8 +89,6 @@ if (taxId) {
                 launchDate: launchDate ? new Date(launchDate) : undefined,
                 discontinueDate: discontinueDate ? new Date(discontinueDate) : undefined,
                 image,
-                schemeId,
-                discountId,
                 remarks
             });
 
@@ -161,25 +141,8 @@ if (updateData.taxId) {
         return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
     }
 }
-            // Validate scheme if provided
-            if (updateData.schemeId) {
-                const scheme = await this.schemeRepository.findOne({
-                    where: { id: Number(updateData.schemeId), isDeleted: false }
-                });
-                if (!scheme) {
-                    return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
 
-            // Validate discount if provided
-            if (updateData.discountId) {
-                const discount = await this.discountRepository.findOne({
-                    where: { discountId: Number(updateData.discountId) }
-                });
-                if (!discount) {
-                    return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
+
 
             // Prepare update object
             const updateObject: any = {};
@@ -203,8 +166,7 @@ if (updateData.taxId) {
             if (updateData.launchDate !== undefined) updateObject.launchDate = new Date(updateData.launchDate);
             if (updateData.discontinueDate !== undefined) updateObject.discontinueDate = new Date(updateData.discontinueDate);
             if (updateData.image !== undefined) updateObject.image = updateData.image;
-            if (updateData.schemeId !== undefined) updateObject.schemeId = updateData.schemeId;
-            if (updateData.discountId !== undefined) updateObject.discountId = updateData.discountId;
+
             if (updateData.remarks !== undefined) updateObject.remarks = updateData.remarks;
 
             await this.skuRepository

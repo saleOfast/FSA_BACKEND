@@ -463,6 +463,9 @@ async createDispatchHeader(
         };
       }
 
+      console.log("OrderItem SO..............:", orderItem.salesOrder.soId);
+      console.log("Dispatch SO:..........", dispatch.salesOrderId);
+
       if (orderItem.salesOrder.soId !== dispatch.salesOrderId) {
         return {
           status: STATUSCODES.BAD_REQUEST,

@@ -54,8 +54,8 @@ export class Scheme extends BaseEntity implements IScheme {
 //   @ManyToOne(() => Products, { nullable: true })
 //   @JoinColumn({ name: "product_id" })
 //   product?: Products;
- @OneToMany(() => Products, (products) => products.scheme)
-products?: Products[];
+//  @OneToMany(() => Products, (products) => products.scheme)
+// products?: Products[];
 
   @ManyToOne(() => Sku, { nullable: true })
   @JoinColumn({ name: "sku_id" })

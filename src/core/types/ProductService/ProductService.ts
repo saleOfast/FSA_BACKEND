@@ -42,10 +42,10 @@ export interface IProducts {
     vol?: string;
     
     // Tax Category - Lookup (references Tax Table)
-    taxCategoryId?: number;
+    // taxCategoryId?: number;
     
     // HSN Code - Lookup (references Tax Table)
-    hsnCode?: string;
+    // hsnCode?: string;
     
     // Image - VARCHAR(255)
     image?: string;
@@ -66,10 +66,10 @@ export interface IProducts {
     storageCondition?: string;
     
     // Scheme - Lookup (references Scheme & Discount Table)
-    schemeId?: number;
+    // schemeId?: number;
     
     // Discount - Lookup (references Scheme & Discount Table)
-    discountId?: number;
+    // discountId?: number;
     
     // Soft delete flag
     isDeleted: boolean;
@@ -156,14 +156,14 @@ export class CreateProductRequest {
     vol?: string;
 
     // Tax Category - Lookup (references Tax Table)
-    @IsOptional()
-    @IsNumber()
-    taxCategoryId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // taxCategoryId?: number;
 
     // HSN Code - Lookup (references Tax Table)
-    @IsOptional()
-    @IsString()
-    hsnCode?: string;
+    // @IsOptional()
+    // @IsString()
+    // hsnCode?: string;
 
     // Image - VARCHAR(255)
     @IsOptional()
@@ -186,14 +186,14 @@ export class CreateProductRequest {
     storageCondition?: string;
 
     // Scheme - Lookup (references Scheme & Discount Table)
-    @IsOptional()
-    @IsNumber()
-    schemeId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // schemeId?: number;
 
     // Discount - Lookup (references Scheme & Discount Table)
-    @IsOptional()
-    @IsNumber()
-    discountId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // discountId?: number;
 }
 
 export class UpdateProductRequest {
@@ -252,14 +252,14 @@ export class UpdateProductRequest {
     vol?: string;
 
     // Tax Category - Lookup (references Tax Table)
-    @IsOptional()
-    @IsNumber()
-    taxCategoryId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // taxCategoryId?: number;
 
     // HSN Code - Lookup (references Tax Table)
-    @IsOptional()
-    @IsString()
-    hsnCode?: string;
+    // @IsOptional()
+    // @IsString()
+    // hsnCode?: string;
 
     // Image - VARCHAR(255)
     @IsOptional()
@@ -282,14 +282,14 @@ export class UpdateProductRequest {
     storageCondition?: string;
 
     // Scheme - Lookup (references Scheme & Discount Table)
-    @IsOptional()
-    @IsNumber()
-    schemeId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // schemeId?: number;
 
     // Discount - Lookup (references Scheme & Discount Table)
-    @IsOptional()
-    @IsNumber()
-    discountId?: number;
+    // @IsOptional()
+    // @IsNumber()
+    // discountId?: number;
 }
 
 export class GetProductById {

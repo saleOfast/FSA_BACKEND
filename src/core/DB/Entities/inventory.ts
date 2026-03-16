@@ -44,8 +44,7 @@ export interface IInventory {
 
   // Lookups
   taxId?: number;
-  schemeId?: number;
-  discountId?: number;
+
 
   // 🔹 Formula / Derived (NOT stored)
   soldQuantity?: number;       // from orders
@@ -128,11 +127,11 @@ product: Products;
 @JoinColumn({ name: "tax_id" })
 tax?: Taxes;
 
-  @Column({ name: "scheme_id", type: "int", nullable: true })
-schemeId?: number;
+//   @Column({ name: "scheme_id", type: "int", nullable: true })
+// schemeId?: number;
 
-@Column({ name: "discount_id", type: "int", nullable: true })
-discountId?: number;
+// @Column({ name: "discount_id", type: "int", nullable: true })
+// discountId?: number;
 
 
   // Available = Stock - Reserved

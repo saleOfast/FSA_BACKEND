@@ -22,7 +22,7 @@ export interface IScheme {
 
     customer?: Customer;
     customerType?: CustomerType;
-    products?: Products[];
+    // products?: Products[];
     sku?: Sku;
     warehouse?: Warehouse;
     posm?: Posm;

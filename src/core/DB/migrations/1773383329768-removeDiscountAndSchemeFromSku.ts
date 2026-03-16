@@ -1,0 +1,126 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class RemoveDiscountAndSchemeFromSku1773383329768 implements MigrationInterface {
+    name = 'RemoveDiscountAndSchemeFromSku1773383329768'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "sku" DROP CONSTRAINT "FK_68380dae0f2612881292fe47f0e"`);
+        await queryRunner.query(`ALTER TABLE "sku" DROP CONSTRAINT "FK_bb87ba7a4abb87a366ff0d13150"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_delivery_item_delivery"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_delivery_item_dispatch_item"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_delivery_item_sku"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_delivery_item_product"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_delivery_item_batch"`);
+        await queryRunner.query(`ALTER TABLE "delivery_header" DROP CONSTRAINT "FK_delivery_dispatch"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_sku"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_product"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_order_item"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_tax"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_discount"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_scheme"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_invoice_items_header"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_invoice_sales_order"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_invoice_customer"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_invoice_warehouse"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_invoice_user"`);
+        await queryRunner.query(`ALTER TABLE "sku" DROP COLUMN "scheme_id"`);
+        await queryRunner.query(`ALTER TABLE "sku" DROP COLUMN "discount_id"`);
+        // await queryRunner.query(`ALTER TYPE "public"."delivery_header_delivery_status_enum" RENAME TO "delivery_header_delivery_status_enum_old"`);
+        await queryRunner.query(`CREATE TYPE "public"."delivery_item_delivery_status_enum" AS ENUM('IN_TRANSIT', 'PARTIAL_DELIVERED', 'FULLY_DELIVERED')`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ALTER COLUMN "delivery_status" TYPE "public"."delivery_item_delivery_status_enum" USING "delivery_status"::"text"::"public"."delivery_item_delivery_status_enum"`);
+        // await queryRunner.query(`DROP TYPE "public"."delivery_header_delivery_status_enum_old"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ALTER COLUMN "invoice_id" SET NOT NULL`);
+        await queryRunner.query(`CREATE SEQUENCE IF NOT EXISTS "invoice_header_invoice_id_seq" OWNED BY "invoice_header"."invoice_id"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "invoice_id" SET DEFAULT nextval('"invoice_header_invoice_id_seq"')`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "invoice_id" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "delivery_id" SET NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "customer_name" SET NOT NULL`);
+        await queryRunner.query(`ALTER TYPE "public"."invoice_header_status_enum" RENAME TO "invoice_header_status_enum_old"`);
+        await queryRunner.query(`CREATE TYPE "public"."invoice_header_status_enum" AS ENUM('Draft', 'Approved', 'Sent')`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "status" DROP DEFAULT`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "status" TYPE "public"."invoice_header_status_enum" USING "status"::"text"::"public"."invoice_header_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "status" SET DEFAULT 'Draft'`);
+        await queryRunner.query(`DROP TYPE "public"."invoice_header_status_enum_old"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "customer_id" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "dispatch_item" ADD CONSTRAINT "FK_cd12c018b128a712f7eeb29f140" FOREIGN KEY ("dispatch_id") REFERENCES "dispatch_header"("dispatch_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_1f86836029e3248d00834d9ad76" FOREIGN KEY ("delivery_id") REFERENCES "delivery_header"("delivery_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_54b97070189c0cc09ded6ede65e" FOREIGN KEY ("dispatch_item_id") REFERENCES "dispatch_item"("dispatch_item_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_d0991b7eee72e92aa7d6948da8e" FOREIGN KEY ("sku_id") REFERENCES "sku"("sku_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_ff8f07b064d87066d697dc7a6f5" FOREIGN KEY ("product_id") REFERENCES "products"("product_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_1dd049f0261cc9d872df0428807" FOREIGN KEY ("batch_id") REFERENCES "batches"("batch_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_header" ADD CONSTRAINT "FK_bb93cee458ccbdb5b8de0b68143" FOREIGN KEY ("dispatch_id") REFERENCES "dispatch_header"("dispatch_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_dc991d555664682cfe892eea2c1" FOREIGN KEY ("invoice_id") REFERENCES "invoice_header"("invoice_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_5a003cd429c7eb7cd9fa8d434da" FOREIGN KEY ("sku_id") REFERENCES "sku"("sku_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_5a76734b5eead0967cf6ee3abc0" FOREIGN KEY ("product_id") REFERENCES "products"("product_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_46005a4a4037ecffe1cc3be8004" FOREIGN KEY ("order_item_id") REFERENCES "sales_order_item"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_c6df95dea95077c2773926e2224" FOREIGN KEY ("tax_id") REFERENCES "taxes"("tax_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_3ed2408a2c1744dbe6e19bd967b" FOREIGN KEY ("discount_id") REFERENCES "discounts"("discount_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_e8160c78abec87dfea10a5eaa6f" FOREIGN KEY ("scheme_id") REFERENCES "scheme"("scheme_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_d94951cdc0b2538446807b03451" FOREIGN KEY ("delivery_id") REFERENCES "delivery_header"("delivery_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_749fc270c6c5108465d9613e74e" FOREIGN KEY ("sales_order_id") REFERENCES "sales_order_header"("so_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_2f375c506ecd848c75455de9cf5" FOREIGN KEY ("customer_id") REFERENCES "customers"("customer_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_a30aad1a709293eb378efb29ffd" FOREIGN KEY ("warehouse_id") REFERENCES "warehouses"("warehouse_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_b8ce2b6c7d82b6fa1e919e1a345" FOREIGN KEY ("created_by") REFERENCES "users"("emp_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_b8ce2b6c7d82b6fa1e919e1a345"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_a30aad1a709293eb378efb29ffd"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_2f375c506ecd848c75455de9cf5"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_749fc270c6c5108465d9613e74e"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" DROP CONSTRAINT "FK_d94951cdc0b2538446807b03451"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_e8160c78abec87dfea10a5eaa6f"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_3ed2408a2c1744dbe6e19bd967b"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_c6df95dea95077c2773926e2224"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_46005a4a4037ecffe1cc3be8004"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_5a76734b5eead0967cf6ee3abc0"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_5a003cd429c7eb7cd9fa8d434da"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" DROP CONSTRAINT "FK_dc991d555664682cfe892eea2c1"`);
+        await queryRunner.query(`ALTER TABLE "delivery_header" DROP CONSTRAINT "FK_bb93cee458ccbdb5b8de0b68143"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_1dd049f0261cc9d872df0428807"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_ff8f07b064d87066d697dc7a6f5"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_d0991b7eee72e92aa7d6948da8e"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_54b97070189c0cc09ded6ede65e"`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" DROP CONSTRAINT "FK_1f86836029e3248d00834d9ad76"`);
+        await queryRunner.query(`ALTER TABLE "dispatch_item" DROP CONSTRAINT "FK_cd12c018b128a712f7eeb29f140"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "customer_id" SET NOT NULL`);
+        await queryRunner.query(`CREATE TYPE "public"."invoice_header_status_enum_old" AS ENUM('Draft', 'Approved', 'Sent', 'Cancelled', 'Paid', 'Partial Paid')`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "status" DROP DEFAULT`);
+        // await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "status" TYPE "public"."invoice_header_status_enum_old" USING "status"::"text"::"public"."invoice_header_status_enum_old"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "status" SET DEFAULT 'Draft'`);
+        // await queryRunner.query(`DROP TYPE "public"."invoice_header_status_enum"`);
+        // await queryRunner.query(`ALTER TYPE "public"."invoice_header_status_enum_old" RENAME TO "invoice_header_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "customer_name" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "delivery_id" DROP NOT NULL`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "invoice_id" SET DEFAULT nextval('invoice_header_invoice_id_new_seq')`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ALTER COLUMN "invoice_id" DROP DEFAULT`);
+        await queryRunner.query(`DROP SEQUENCE "invoice_header_invoice_id_seq"`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ALTER COLUMN "invoice_id" DROP NOT NULL`);
+        await queryRunner.query(`CREATE TYPE "public"."delivery_header_delivery_status_enum_old" AS ENUM('IN_TRANSIT', 'PARTIAL_DELIVERED', 'FULLY_DELIVERED')`);
+        // await queryRunner.query(`ALTER TABLE "delivery_item" ALTER COLUMN "delivery_status" TYPE "public"."delivery_header_delivery_status_enum_old" USING "delivery_status"::"text"::"public"."delivery_header_delivery_status_enum_old"`);
+        await queryRunner.query(`DROP TYPE "public"."delivery_item_delivery_status_enum"`);
+        // await queryRunner.query(`ALTER TYPE "public"."delivery_header_delivery_status_enum_old" RENAME TO "delivery_header_delivery_status_enum"`);
+        await queryRunner.query(`ALTER TABLE "sku" ADD "discount_id" integer`);
+        await queryRunner.query(`ALTER TABLE "sku" ADD "scheme_id" integer`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_invoice_user" FOREIGN KEY ("created_by") REFERENCES "users"("emp_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_invoice_warehouse" FOREIGN KEY ("warehouse_id") REFERENCES "warehouses"("warehouse_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_invoice_customer" FOREIGN KEY ("customer_id") REFERENCES "customers"("customer_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_header" ADD CONSTRAINT "FK_invoice_sales_order" FOREIGN KEY ("sales_order_id") REFERENCES "sales_order_header"("so_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_header" FOREIGN KEY ("invoice_id") REFERENCES "invoice_header"("invoice_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_scheme" FOREIGN KEY ("scheme_id") REFERENCES "scheme"("scheme_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_discount" FOREIGN KEY ("discount_id") REFERENCES "discount"("discount_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_tax" FOREIGN KEY ("tax_id") REFERENCES "taxes"("tax_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_order_item" FOREIGN KEY ("order_item_id") REFERENCES "sales_order_item"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_product" FOREIGN KEY ("product_id") REFERENCES "products"("product_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "invoice_items" ADD CONSTRAINT "FK_invoice_items_sku" FOREIGN KEY ("sku_id") REFERENCES "sku"("sku_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_header" ADD CONSTRAINT "FK_delivery_dispatch" FOREIGN KEY ("dispatch_id") REFERENCES "dispatch_header"("dispatch_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_delivery_item_batch" FOREIGN KEY ("batch_id") REFERENCES "batches"("batch_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_delivery_item_product" FOREIGN KEY ("product_id") REFERENCES "products"("product_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_delivery_item_sku" FOREIGN KEY ("sku_id") REFERENCES "sku"("sku_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_delivery_item_dispatch_item" FOREIGN KEY ("dispatch_item_id") REFERENCES "dispatch_item"("dispatch_item_id") ON DELETE SET NULL ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "delivery_item" ADD CONSTRAINT "FK_delivery_item_delivery" FOREIGN KEY ("delivery_id") REFERENCES "delivery_header"("delivery_id") ON DELETE CASCADE ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "sku" ADD CONSTRAINT "FK_bb87ba7a4abb87a366ff0d13150" FOREIGN KEY ("discount_id") REFERENCES "discounts"("discount_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+        await queryRunner.query(`ALTER TABLE "sku" ADD CONSTRAINT "FK_68380dae0f2612881292fe47f0e" FOREIGN KEY ("scheme_id") REFERENCES "scheme"("scheme_id") ON DELETE NO ACTION ON UPDATE NO ACTION`);
+    }
+
+}

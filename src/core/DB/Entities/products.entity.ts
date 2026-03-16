@@ -67,16 +67,16 @@ export class Products extends BaseEntity implements IProducts {
     vol?: string
 
     // Tax Category - Lookup (references Tax Table)
-    @Column({ name: 'tax_category_id', nullable: true })
-    taxCategoryId?: number
+    // @Column({ name: 'tax_category_id', nullable: true })
+    // taxCategoryId?: number
 
-    @ManyToOne(() => Taxes, { nullable: true })
-    @JoinColumn({ name: 'tax_category_id' })
-    taxCategory?: Taxes;
+    // @ManyToOne(() => Taxes, { nullable: true })
+    // @JoinColumn({ name: 'tax_category_id' })
+    // taxCategory?: Taxes;
 
     // HSN Code - Lookup (references Tax Table)
-    @Column({ name: 'hsn_code', nullable: true })
-    hsnCode?: string
+    // @Column({ name: 'hsn_code', nullable: true })
+    // hsnCode?: string
 
     // Image - VARCHAR(255)
     @Column({ name: 'image', type: 'varchar', length: 255, nullable: true })
@@ -103,20 +103,20 @@ export class Products extends BaseEntity implements IProducts {
     storageCondition?: string
 
    
-    @Column({ name: 'scheme_id', nullable: true })
-    schemeId?: number
+    // @Column({ name: 'scheme_id', nullable: true })
+    // schemeId?: number
 
-    @ManyToOne(() => Scheme, { nullable: true })
-    @JoinColumn({ name: 'scheme_id' })
-    scheme?: Scheme;
+    // @ManyToOne(() => Scheme, { nullable: true })
+    // @JoinColumn({ name: 'scheme_id' })
+    // scheme?: Scheme;
 
    
-    @Column({ name: 'discount_id', nullable: true })
-    discountId?: number
+    // @Column({ name: 'discount_id', nullable: true })
+    // discountId?: number
 
-    @ManyToOne(() => Discount, { nullable: true })
-    @JoinColumn({ name: 'discount_id' })
-    discount?: Discount;
+    // @ManyToOne(() => Discount, { nullable: true })
+    // @JoinColumn({ name: 'discount_id' })
+    // discount?: Discount;
 
     @Column({ name: 'is_deleted', default: false })
     isDeleted: boolean

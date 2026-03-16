@@ -132,7 +132,7 @@ class SchemeController {
       // relations (IDs → entity refs)
       customer: customerId ? ({ customerId } as any) : undefined,
       customerType: customerTypeId ? ({ customerTypeId } as any) : undefined,
-      products: productId ? ({ productId } as any) : undefined,
+      // products: productId ? ({ productId } as any) : undefined,
       sku: skuId ? ({ skuId } as any) : undefined,
       warehouse: warehouseId ? ({ warehouseId } as any) : undefined,
       posm: posmId ? ({ posmId } as any) : undefined,

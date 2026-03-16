@@ -193,3 +193,34 @@ export class ListInvoiceItemDto {
   @Type(() => Number)
   limit?: number = 20;
 }
+
+export class ReadyForInvoiceResponseDto {
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  deliveryNo: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  salesOrderNo: number | null;
+
+  @IsOptional()
+  @IsString()
+  customerName: string | null;
+
+  @IsOptional()
+  @IsString()
+  warehouseName: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  amount: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  pendingQty: number;
+}

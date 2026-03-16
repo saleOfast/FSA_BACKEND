@@ -23,8 +23,8 @@ class ProductController {
             const { 
                 productCode, productType, productName, categoryId, subCategoryId, 
                 description, status, launchDate, discontinueDate, vol, 
-                taxCategoryId, hsnCode, image, marketSegment, 
-                productLifeCycleStage, storageCondition, schemeId, discountId
+                image, marketSegment, 
+                productLifeCycleStage, storageCondition, 
             } = input;
 
             // Validate category
@@ -42,28 +42,28 @@ class ProductController {
             }
 
             // Validate tax category if provided
-            if (taxCategoryId) {
-                const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
-                if (!taxCategory) {
-                    return { message: "Tax Category Not Found.", status: STATUSCODES.NOT_FOUND }
-                }
-            }
+            // if (taxCategoryId) {
+            //     const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
+            //     if (!taxCategory) {
+            //         return { message: "Tax Category Not Found.", status: STATUSCODES.NOT_FOUND }
+            //     }
+            // }
 
             // Validate scheme if provided
-            if (schemeId) {
-                const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
-                if (!scheme) {
-                    return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND }
-                }
-            }
+            // if (schemeId) {
+            //     const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
+            //     if (!scheme) {
+            //         return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND }
+            //     }
+            // }
 
             // Validate discount if provided
-            if (discountId) {
-                const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
-                if (!discount) {
-                    return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND }
-                }
-            }
+            // if (discountId) {
+            //     const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
+            //     if (!discount) {
+            //         return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND }
+            //     }
+            // }
 
             const product = new this.productModel();
             product.productCode = productCode;
@@ -76,14 +76,14 @@ class ProductController {
             product.launchDate = launchDate ? new Date(launchDate) : undefined;
             product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
             product.vol = vol;
-            product.taxCategoryId = taxCategoryId;
-            product.hsnCode = hsnCode;
+            // product.taxCategoryId = taxCategoryId;
+            // product.hsnCode = hsnCode;
             product.image = image;
             product.marketSegment = marketSegment;
             product.productLifeCycleStage = productLifeCycleStage;
             product.storageCondition = storageCondition;
-            product.schemeId = schemeId;
-            product.discountId = discountId;
+            // product.schemeId = schemeId;
+            // product.discountId = discountId;
             
             await this.productRepositry.save(product)
 
@@ -98,8 +98,8 @@ class ProductController {
             const { 
                 productId, productCode, productType, productName, categoryId, subCategoryId,
                 description, status, launchDate, discontinueDate, vol, 
-                taxCategoryId, hsnCode, image, marketSegment, 
-                productLifeCycleStage, storageCondition, schemeId, discountId
+                image, marketSegment, 
+                productLifeCycleStage, storageCondition
             } = input;
 
             const product: IProducts | null = await this.productRepositry.findOne({
@@ -127,28 +127,9 @@ class ProductController {
             }
 
             // Validate tax category if provided
-            if (taxCategoryId) {
-                const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
-                if (!taxCategory) {
-                    return { message: "Tax Category Not Found.", status: STATUSCODES.NOT_FOUND }
-                }
-            }
+        
 
-            // Validate scheme if provided
-            if (schemeId) {
-                const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
-                if (!scheme) {
-                    return { message: "Scheme Not Found.", status: STATUSCODES.NOT_FOUND }
-                }
-            }
-
-            // Validate discount if provided
-            if (discountId) {
-                const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
-                if (!discount) {
-                    return { message: "Discount Not Found.", status: STATUSCODES.NOT_FOUND }
-                }
-            }
+       
 
             // Build update object with only provided fields
             const updateData: any = {};
@@ -162,14 +143,12 @@ class ProductController {
             if (launchDate !== undefined) updateData.launchDate = launchDate ? new Date(launchDate) : null;
             if (discontinueDate !== undefined) updateData.discontinueDate = discontinueDate ? new Date(discontinueDate) : null;
             if (vol !== undefined) updateData.vol = vol;
-            if (taxCategoryId !== undefined) updateData.taxCategoryId = taxCategoryId;
-            if (hsnCode !== undefined) updateData.hsnCode = hsnCode;
+       
             if (image !== undefined) updateData.image = image;
             if (marketSegment !== undefined) updateData.marketSegment = marketSegment;
             if (productLifeCycleStage !== undefined) updateData.productLifeCycleStage = productLifeCycleStage;
             if (storageCondition !== undefined) updateData.storageCondition = storageCondition;
-            if (schemeId !== undefined) updateData.schemeId = schemeId;
-            if (discountId !== undefined) updateData.discountId = discountId;
+
 
             await this.productRepositry
                 .createQueryBuilder()
@@ -389,8 +368,8 @@ class ProductController {
                 const { 
                     productCode, productType, productName, categoryId, subCategoryId,
                     description, status, launchDate, discontinueDate, vol, 
-                    taxCategoryId, hsnCode, image, marketSegment, 
-                    productLifeCycleStage, storageCondition, schemeId, discountId
+                 image, marketSegment, 
+                    productLifeCycleStage, storageCondition,
                 } = input;
 
                 // Create a unique key to identify each product by name and category
@@ -421,31 +400,13 @@ class ProductController {
                 }
 
                 // Validate tax category if provided
-                if (taxCategoryId) {
-                    const taxCategory = await this.taxesRepository.findOneBy({ taxId: Number(taxCategoryId) });
-                    if (!taxCategory) {
-                        skippedProducts.push(`${productName} (Tax Category Not Found)`);
-                        continue;
-                    }
-                }
+            
 
                 // Validate scheme if provided
-                if (schemeId) {
-                    const scheme = await this.schemeRepository.findOneBy({ id: Number(schemeId), isDeleted: false });
-                    if (!scheme) {
-                        skippedProducts.push(`${productName} (Scheme Not Found)`);
-                        continue;
-                    }
-                }
+           
 
                 // Validate discount if provided
-                if (discountId) {
-                    const discount = await this.discountRepository.findOneBy({ discountId: Number(discountId) });
-                    if (!discount) {
-                        skippedProducts.push(`${productName} (Discount Not Found)`);
-                        continue;
-                    }
-                }
+         
 
                 // Check if the product already exists in the database
                 const existingProduct = await this.productRepositry.findOneBy({ productName, categoryId: Number(categoryId) });
@@ -466,14 +427,12 @@ class ProductController {
                 product.launchDate = launchDate ? new Date(launchDate) : undefined;
                 product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
                 product.vol = vol;
-                product.taxCategoryId = taxCategoryId;
-                product.hsnCode = hsnCode;
+         
                 product.image = image;
                 product.marketSegment = marketSegment;
                 product.productLifeCycleStage = productLifeCycleStage;
                 product.storageCondition = storageCondition;
-                product.schemeId = schemeId;
-                product.discountId = discountId;
+          
 
                 // Save the product
                 await this.productRepositry.save(product);
