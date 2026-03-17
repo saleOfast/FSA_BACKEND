@@ -187,7 +187,7 @@ if (updateData.taxId) {
 
             const sku: ISku | null = await this.skuRepository.findOne({
                 where: { skuId: Number(skuId), isDeleted: false },
-                relations: ["product", "tax", "scheme", "discount"]
+                relations: ["product", "tax"]
             });
 
             if (!sku) {
@@ -208,8 +208,7 @@ if (updateData.taxId) {
                 .createQueryBuilder('sku')
                 .leftJoinAndSelect('sku.product', 'product')
                 .leftJoinAndSelect('sku.tax', 'tax')
-                .leftJoinAndSelect('sku.scheme', 'scheme')
-                .leftJoinAndSelect('sku.discount', 'discount')
+               
                 .where('sku.isDeleted = :isDeleted', { isDeleted: false });
 
             if (search) {

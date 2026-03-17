@@ -459,6 +459,7 @@ async getConfirmedOrdersForDelivery(
     qb
       .select('so."so_id"', "salesOrderId")
       .addSelect("so.orderDate", "orderDate")
+      .addSelect("so.grandTotal", "grandTotal")
       .addSelect("customer.customer_name", "customerName")
       .addSelect("customer.shipping_street", "shippingStreet")
       .addSelect("customer.shipping_city", "shippingCity")
@@ -490,6 +491,7 @@ async getConfirmedOrdersForDelivery(
 
       .groupBy('so."so_id"')
       .addGroupBy("so.orderDate")
+      .addGroupBy("so.grandTotal")
       .addGroupBy("customer.customer_id")
       .addGroupBy("customer.customer_name")
       .addGroupBy("customer.shipping_street")
@@ -503,6 +505,7 @@ async getConfirmedOrdersForDelivery(
       salesOrderId: row.salesOrderId,
       salesOrderNo: `SO-${row.salesOrderId}`,
       orderDate: row.orderDate,
+      grandTotal: Number(row.grandTotal) || 0,
       customerName: row.customerName,
       deliveryAddress: `${row.shippingStreet || ""}, ${row.shippingCity || ""} ${row.shippingPinCode || ""}`.trim(),
       warehouseName: row.warehouseName,

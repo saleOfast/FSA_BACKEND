@@ -168,7 +168,7 @@ class ProductController {
 
             const product: IProducts | null = await this.productRepositry.findOne({
                 where: { productId: Number(productId), isDeleted: false },
-                relations: ["category", "subCategory", "taxCategory", "scheme", "discount"]
+                relations: ["category", "subCategory"]
             });
 
             if (!product) {
@@ -226,9 +226,9 @@ class ProductController {
             const queryBuilder = this.productRepositry.createQueryBuilder('product')
                 .leftJoinAndSelect('product.category', 'category')
                 .leftJoinAndSelect('product.subCategory', 'subCategory')
-                .leftJoinAndSelect('product.taxCategory', 'taxCategory')
-                .leftJoinAndSelect('product.scheme', 'scheme')
-                .leftJoinAndSelect('product.discount', 'discount')
+                // .leftJoinAndSelect('product.taxCategory', 'taxCategory')
+                // .leftJoinAndSelect('product.scheme', 'scheme')
+                // .leftJoinAndSelect('product.discount', 'discount')
                 .where('product.isDeleted = :isDeleted', { isDeleted: false });
 
             // Add conditions dynamically
