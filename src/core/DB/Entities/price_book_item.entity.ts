@@ -21,7 +21,7 @@ export class PriceBookItem implements IPriceBookItem {
   @PrimaryGeneratedColumn()
   priceBookItemId: number;
 
-  /* ---------- FK: Price Book ---------- */
+  /* ---------- FK: Price Book ---------- */                            
   @Column()
   priceBookId: number;
 

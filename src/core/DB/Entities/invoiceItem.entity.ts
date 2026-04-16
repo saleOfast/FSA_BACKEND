@@ -86,8 +86,8 @@ export class InvoiceItem extends BaseEntity {
   @Column({ name: "gross_amount", type: "decimal", precision: 12, scale: 2 })
   grossAmount: number;
 
-  @Column({ name: "line_total", type: "decimal", precision: 12, scale: 2 })
-  lineTotal: number;
+  // @Column({ name: "line_total", type: "decimal", precision: 12, scale: 2 })
+  // lineTotal: number;
 
   /* ================== REFERENCES ================== */
 

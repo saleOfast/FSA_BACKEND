@@ -60,6 +60,10 @@ export class CreateSalesOrderItemDto {
   @IsString()
   @IsNotEmpty()
   warehouseId: string;
+  
+  @IsOptional()
+  @IsInt()
+  priceBookItemId?: number;
 }
 
 export class UpdateSalesOrderItemDto {

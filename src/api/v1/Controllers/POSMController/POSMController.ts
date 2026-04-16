@@ -19,14 +19,28 @@ class PosmController{
 ): Promise<IApiResponse> {
   try {
 
-    /* 🔹 1. DUPLICATE CHECK */
-    const existingPosm = await this.posmRepository.findOne({
-      where: {
-        sku: input.sku,
-        campaignId: input.campaignId,
-      },
-    });
+   
+        if (!input.posmName || input.posmName.trim() === "") {
+          
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "POSM name is required",
+        data: null,
+      };
+    }
 
+     const normalizedPosmName = input.posmName.trim().toLowerCase();
+    /* 🔹 1. DUPLICATE CHECK */
+const existingPosm = await this.posmRepository
+  .createQueryBuilder("posm")
+  .where("LOWER(posm.posmName) = :posmName", {
+    posmName: normalizedPosmName,
+  })
+  .andWhere("posm.campaignId = :campaignId", {
+    campaignId: input.campaignId,
+  })
+  .andWhere("posm.is_deleted = false")
+  .getOne();
     if (existingPosm) {
       return {
         status: STATUSCODES.BAD_REQUEST,
@@ -36,7 +50,7 @@ class PosmController{
 
     /* 🔹 2. CUSTOMER FK VALIDATION */
     const customerExists = await this.customerRepository.findOne({
-      where: { customerId: input.customerId },
+      where: { customerId: input.customerId, isDeleted: false },
     });
 
     if (!customerExists) {
@@ -70,7 +84,7 @@ class PosmController{
 
     /* 🔹 4. CREATE ENTITY */
     const posm = this.posmRepository.create({
-      ...input,
+      ...input, posmName: input.posmName.trim(), 
     });
 
     await this.posmRepository.save(posm);
@@ -87,28 +101,32 @@ class PosmController{
 }
 
 
-  
 async updatePosm(
   posmId: number,
-  input: UpdatePosmDto,
-  payload: IUser
+  input: UpdatePosmDto
 ): Promise<IApiResponse> {
   try {
-    /* 🔎 1. Check POSM exists */
-    const posm = await this.posmRepository.findOne({ where: { posmId } });
+    const id = Number(posmId); // ✅ important
 
-    if (!posm) {
+    // 🔎 1. check exists
+    const existing = await this.posmRepository.findOne({
+      where: { posmId: id, is_deleted: false },
+    });
+
+    if (!existing) {
       return {
         status: STATUSCODES.NOT_FOUND,
         message: "POSM not found",
+        data: null,
       };
     }
 
-    /* 🔒 2. Business validations (ONLY if fields present) */
+    // 🔒 2. validations
     if (input.quantityAllocated !== undefined && input.quantityAllocated <= 0) {
       return {
         status: STATUSCODES.BAD_REQUEST,
         message: "quantityAllocated must be greater than 0",
+        data: null,
       };
     }
 
@@ -116,6 +134,7 @@ async updatePosm(
       return {
         status: STATUSCODES.BAD_REQUEST,
         message: "unitCost cannot be negative",
+        data: null,
       };
     }
 
@@ -123,24 +142,45 @@ async updatePosm(
       return {
         status: STATUSCODES.BAD_REQUEST,
         message: "claimedTarget cannot be negative",
+        data: null,
       };
     }
 
-    /* 🔄 3. Apply updates */
-    Object.assign(posm, input);
+    // 🔥 3. clean input
+    const cleanInput = Object.fromEntries(
+      Object.entries(input).filter(([_, v]) => v !== undefined)
+    );
 
-    await this.posmRepository.save(posm);
+    // ✂️ trim name if present
+    if (cleanInput.posmName) {
+      cleanInput.posmName = cleanInput.posmName.trim();
+    }
+
+    // 🔥 4. UPDATE (no insert risk)
+    await this.posmRepository.update(
+      { posmId: id },   // condition
+      cleanInput        // fields to update
+    );
+
+    // 🔎 5. return updated
+    const updated = await this.posmRepository.findOne({
+      where: { posmId: id },
+    });
 
     return {
       status: STATUSCODES.SUCCESS,
       message: "POSM updated successfully",
-      data: posm,
+      data: updated,
     };
-  } catch (error) {
-    throw error;
+
+  } catch (error: any) {
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: error.message,
+      data: null,
+    };
   }
 }
-
 
  async deletePosm(input:DeletePosmDto ,payload :IUser):Promise<IApiResponse>{
   try{

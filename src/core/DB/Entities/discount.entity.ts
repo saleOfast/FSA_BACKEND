@@ -177,6 +177,8 @@ export class Discount extends BaseEntity implements IDiscount {
 
     @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' })
     updatedAt: Date;
+    @Column({ name: 'is_deleted', default: false })
+    isDeleted!: boolean;
 }
 
 export const DiscountRepository = (): Repository<Discount> => {

@@ -18,92 +18,167 @@ class WarehouseController {
 
 	constructor() {}
 
-	async createWarehouse(input: CreateWarehouseDto, payload: IUser): Promise<IApiResponse> {
-		 const existing = await this.repo.findOne({
-    where: [
-      { warehouseCode: input.warehouseCode },
-      { warehouseName: input.warehouseName },
-    ],
-  });
+async createWarehouse(
+  input: CreateWarehouseDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    // ============================
+    // 1️⃣ Normalize Input
+    // ============================
+    const normalize = (val?: string) => val?.trim();
 
-  if (existing) {
+    const warehouseCode = normalize(input.warehouseCode)?.toUpperCase();
+    const warehouseName = normalize(input.warehouseName);
+
+    // ============================
+    // 2️⃣ Required Field Validation (Bug 14 FIX)
+    // ============================
+    if (!warehouseCode) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Warehouse code is required"
+      };
+    }
+
+    if (!warehouseName) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Warehouse name is required"
+      };
+    }
+
+    // ============================
+    // 3️⃣ Duplicate Check (Case-insensitive) (Bug 10 FIX)
+    // ============================
+    const existing = await this.repo
+      .createQueryBuilder("w")
+      .where("LOWER(w.warehouseCode) = :code", {
+        code: warehouseCode.toLowerCase()
+      })
+      .orWhere("LOWER(w.warehouseName) = :name", {
+        name: warehouseName.toLowerCase()
+      })
+      .getOne();
+
+    if (existing) {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "Warehouse with same code or name already exists"
+      };
+    }
+
+    // ============================
+    // 4️⃣ Fetch Foreign Keys in Parallel
+    // ============================
+    const [country, state, district] = await Promise.all([
+      this.countryRepo.findOne({
+        where: { countryId: input.shippingCountryId }
+      }),
+      this.stateRepo.findOne({
+        where: { stateId: input.shippingStateId }
+      }),
+      this.districtRepo.findOne({
+        where: { districtId: input.shippingDistrictId }
+      })
+    ]);
+
+    if (!country) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping country" };
+    }
+
+    if (!state) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping state" };
+    }
+
+    if (!district) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping district" };
+    }
+
+    // ============================
+    // 5️⃣ Create Entity
+    // ============================
+    const entity = this.repo.create({
+      // Core
+      warehouseCode,
+      warehouseName,
+      status: input.status ?? WarehouseStatusEnum.DRAFT,
+      activeFlag: input.activeFlag ?? true,
+      effectiveFrom: input.effectiveFrom,
+      effectiveTo: input.effectiveTo ?? undefined,
+
+      // Business
+      ownershipType: input.ownershipType,
+      businessRole: input.businessRole,
+      legalEntityId: input.legalEntityId ?? null,
+      parentPartnerId: input.parentPartnerId ?? null,
+      franchise: input.franchise,
+
+      // Relations
+      shippingCountry: country,
+      shippingState: state,
+      shippingDistrict: district,
+
+      // Address
+      shippingStreet: normalize(input.shippingStreet),
+      shippingCity: input.shippingCity,
+      shippingPinCode: input.shippingPinCode,
+
+      // Denormalized Names
+      shippingCountryName: country.countryName,
+      shippingStateName: state.stateName,
+      shippingDistrictName: district.districtName,
+
+      // Tax
+      gstNo: normalize(input.gstNo)?.toUpperCase(),
+      vatRegistrationNo: input.vatRegistrationNo ?? undefined,
+      taxRegistrationType: input.taxRegistrationType ?? undefined,
+      sez: input.sez,
+      customZone: input.customZone,
+
+      // Flags
+      allowsSales: input.allowsSales ?? true,
+      allowsPurchase: input.allowsPurchase ?? true,
+      allowsReturns: input.allowsReturns ?? true,
+      supportsBatch: input.supportsBatch ?? false,
+      supportsExpiry: input.supportsExpiry ?? false,
+      supportsSerial: input.supportsSerial ?? false,
+      temperatureControlled: input.temperatureControlled ?? false,
+      crossDockingFlag: input.crossDockingFlag ?? false,
+      consignmentFlag: input.consignmentFlag ?? false
+    });
+
+    // ============================
+    // 6️⃣ Save (Bug 15 FIX - no extra query)
+    // ============================
+    const savedWarehouse = await this.repo.save(entity);
+
+    // ✅ No extra DB call — relations already set
+    // savedWarehouse.shippingCountry = country;
+    // savedWarehouse.shippingState = state;
+    // savedWarehouse.shippingDistrict = district;
+
     return {
-      status: STATUSCODES.CONFLICT,
-      message: "Warehouse with same code or name already exists.",
+      status: STATUSCODES.SUCCESS,
+      message: "Warehouse created successfully",
+      data: savedWarehouse
     };
+
+  } catch (error: any) {
+    console.error("Create Warehouse Error:", error);
+
+    // ============================
+    // 7️⃣ DB Unique Error Handling (Bonus)
+    // ============================
+    if (error.code === "23505") {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "Duplicate warehouse found"
+      };
+    }
+
+    throw error;
   }
-
-  // 2. Validate Foreign Keys
-  const country = await this.countryRepo.findOne({ where: { countryId: input.shippingCountryId } });
-  if (!country) {
-    return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping country." };
-  }
-
-  const state = await this.stateRepo.findOne({ where: { stateId: input.shippingStateId } });
-  if (!state) {
-    return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping state." };
-  }
-
-  const district = await this.districtRepo.findOne({ where: { districtId: input.shippingDistrictId } });
-  if (!district) {
-    return { status: STATUSCODES.BAD_REQUEST, message: "Invalid shipping district." };
-  }
-
-  // 3. Create Entity
-  const entity = new Warehouse();
-
-  // Core
-  entity.warehouseCode = input.warehouseCode;
-  entity.warehouseName = input.warehouseName;
-  entity.status = input.status ?? WarehouseStatusEnum.DRAFT;
-  entity.activeFlag = input.activeFlag ?? true;
-  entity.effectiveFrom = input.effectiveFrom;
-  entity.effectiveTo = input.effectiveTo ?? undefined;
-
-  // Business
-  entity.ownershipType = input.ownershipType;
-  entity.businessRole = input.businessRole;
-  entity.legalEntityId = input.legalEntityId ?? null;
-  entity.parentPartnerId = input.parentPartnerId ?? null;
-  entity.franchise = input.franchise;
-
-  // Shipping Address (Relations)
-  entity.shippingCountry = country;
-  entity.shippingState = state;
-  entity.shippingDistrict = district;
-  entity.shippingStreet = input.shippingStreet;
-  entity.shippingCity = input.shippingCity;
-  entity.shippingPinCode = input.shippingPinCode;
-
-  entity.shippingCountryName = country.countryName;
-entity.shippingStateName = state.stateName;
-entity.shippingDistrictName = district.districtName;
-
-  // Tax / Compliance
-  entity.gstNo = input.gstNo ?? undefined;
-  entity.vatRegistrationNo = input.vatRegistrationNo ?? undefined;
-  entity.taxRegistrationType = input.taxRegistrationType ?? undefined;
-  entity.sez = input.sez;
-  entity.customZone = input.customZone;
-
-  // Operational Flags
-  entity.allowsSales = input.allowsSales ?? true;
-  entity.allowsPurchase = input.allowsPurchase ?? true;
-  entity.allowsReturns = input.allowsReturns ?? true;
-  entity.supportsBatch = input.supportsBatch ?? false;
-  entity.supportsExpiry = input.supportsExpiry ?? false;
-  entity.supportsSerial = input.supportsSerial ?? false;
-  entity.temperatureControlled = input.temperatureControlled ?? false;
-  entity.crossDockingFlag = input.crossDockingFlag ?? false;
-  entity.consignmentFlag = input.consignmentFlag ?? false;
-
-  // 4. Save
-  await this.repo.save(entity);
-
-  return {
-    status: STATUSCODES.SUCCESS,
-    message: "Warehouse created successfully.",
-  };
 }
 
 async getById(input: GetWarehouseById): Promise<IApiResponse> {

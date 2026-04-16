@@ -1,17 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, ManyToOne, JoinColumn, ManyToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, ManyToOne, JoinColumn, ManyToMany, OneToMany } from "typeorm";
 import { DbConnections } from "../postgresdb";
 import { IBeat } from "../../../core/types/BeatService/Beat";
 // import { User } from "./User.entity";
 import { Stores } from "./stores.entity";
-
-
-
 import { User } from "../Entities/User.entity";
 import { Customer } from "../Entities/customer.entity";
 import { Warehouse } from "../Entities/warehouse.entity";
 import {Country} from "./country.entity"
 import { District } from "./district.entity";
 import { State } from "./state.entity";
+import { Scheme } from "./scheme.entity";
 
 import {
   BeatPriority,
@@ -33,6 +31,9 @@ export class Beat extends BaseEntity {
 
   @Column({ name: "beat_name" })
   beatName: string;
+  
+  @OneToMany(() => Scheme, (scheme) => scheme.beat)
+ schemes: Scheme[];
 
   /* ================= Ownership ================= */
 
@@ -44,7 +45,7 @@ export class Beat extends BaseEntity {
   customer: Customer;
 
   @Column({ name: "warehouse_id", nullable: true })
-  warehouseId?: number;
+  warehouseId?: string;
 
   @ManyToOne(() => Warehouse, { nullable: true })
   @JoinColumn({ name: "warehouse_id" })
@@ -56,7 +57,6 @@ export class Beat extends BaseEntity {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: "user_id" })
   user?: User;
-
 
   /* ================= Business ================= */
 

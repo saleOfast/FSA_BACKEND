@@ -13,7 +13,7 @@ export interface ICustomerType {
   customerTypeId: number;
   name: string;
   description?: string;
-  parentId?: number;
+  parentId?: number |null;
   tradeCategory?: string;
   canPurchase: boolean;
   canSell: boolean;
@@ -29,7 +29,7 @@ export interface ICustomerType {
 export class CreateCustomerType {
   @IsNotEmpty()
   @IsString()
-  name!: string;
+  name: string;
 
   @IsOptional()
   @IsString()

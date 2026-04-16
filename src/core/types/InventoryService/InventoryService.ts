@@ -6,55 +6,73 @@ import {
   IsOptional,
   IsString,
   IsDateString,
-  ValidateNested
+  ValidateNested,
+  Min,Max,
+  ValidateIf,
+  ArrayMaxSize,
+  ArrayMinSize,
+  ArrayNotEmpty
 } from "class-validator";
 
 
 export class InventoryItemDto {
+
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  inventoryId?: number; // optional for create
+  inventoryId?: number;
 
-  @IsNotEmpty()
+  // ============================
+  // Inventory Name
+  // ============================
+  @IsNotEmpty({ message: "inventoryName is required" })
   @IsString()
-  inventoryName: string; // added inventoryName
+  @Transform(({ value }) => value?.trim())
+  inventoryName: string;
 
-  @IsNotEmpty()
+  // ============================
+  // SKU
+  // ============================
+  @IsNotEmpty({ message: "skuId is required" })
   @Type(() => Number)
   @IsNumber()
-  skuId:number; // optional SKU
+  skuId: number;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  productId?: number; // optional, can come from SKU
-
-  @IsOptional()
+  // ============================
+  // Warehouse (MAKE REQUIRED)
+  // ============================
+  @IsNotEmpty({ message: "warehouseId is required" })
   @IsString()
-  warehouseId?: string;
+  warehouseId: string;
 
+  // ============================
+  // Stock
+  // ============================
   @IsNotEmpty()
   @Type(() => Number)
   @IsNumber()
+  @Min(1, { message: "stockQuantity must be greater than 0" })
   stockQuantity: number;
 
-  // @IsOptional()
-  // @Type(() => Number)
-  // @IsNumber()
-  // reservedQuantity?: number;
-
-  @IsOptional()
+  // ============================
+  // Batch + Expiry (linked validation)
+  // ============================
+  // @ValidateIf(o => o.expiryDate !== undefined)
+   @IsOptional()
   @IsString()
   batchNumber?: string;
 
-  @IsOptional()
-  @IsDateString()
+  @ValidateIf(o => o.batchNumber !== undefined)
+  @IsDateString({}, { message: "expiryDate must be a valid date" })
   expiryDate?: string;
 
+  // ============================
+  // Optional Fields
+  // ============================
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
   reorderLevel?: number;
 
   @IsOptional()
@@ -69,14 +87,22 @@ export class InventoryItemDto {
   @Type(() => Number)
   @IsNumber()
   taxId?: number;
-
-
 }
 
 export class CreateInventoryDto {
-  @IsArray()
+
+  @IsArray({ message: "inventory must be an array" })
+  
+  @ArrayNotEmpty({ message: "inventory cannot be empty" })
+  
+  @ArrayMinSize(1, { message: "At least one inventory item is required" })
+  
+  @ArrayMaxSize(100, { message: "Maximum 100 items allowed at once" }) // optional limit
+  
   @ValidateNested({ each: true })
+  
   @Type(() => InventoryItemDto)
+  
   inventory: InventoryItemDto[];
 }
 

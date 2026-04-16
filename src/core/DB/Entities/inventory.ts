@@ -8,6 +8,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Repository,
+  OneToMany,
 } from "typeorm";
 import { Expose } from "class-transformer";
 
@@ -19,6 +20,8 @@ import { Warehouse } from "../Entities/warehouse.entity";
 import { Sku } from "../Entities/sku.entity";
 
 import { DbConnections } from "../postgresdb";
+
+import{Batch, BatchRepository} from "../Entities/inventoryBatch.entity"
 
 
 export interface IInventory {
@@ -70,11 +73,11 @@ export class Inventory extends BaseEntity implements IInventory {
   @PrimaryGeneratedColumn({ name: "inventory_id" })
   inventoryId: number;
 
-  @Column({ name:"inventory_name", type: "varchar", nullable: true})
-  inventoryName?: string;
+  @Column({ name:"inventory_name", type: "varchar"})
+  inventoryName: string;
 
-@Column({ name: "sku_id" })
- skuId: number;
+  @Column({ name: "sku_id" })
+  skuId: number;
 
 @ManyToOne(() => Sku)
 @JoinColumn({ name: "sku_id" })
@@ -105,6 +108,10 @@ product: Products;
   // @Column({ name: "reserved_quantity", type: "int", default: 0 })
   // reservedQuantity: number;
 
+  // @ManyToOne(() => Batch, { nullable: true })
+  // @JoinColumn({ name: "batch_id" })
+  // batch?: Batch;
+
   @Column({ name: "batch_number", nullable: true })
   batchNumber?: string;
 
@@ -133,6 +140,8 @@ tax?: Taxes;
 // @Column({ name: "discount_id", type: "int", nullable: true })
 // discountId?: number;
 
+@OneToMany(() => Batch, batch => batch.inventory)
+batches: Batch[];
 
   // Available = Stock - Reserved
   @Expose()

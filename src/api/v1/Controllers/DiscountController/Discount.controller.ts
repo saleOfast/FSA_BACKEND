@@ -58,6 +58,55 @@ class DiscountController {
         discountPercentage
       } = input;
 
+          if (!discountName || discountName.trim() === "") {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Discount name is required",
+      };
+    }
+
+    if (!discountType) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Discount type is required",
+      };
+    }
+
+     const normalizedName = discountName.trim().toLowerCase();
+
+         const existingDiscount = await this.discountRepository.findOne({
+      where: {
+        discountName: normalizedName,
+        isDeleted: false,
+      },
+    });
+
+    if (existingDiscount) {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "Discount with same name already exists",
+      };
+    }
+
+     if (minQty !== undefined && minQty < 0) {
+      return { status: 400, message: "minQty cannot be negative" };
+    }
+
+    if (maxQty !== undefined && maxQty < 0) {
+      return { status: 400, message: "maxQty cannot be negative" };
+    }
+
+    if (minimumOrderValue !== undefined && minimumOrderValue < 0) {
+      return { status: 400, message: "minimumOrderValue cannot be negative" };
+    }
+
+    if (minQty !== undefined && maxQty !== undefined && minQty > maxQty) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Minimum Quantity must be <= Maximum Quantity",
+      };
+    }
+
       // Validate customer type if provided
       if (customerTypeId) {
         const customerType = await this.customerTypeRepository.findOne({
@@ -71,7 +120,7 @@ class DiscountController {
       // Validate customer if provided
       if (customerId) {
         const customer = await this.customerRepository.findOne({
-          where: { customerId }
+          where: { customerId,isDeleted: false }
         });
         if (!customer) {
           return { message: "Customer not found", status: STATUSCODES.NOT_FOUND };
@@ -101,7 +150,7 @@ class DiscountController {
       // Validate state if provided
       if (stateId) {
         const state = await this.stateRepository.findOne({
-          where: { stateId }
+          where: { stateId,isDeleted: false }
         });
         if (!state) {
           return { message: "State not found", status: STATUSCODES.NOT_FOUND };
@@ -158,13 +207,9 @@ class DiscountController {
         }
       }
 
-      // Validate quantity range
-      if (minQty !== undefined && maxQty !== undefined && minQty > maxQty) {
-        return { message: "Minimum Quantity must be less than or equal to Maximum Quantity", status: STATUSCODES.BAD_REQUEST };
-      }
-
+    
       const newDiscount = new Discount();
-      newDiscount.discountName = discountName;
+      newDiscount.discountName = normalizedName;
       newDiscount.discountType = discountType;
       newDiscount.discountCategory = discountCategory;
       newDiscount.customerTypeId = customerTypeId;
@@ -188,20 +233,23 @@ class DiscountController {
 
       const savedDiscount = await this.discountRepository.save(newDiscount);
 
-      // Load relations for response
-      const discountWithRelations = await this.discountRepository.findOne({
-        where: { discountId: savedDiscount.discountId },
-        relations: ['customerType', 'customer', 'sku', 'country', 'state', 'district', 'beat']
-      });
+      // // Load relations for response
+      // const discountWithRelations = await this.discountRepository.findOne({
+      //   where: { discountId: savedDiscount.discountId },
+      //   relations: ['customerType', 'customer', 'sku', 'country', 'state', 'district', 'beat']
+      // });
 
       return {
         status: STATUSCODES.SUCCESS,
         message: "Discount created successfully.",
-        data: discountWithRelations
+        data: savedDiscount,
       };
     } catch (error) {
       console.error("Create Discount Error:", error);
-      throw error;
+      return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: "Failed to create discount",
+    };
     }
   }
 

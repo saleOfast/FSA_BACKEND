@@ -18,73 +18,107 @@ class CustomerTypeController {
 
   constructor() { }
 
-  async createCustomerType(input: CreateCustomerType, payload: IUser): Promise<IApiResponse> {
-    try {
-      const {
-        name,
-        description,
-        parentId,
-        tradeCategory,
-        canPurchase,
-        canSell,
-        inventoryVisibilityScope
-      } = input;
+async createCustomerType(
+  input: CreateCustomerType,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    let {
+      name,
+      description,
+      parentId,
+      tradeCategory,
+      canPurchase,
+      canSell,
+      inventoryVisibilityScope
+    } = input;
 
-      const { emp_id } = payload;
+    const { emp_id } = payload;
 
-      // Check for duplicate name
-      const existingCustomerType = await this.customerTypeRepository.findOne({
-        where: { name, isDeleted: false }
-      });
-
-      if (existingCustomerType) {
-        return { message: "Customer Type with this name already exists", status: STATUSCODES.BAD_REQUEST };
-      }
-
-      // Get user for audit fields
-      const user = await this.userRepository.findOne({ 
-        where: { emp_id },
-        select: ['emp_id', 'firstname', 'lastname']
-      });
-      if (!user) {
-        return { message: "User not found", status: STATUSCODES.NOT_FOUND };
-      }
-
-      // Validate parentId if provided
-      if (parentId) {
-        const parentCustomerType = await this.customerTypeRepository.findOne({ 
-          where: { customerTypeId: parentId, isDeleted: false } 
-        });
-        if (!parentCustomerType) {
-          return { message: "Parent Customer Type not found", status: STATUSCODES.NOT_FOUND };
-        }
-      }
-
-      const newCustomerType = new CustomerType();
-      newCustomerType.name = name;
-      newCustomerType.description = description;
-      newCustomerType.parentId = parentId;
-      newCustomerType.tradeCategory = tradeCategory;
-      newCustomerType.canPurchase = canPurchase;
-      newCustomerType.canSell = canSell;
-      newCustomerType.inventoryVisibilityScope = inventoryVisibilityScope;
-
-      // Set audit fields
-      newCustomerType.setCreatedByUser(user);
-
-      const savedCustomerType = await this.customerTypeRepository.save(newCustomerType);
-
+    // ================== 1️⃣ Validate ==================
+    if (!name || !name.trim()) {
       return {
-        status: STATUSCODES.SUCCESS,
-        message: "Customer Type created successfully.",
-        data: savedCustomerType
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Customer Type name is required"
       };
-    } catch (error) {
-      console.error("Create Customer Type Error:", error);
-      throw error;
     }
-  }
 
+    name = name.trim();
+
+    // ================== 2️⃣ Duplicate check ==================
+    const existing = await this.customerTypeRepository
+      .createQueryBuilder("ct")
+      .where("LOWER(ct.name) = LOWER(:name)", { name })
+      .andWhere("ct.isDeleted = false")
+      .getOne();
+
+    if (existing) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Customer Type already exists"
+      };
+    }
+
+    let parent: CustomerType | null = null;
+
+    // ================== 3️⃣ Validate parent ==================
+    if (parentId !== undefined && parentId !== null) {
+      parent = await this.customerTypeRepository.findOne({
+        where: { customerTypeId: parentId, isDeleted: false }
+      });
+
+      if (!parent) {
+        return {
+          status: STATUSCODES.NOT_FOUND,
+          message: "Parent Customer Type not found"
+        };
+      }
+    }
+
+    // ================== 4️⃣ Create entity ==================
+    const newCustomerType = new CustomerType();
+
+    newCustomerType.name = name;
+    newCustomerType.description = description?.trim() || undefined;
+    newCustomerType.tradeCategory = tradeCategory;
+    newCustomerType.canPurchase = !!canPurchase;
+    newCustomerType.canSell = !!canSell;
+    newCustomerType.inventoryVisibilityScope =
+      inventoryVisibilityScope ?? null;
+
+    // ================== 5️⃣ Set createdBy ==================
+    const user = await this.userRepository.findOne({
+      where: { emp_id },
+      select: ['emp_id', 'firstname', 'lastname']
+    });
+
+    if (!user) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: "User not found"
+      };
+    }
+
+    newCustomerType.setCreatedByUser(user);
+
+    // ================== 6️⃣ Parent Logic (FIXED) ==================
+    // ✅ No self-loop, use NULL for root
+    newCustomerType.parentId = parent ? parent.customerTypeId :undefined;
+
+    // ================== 7️⃣ SAVE ==================
+    const saved = await this.customerTypeRepository.save(newCustomerType);
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Customer Type created successfully",
+      data: saved
+    };
+
+  } catch (error) {
+    console.error("Create Customer Type Error:", error);
+    throw error;
+  }
+}
   async updateCustomerType(input: UpdateCustomerType, payload: IUser): Promise<IApiResponse> {
     try {
       const { customerTypeId, ...updateData } = input;
@@ -97,7 +131,7 @@ class CustomerTypeController {
       if (!customerType) {
         return { message: "Customer Type not found", status: STATUSCODES.NOT_FOUND };
       }
-
+      
       // Check for duplicate name (excluding current customer type)
       if (updateData.name && updateData.name !== customerType.name) {
         const existingCustomerType = await this.customerTypeRepository.findOne({

@@ -86,6 +86,11 @@ async createGrnItemByIds(
         };
       }
 
+            if (inventory.warehouseId !== grn.warehouseId) {
+        throw new Error(
+          "Inventory does not belong to the same warehouse as GRN"
+        );
+      }
       // ✅ Get Batch with lock
       const batch = await batchRepo.findOne({
         where: { batchId, isDeleted: false },
@@ -107,6 +112,19 @@ async createGrnItemByIds(
           message: "Selected batch does not belong to selected inventory",
           data: null,
         };
+      }
+
+       const existingItem = await grnItemRepo.findOne({
+        where: {
+          grnId,
+          inventoryId,
+          batchId,
+        },
+      });
+           if (existingItem) {
+        throw new Error(
+          "GRN item already exists for this GRN + Inventory + Batch"
+        );
       }
 
       // ✅ Update batch stock
@@ -509,6 +527,7 @@ async updateGrnItem(
       const grnItemRepo = manager.getRepository(GrnItem);
       const inventoryRepo = manager.getRepository(Inventory);
       const batchRepo = manager.getRepository(Batch);
+       const grnRepo = manager.getRepository(GrnHeader);
 
       // ✅ Lock GRN item
       const item = await grnItemRepo.findOne({
@@ -523,6 +542,15 @@ async updateGrnItem(
           data: null,
         };
       }
+
+           const grn = await grnRepo.findOne({
+        where: { grnId: item.grnId, isDeleted: false },
+      });
+
+      if (!grn) {
+        throw new Error("GRN not found");
+      }
+
 
       const delta = receivedQty - item.receivedQty;
 
@@ -565,6 +593,14 @@ async updateGrnItem(
             data: null,
           };
         }
+
+              if (batch.currentStock + delta < 0) {
+        throw new Error("Batch stock cannot go negative");
+      }
+
+      if (inventory.stockQuantity + delta < 0) {
+        throw new Error("Inventory stock cannot go negative");
+      }
 
         if (inventory.stockQuantity < absDelta) {
           return {

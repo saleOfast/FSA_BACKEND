@@ -8,7 +8,7 @@ export interface IBeat {
   beatName: string;
 
   customerId: number;            // Distributor
-  warehouseId?: number;
+  warehouseId?: string;
   userId?: number;               // Assigned user / sales rep
 
   channel?: string;               // Derived from customer
@@ -54,8 +54,8 @@ export class CreateBeatDto {
   customerId: number;
 
   @IsOptional()
-  @IsNumber()
-  warehouseId?: number;
+  @IsString()
+  warehouseId?: string;
 
   @IsOptional()
   @IsNumber()
@@ -167,6 +167,17 @@ export class UpdateBeatDto {
   @IsOptional()
   @IsNumber()
   startLng?: number;
+  @IsOptional()
+  @IsNumber()
+  countryId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  stateId: number;
+
+  @IsOptional()
+  @IsNumber()
+  districtId: number;
 
   @IsOptional()
   @IsNumber()
@@ -183,6 +194,14 @@ export class UpdateBeatDto {
   @IsOptional()
   @IsDateString()
   plannedEndTime?: Date;
+
+  @IsOptional()
+  @IsString()
+  warehouseId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  userId?: number;
 }
 
 
@@ -223,9 +242,8 @@ export class GetAllBeatDto {
   customerId?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  warehouseId?: number;
+  @IsString()
+  warehouseId?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -278,6 +296,9 @@ channel?: string;
   @IsOptional()
   @IsString()
   search?: string; // beatName / beatCode
+  @IsOptional()
+  @IsBoolean()
+  isDeleted?: boolean;
 }
 
 

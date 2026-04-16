@@ -20,6 +20,7 @@ import {Scheme} from './scheme.entity'
 import { Taxes } from './tax.entity';
 import { Warehouse } from './warehouse.entity';
 import { DbConnections} from "../postgresdb";
+import { PriceBookItem } from './price_book_item.entity';
 
 @Entity('sales_order_item')
 export class SalesOrderItem extends BaseEntity {
@@ -56,9 +57,16 @@ export class SalesOrderItem extends BaseEntity {
   @Column({ type: 'int' })
   saleQty: number;
 
-  
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  basePrice: number;
+  @ManyToOne(() => PriceBookItem)
+@JoinColumn({ name: 'pricebook_item_id' })
+priceBookItem: PriceBookItem;
+
+@Column({ name: 'pricebook_item_id',nullable:true })
+priceBookItemId: number;
+
+@Column({ type: 'decimal', precision: 10, scale: 2 })
+basePrice: number;
+
 
   @ManyToOne(()=>Discount)
   @JoinColumn({name:'discount_id'})

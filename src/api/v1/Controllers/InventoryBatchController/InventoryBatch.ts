@@ -41,6 +41,20 @@ class InventoryBatchController {
       };
     }
 
+        if (currentStock < 0) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Current stock cannot be negative",
+      };
+    }
+
+    if (reservedStock < 0) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Reserved stock cannot be negative",
+      };
+    }
+    
     // 🔹 2. Basic validations
     if (reservedStock > currentStock) {
       return {
@@ -48,30 +62,75 @@ class InventoryBatchController {
         message: "Reserved stock cannot be greater than current stock",
       };
     }
+    // 🔹 3. Auto-expire logic (date-only, same-day not expired)
+    const normalizeToMidnight = (d?: Date) => {
+      if (!d) return null;
+      const tmp = new Date(d);
+      tmp.setHours(0, 0, 0, 0);
+      return tmp;
+    };
 
-    // 🔹 3. Auto-expire logic
+    const expiryMidnight = normalizeToMidnight(expiryDate ? new Date(expiryDate) : undefined);
+    const expiryDateYMD = expiryMidnight
+      ? `${expiryMidnight.getFullYear()}-${String(expiryMidnight.getMonth() + 1).padStart(2, "0")}-${String(expiryMidnight.getDate()).padStart(2, "0")}`
+      : null;
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+
     let finalStatus = status;
-    if (expiryDate && new Date(expiryDate) < new Date()) {
+    if (expiryMidnight && expiryMidnight < todayMidnight) {
       finalStatus = BatchStatusEnum.EXPIRED;
     }
 
-    // 🔹 4. Create batch
-    const availableQty = currentStock - reservedStock;
-    const batch = BatchRepository().create({
-      ...input,
-      reservedStock,
-      status: finalStatus ?? BatchStatusEnum.ACTIVE,
-      qualityStatus: qualityStatus ?? QualityStatusEnum.PENDING,
-      
-      createdAt: new Date(),
+    // 🔹 4. Transaction: save batch + re-sync inventory stock
+    const connection = this.inventoryRepo.manager.connection;
+    const batch = await connection.transaction(async (manager) => {
+      const batchRepo = manager.getRepository(Batch);
+      const inventoryRepo = manager.getRepository(Inventory);
+
+      // Re-check duplicate within the same transaction using proper key: inventoryId + batchNo + expiryDate
+      const duplicateBatch = await batchRepo
+        .createQueryBuilder("batch")
+        .where("batch.inventoryId = :inventoryId", { inventoryId })
+        .andWhere("batch.isDeleted = false")
+        .andWhere("batch.batchNo = :batchNo", { batchNo: input.batchNo })
+        .andWhere(
+          `(
+            (:expiryDate::date IS NULL AND batch.expiryDate IS NULL) OR batch.expiryDate = :expiryDate::date
+          )`,
+          { expiryDate: expiryDateYMD }
+        )
+        .getOne();
+
+      if (duplicateBatch) {
+        throw new Error("Batch already exists for same inventory, batchNo and expiryDate");
+      }
+
+      const b = batchRepo.create({
+        ...input,
+        reservedStock,
+        status: finalStatus ?? BatchStatusEnum.ACTIVE,
+        qualityStatus: qualityStatus ?? QualityStatusEnum.PENDING,
+        expiryDate: expiryMidnight ?? undefined,
+        createdAt: new Date(),
         updatedAt: new Date(),
+      });
+
+      await batchRepo.save(b);
+
+      // 🔹 Sync inventory stock = SUM(non-deleted batches.currentStock)
+      const total = await batchRepo
+        .createQueryBuilder("b")
+        .select("COALESCE(SUM(b.currentStock), 0)", "total")
+        .where("b.inventoryId = :inventoryId", { inventoryId })
+        .andWhere("b.isDeleted = false")
+        .getRawOne();
+
+      inventory.stockQuantity = Number(total.total) || 0;
+      await inventoryRepo.save(inventory);
+
+      return b;
     });
-
-    await BatchRepository().save(batch);
-
-    // 🔹 5. Update inventory stock
-    inventory.stockQuantity += currentStock;
-    await this.inventoryRepo.save(inventory);
 
    return {
   status: STATUSCODES.SUCCESS,
@@ -79,12 +138,22 @@ class InventoryBatchController {
   data: {
     ...batch,
     availableQty: currentStock - reservedStock,
-    isExpired: expiryDate ? new Date(expiryDate) < new Date() : false,
+    isExpired: expiryMidnight ? expiryMidnight < todayMidnight : false,
   },
 };
 
   } catch (error) {
-    throw error;
+    const msg = (error as any)?.message || "Failed to create inventory batch";
+    if (msg.includes("Batch already exists")) {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: msg,
+      };
+    }
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: msg,
+    };
   }
 }
 
@@ -108,7 +177,28 @@ async DeleteInventoryBatch(input: DeleteInventoryBatchByIdDto, payload: IUser): 
 
     // 🔹 Soft delete the batch
     batch.isDeleted = true;
-    await this.inventoryBatchRepo.save(batch);
+    const connection = this.inventoryBatchRepo.manager.connection;
+    await connection.transaction(async (manager) => {
+      const batchRepo = manager.getRepository(Batch);
+      const inventoryRepo = manager.getRepository(Inventory);
+
+      await batchRepo.save(batch);
+
+      // 🔹 Sync inventory after delete
+      const invId = batch.inventoryId;
+      const total = await batchRepo
+        .createQueryBuilder("b")
+        .select("COALESCE(SUM(b.currentStock), 0)", "total")
+        .where("b.inventoryId = :inventoryId", { inventoryId: invId })
+        .andWhere("b.isDeleted = false")
+        .getRawOne();
+
+      const inv = await inventoryRepo.findOne({ where: { inventoryId: invId, isDeleted: false } });
+      if (inv) {
+        inv.stockQuantity = Number(total.total) || 0;
+        await inventoryRepo.save(inv);
+      }
+    });
 
     return {
       status: STATUSCODES.SUCCESS,
@@ -210,8 +300,28 @@ async updateInventoryBatch(
 
     Object.assign(batch, updateData);
     batch.updatedAt = new Date();
+    const connection = this.inventoryBatchRepo.manager.connection;
+    await connection.transaction(async (manager) => {
+      const batchRepo = manager.getRepository(Batch);
+      const inventoryRepo = manager.getRepository(Inventory);
 
-    await this.inventoryBatchRepo.save(batch);
+      await batchRepo.save(batch);
+
+      // 🔹 Sync inventory after update
+      const invId = batch.inventoryId;
+      const total = await batchRepo
+        .createQueryBuilder("b")
+        .select("COALESCE(SUM(b.currentStock), 0)", "total")
+        .where("b.inventoryId = :inventoryId", { inventoryId: invId })
+        .andWhere("b.isDeleted = false")
+        .getRawOne();
+
+      const inv = await inventoryRepo.findOne({ where: { inventoryId: invId, isDeleted: false } });
+      if (inv) {
+        inv.stockQuantity = Number(total.total) || 0;
+        await inventoryRepo.save(inv);
+      }
+    });
 
     return {
       status: STATUSCODES.SUCCESS,

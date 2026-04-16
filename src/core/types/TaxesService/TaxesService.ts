@@ -1,4 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString,IsEnum,IsUUID,IsDateString } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString,IsEnum,IsUUID,IsDateString,Min,Max } from "class-validator";
 
 import {
   TaxClassification,
@@ -55,10 +55,11 @@ export class TaxesC {
   @IsNotEmpty()
   @IsEnum(TaxComponent)
   taxComponent: TaxComponent;
-
-  @IsNotEmpty()
-  @IsNumber()
-  taxPercentage: number;
+@IsNotEmpty()
+@IsNumber()
+@Min(0, { message: "Tax percentage cannot be negative" })
+@Max(100, { message: "Tax percentage cannot exceed 100" })
+taxPercentage: number;
 
   @IsNotEmpty()
   @IsEnum(SupplyType)

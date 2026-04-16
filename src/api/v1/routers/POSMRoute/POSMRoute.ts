@@ -34,7 +34,7 @@ router.put(
       const payload: IUser = RequestHandler.Custom.getUser(req);
       
       const posmService = new PosmService();
-      const data = await posmService.updatePosm(posmId, input, payload);
+      const data = await posmService.updatePosm(posmId, input);
       
       ResponseHandler.sendResponse(res, data);
     } catch (error) {

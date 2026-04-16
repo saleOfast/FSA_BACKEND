@@ -22,7 +22,7 @@ export interface IScheme {
 
     customer?: Customer;
     customerType?: CustomerType;
-    // products?: Products[];
+    products?: Products;
     sku?: Sku;
     warehouse?: Warehouse;
     posm?: Posm;
@@ -100,8 +100,8 @@ export class CreateSchemeDto {
   skuId?: number;
 
   @IsOptional()
-  @IsNumber()
-  warehouseId?: number;
+  @IsString()
+  warehouseId?: string;
 
   @IsOptional()
   @IsNumber()
@@ -220,8 +220,8 @@ export class UpdateSchemeDto {
   skuId?: number;
 
   @IsOptional()
-  @IsNumber()
-  warehouseId?: number;
+  @IsString()
+  warehouseId?: string;
 
   @IsOptional()
   @IsNumber()
@@ -319,8 +319,8 @@ export class GetAllSchemeDto {
   skuId?: number;
 
   @IsOptional()
-  @IsNumber()
-  warehouseId?: number;
+  @IsString()
+  warehouseId?: string;
 
   @IsOptional()
   @IsNumber()

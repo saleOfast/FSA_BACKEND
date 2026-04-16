@@ -22,8 +22,23 @@ class StateController {
 
   async createState(input: CreateState, payload: IUser): Promise<IApiResponse> {
     try {
-      const { stateName, countryId } = input;
+      const {  countryId } = input;
 
+      const stateName = input.stateName.trim().toLowerCase();
+
+      if(!stateName){
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "State name cannot be empty or whitespace."
+        }
+      }
+
+          if (!countryId) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "CountryId is required"
+      };
+    }
       // Validate country exists
       const country = await this.countryRepository.findOne({
         where: { countryId, deletedAt: IsNull() }
@@ -35,7 +50,8 @@ class StateController {
 
       // Check for duplicate state name in the same country
       const existingState = await this.stateRepository.findOne({
-        where: { stateName, countryId }
+        where: { stateName, countryId ,isDeleted: false}
+        
       });
 
       if (existingState) {
@@ -45,22 +61,29 @@ class StateController {
       const newState = new State();
       newState.stateName = stateName;
       newState.countryId = countryId;
+      newState.country = country;
 
       const savedState = await this.stateRepository.save(newState);
 
       // Load country relation for response
-      const stateWithCountry = await this.stateRepository.findOne({
-        where: { stateId: savedState.stateId },
-        relations: ['country']
-      });
+      // const stateWithCountry = await this.stateRepository.findOne({
+      //   where: { stateId: savedState.stateId },
+      //   relations: ['country']
+      // });
 
       return {
         status: STATUSCODES.SUCCESS,
         message: "State created successfully.",
-        data: stateWithCountry
+        data:savedState
       };
-    } catch (error) {
+    } catch (error:any) {
       console.error("Create State Error:", error);
+        if (error.code === "23505") {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "State already exists in this country"
+      };
+    }
       throw error;
     }
   }
@@ -129,7 +152,9 @@ class StateController {
         return { message: "State not found", status: STATUSCODES.NOT_FOUND };
       }
 
-      await this.stateRepository.remove(state);
+    state.isDeleted = true;
+
+    await this.stateRepository.save(state);
 
       return { message: "State deleted successfully", status: STATUSCODES.SUCCESS };
     } catch (error) {
@@ -143,7 +168,7 @@ class StateController {
       const { stateId } = input;
 
       const state = await this.stateRepository.findOne({
-        where: { stateId: Number(stateId) },
+        where: { stateId: Number(stateId) ,  isDeleted: false  },
         relations: ['country']
       });
 
@@ -168,7 +193,8 @@ class StateController {
 
       const queryBuilder = this.stateRepository.createQueryBuilder('state')
         .leftJoinAndSelect('state.country', 'country')
-        .where('country.deletedAt IS NULL');
+        .where('country.deletedAt IS NULL')
+         .andWhere('state.isDeleted = false'); 
 
       if (search) {
         queryBuilder.andWhere(

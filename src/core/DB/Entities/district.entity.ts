@@ -41,6 +41,8 @@ export class District extends BaseEntity implements IDistrict {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt!: Date;
+  @Column({name:'is_deleted', type: 'boolean', default: false})
+  isDeleted!:boolean; 
 }
 
 export const DistrictRepository = (): Repository<District> => {

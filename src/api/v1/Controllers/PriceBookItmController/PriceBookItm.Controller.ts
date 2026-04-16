@@ -7,6 +7,7 @@ import { CreatePriceBookItemDTO , UpdatePriceBookItemDTO , GetAllPriceBookItemDT
 import { PriceBookRepository } from "../../../../core/DB/Entities/priceBook.entity";
 import { Sku, SkuRepository } from "../../../../core/DB/Entities/sku.entity";
 import { TaxInclusive, Status, ItemType, UOM } from "../../../../core/types/Constent/common";
+import{IsNull} from "typeorm";
 
 export class PriceBookItmController {
     private priceBookItemRepo = PriceBookItemRepository();
@@ -14,12 +15,16 @@ export class PriceBookItmController {
     private skuRepo = SkuRepository();
     constructor() { }
 
-async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise<IApiResponse> {
+async createPriceBookItem(
+  input: CreatePriceBookItemDTO,
+  payload: IUser
+): Promise<IApiResponse> {
   try {
     // ================== 1️⃣ Fetch related entities ==================
     const priceBook = await this.priceBookRepo.findOne({
-      where: { priceBookId: input.priceBookId },
+      where: { priceBookId: input.priceBookId, isDeleted: false },
     });
+
     if (!priceBook) {
       return {
         status: STATUSCODES.BAD_REQUEST,
@@ -28,7 +33,10 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
       };
     }
 
-    const sku = await this.skuRepo.findOne({ where: { skuId: input.skuId } });
+    const sku = await this.skuRepo.findOne({
+      where: { skuId: input.skuId, isDeleted: false },
+    });
+
     if (!sku) {
       return {
         status: STATUSCODES.BAD_REQUEST,
@@ -38,6 +46,8 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
     }
 
     // ================== 2️⃣ Business validations ==================
+
+    // Discount validation
     if (input.allowDiscount === false && input.maxDiscountPct !== undefined) {
       return {
         status: STATUSCODES.BAD_REQUEST,
@@ -46,6 +56,7 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
       };
     }
 
+    // Slab validation
     if (
       input.slabFromQty !== undefined &&
       input.slabToQty !== undefined &&
@@ -58,6 +69,7 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
       };
     }
 
+    // Price validation
     if (
       input.minPrice !== undefined &&
       input.maxPrice !== undefined &&
@@ -70,10 +82,65 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
       };
     }
 
-    // ================== 3️⃣ Create PriceBookItem entity ==================
+    // ================== 🔴 3️⃣ DUPLICATE CHECK ==================
+    const existingItem = await this.priceBookItemRepo.findOne({
+      where: {
+        priceBookId: input.priceBookId,
+        skuId: input.skuId,
+        slabFromQty: input.slabFromQty ?? IsNull(),
+        slabToQty: input.slabToQty ?? IsNull(),
+        isDeleted: false,
+      },
+    });
+
+    if (existingItem) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message:
+          "Duplicate PriceBookItem already exists for same PriceBook + SKU + slab range",
+        data: null,
+      };
+    }
+
+    // ================== 🔴 4️⃣ OVERLAPPING SLAB CHECK ==================
+    if (
+      input.slabFromQty !== undefined &&
+      input.slabToQty !== undefined
+    ) {
+      const overlapping = await this.priceBookItemRepo
+        .createQueryBuilder("item")
+        .where("item.priceBookId = :priceBookId", {
+          priceBookId: input.priceBookId,
+        })
+        .andWhere("item.skuId = :skuId", { skuId: input.skuId })
+        .andWhere("item.isDeleted = false")
+        .andWhere(
+          `(
+            (:from BETWEEN item.slabFromQty AND item.slabToQty)
+            OR (:to BETWEEN item.slabFromQty AND item.slabToQty)
+            OR (item.slabFromQty BETWEEN :from AND :to)
+          )`,
+          {
+            from: input.slabFromQty,
+            to: input.slabToQty,
+          }
+        )
+        .getOne();
+
+      if (overlapping) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message:
+            "Overlapping slab range already exists for this SKU in PriceBook",
+          data: null,
+        };
+      }
+    }
+
+    // ================== 5️⃣ Create PriceBookItem ==================
     const item = new PriceBookItem();
 
-    // FKs
+    // Relations
     item.priceBook = priceBook;
     item.priceBookId = priceBook.priceBookId;
 
@@ -91,24 +158,27 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
 
     // Discount
     item.allowDiscount = input.allowDiscount ?? false;
-    item.maxDiscountPct = input.maxDiscountPct ?? null;
+    item.maxDiscountPct = input.allowDiscount
+      ? input.maxDiscountPct ?? null
+      : null;
 
     // Slab
     item.slabFromQty = input.slabFromQty ?? null;
     item.slabToQty = input.slabToQty ?? null;
 
-    // Tax & status
+    // Tax & Status
     item.taxInclusive = input.taxInclusive ?? TaxInclusive.EXCLUSIVE;
     item.status = input.status ?? Status.ACTIVE;
-    item.isDeleted = input.isDeleted ?? false;
+    item.isDeleted = false;
 
-    // Audit timestamp
+    // Audit
     item.createdAt = new Date();
 
-    // ================== 4️⃣ Save ==================
+
+    // ================== 6️⃣ Save ==================
     const savedItem = await this.priceBookItemRepo.save(item);
 
-    // ================== 5️⃣ Flattened response ==================
+    // ================== 7️⃣ Response ==================
     const response = {
       priceBookItemId: savedItem.priceBookItemId,
       priceBookId: savedItem.priceBookId,
@@ -126,7 +196,7 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
       status: savedItem.status,
       isDeleted: savedItem.isDeleted,
       createdAt: savedItem.createdAt,
-    
+      
     };
 
     return {
@@ -138,7 +208,6 @@ async createPriceBookItem(input: CreatePriceBookItemDTO,payload: IUser): Promise
     throw error;
   }
 }
-
 
 async deletePriceBookItem(
   input: DeletePriceBookItemDTO,payload: IUser

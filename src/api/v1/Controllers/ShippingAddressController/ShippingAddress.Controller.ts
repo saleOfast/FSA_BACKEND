@@ -10,6 +10,7 @@ import { State } from "../../../../core/DB/Entities/state.entity";
 import { District } from "../../../../core/DB/Entities/district.entity";
 import {ItemShippingAddress, ShippingAddressRepository} from "../../../../core/DB/Entities/shippingAddress.entity"
 import { promises } from "dns";
+import { IsNull,Not } from "typeorm";
 
 
 class ShippingAddress{
@@ -27,9 +28,22 @@ async createShippingAddress(
   payload: IUser
 ): Promise<IApiResponse> {
   try {
+
+      const street = input.shippingStreet?.trim().toLowerCase();
+    const city = input.shippingCity?.trim().toLowerCase();
+    const receiverName = input.receiverName?.trim().toLowerCase();
+
+    if (!receiverName) {
+      return { status: 400, message: "Receiver name is required", data: null };
+    }
+
+    if (!street || !city) {
+      return { status: 400, message: "Street and city are required", data: null };
+    }
+
     // ================= Customer Validation =================
     const customer = await this.customerRepo.findOne({
-      where: { customerId: input.customerId },
+      where: { customerId: input.customerId,isDeleted:false },
     });
     if (!customer) {
       return { status: 400, message: "Customer not found", data: null };
@@ -37,7 +51,7 @@ async createShippingAddress(
 
     // ================= Country Validation =================
     const country = await this.countryRepo.findOne({
-      where: { countryId: input.shippingCountryId },
+      where: { countryId: input.shippingCountryId ,deletedAt:IsNull()},
     });
     if (!country) {
       return { status: 400, message: "Invalid shipping country", data: null };
@@ -45,7 +59,10 @@ async createShippingAddress(
 
     // ================= State Validation =================
     const state = await this.stateRepo.findOne({
-      where: { stateId: input.shippingStateId },
+      where: { stateId: input.shippingStateId,
+        countryId: input.shippingCountryId,
+        isDeleted: false
+       },
     });
     if (!state) {
       return { status: 400, message: "Invalid shipping state", data: null };
@@ -53,12 +70,32 @@ async createShippingAddress(
 
     // ================= District Validation =================
     const district = await this.districtRepo.findOne({
-      where: { districtId: input.shippingDistrictId },
+      where: { districtId: input.shippingDistrictId,
+        stateId: input.shippingStateId,
+        isDeleted: false
+       },
     });
     if (!district) {
       return { status: 400, message: "Invalid shipping district", data: null };
     }
 
+    const existingAddress=await this.repo.findOne({
+      where:{
+        customerId:input.customerId,
+        shippingStreet:street,
+        shippingCity:city,
+        shippingPinCode:input.shippingPinCode,
+        isDeleted:false
+      }
+
+    });
+    if(existingAddress){
+      return{
+        status:400,
+        message:"A shipping address with the same street, city, and pin code already exists for this customer",
+        data:null
+      }
+    }
     // ================= Create Address =================
     const repo = ShippingAddressRepository();
 
@@ -220,108 +257,151 @@ async updateShippingAddress(
   try {
     const { addressId, ...updateData } = input;
 
-    // ================= Validate addressId =================
+    /* =====================================================
+     1️⃣ VALIDATE ID
+    ===================================================== */
     if (!addressId || isNaN(addressId)) {
-      return {
-        status: 400,
-        message: "Invalid addressId",
-        data: null,
-      };
+      return { status: 400, message: "Invalid addressId", data: null };
     }
 
-    // ================= Prevent empty update =================
     if (Object.keys(updateData).length === 0) {
-      return {
-        status: 400,
-        message: "No fields provided to update",
-        data: null,
-      };
+      return { status: 400, message: "No fields provided", data: null };
     }
 
-    // ================= Find existing address =================
+    /* =====================================================
+     2️⃣ FIND EXISTING
+    ===================================================== */
     const shippingAddress = await this.repo.findOne({
       where: { addressId, isDeleted: false },
     });
 
     if (!shippingAddress) {
+      return { status: 404, message: "Shipping address not found", data: null };
+    }
+
+    /* =====================================================
+     3️⃣ SANITIZATION (Bug fix)
+    ===================================================== */
+    if (updateData.shippingCity) {
+      updateData.shippingCity = updateData.shippingCity.trim();
+    }
+
+    if (updateData.shippingStreet) {
+      updateData.shippingStreet = updateData.shippingStreet.trim();
+    }
+
+    if (updateData.receiverName !== undefined) {
+      const name = updateData.receiverName.trim();
+      if (!name) {
+        return { status: 400, message: "Receiver name cannot be empty" };
+      }
+      updateData.receiverName = name;
+    }
+
+    /* =====================================================
+     4️⃣ FK + RELATION VALIDATION (CRITICAL FIX)
+    ===================================================== */
+
+    const countryId =
+      updateData.shippingCountryId ?? shippingAddress.shippingCountryId;
+
+    const stateId =
+      updateData.shippingStateId ?? shippingAddress.shippingStateId;
+
+    const districtId =
+      updateData.shippingDistrictId ?? shippingAddress.shippingDistrictId;
+
+    // COUNTRY
+    const country = await this.countryRepo.findOne({
+      where: { countryId },
+    });
+    if (!country) {
+      return { status: 400, message: "Invalid country" };
+    }
+
+    // STATE (belongs to country)
+    const state = await this.stateRepo.findOne({
+      where: {
+        stateId,
+        countryId,
+        isDeleted: false,
+      },
+    });
+
+    if (!state) {
       return {
-        status: 404,
-        message: "Shipping address not found",
-        data: null,
+        status: 400,
+        message: "State does not belong to selected country",
       };
     }
 
-    // ================= Validate foreign keys =================
-    if (updateData.shippingCountryId) {
-      const country = await this.countryRepo.findOne({
-        where: { countryId: updateData.shippingCountryId },
-      });
-      if (!country) {
-        return { status: 400, message: "Invalid shipping country", data: null };
-      }
+    // DISTRICT (belongs to state)
+    const district = await this.districtRepo.findOne({
+      where: {
+        districtId,
+        stateId,
+        isDeleted: false,
+      },
+    });
+
+    if (!district) {
+      return {
+        status: 400,
+        message: "District does not belong to selected state",
+      };
     }
 
-    if (updateData.shippingStateId) {
-      const state = await this.stateRepo.findOne({
-        where: { stateId: updateData.shippingStateId },
-      });
-      if (!state) {
-        return { status: 400, message: "Invalid shipping state", data: null };
-      }
+    /* =====================================================
+     5️⃣ DUPLICATE CHECK
+    ===================================================== */
+    const existing = await this.repo.findOne({
+      where: {
+        addressId: Not(addressId),
+        customerId: shippingAddress.customerId,
+        shippingStreet:
+          updateData.shippingStreet ?? shippingAddress.shippingStreet,
+        shippingCity:
+          updateData.shippingCity ?? shippingAddress.shippingCity,
+        shippingPinCode:
+          updateData.shippingPinCode ?? shippingAddress.shippingPinCode,
+        isDeleted: false,
+      },
+    });
+
+    if (existing) {
+      return {
+        status: 409,
+        message: "Shipping address already exists",
+      };
     }
 
-    if (updateData.shippingDistrictId) {
-      const district = await this.districtRepo.findOne({
-        where: { districtId: updateData.shippingDistrictId },
-      });
-      if (!district) {
-        return { status: 400, message: "Invalid shipping district", data: null };
-      }
-    }
-
-    // ================= Update =================
+    /* =====================================================
+     6️⃣ UPDATE
+    ===================================================== */
     await this.repo.update({ addressId }, updateData);
 
-    // ================= Fetch updated record =================
+    /* =====================================================
+     7️⃣ FETCH UPDATED
+    ===================================================== */
     const updatedAddress = await this.repo.findOne({
       where: { addressId },
       relations: ["customer", "shippingCountry", "shippingState", "shippingDistrict"],
     });
 
-    if (!updatedAddress) {
-      return {
-        status: 404,
-        message: "Shipping address not found after update",
-        data: null,
-      };
-    }
-
-    // ================= Response =================
     return {
       status: 200,
       message: "Shipping address updated successfully",
-      data: {
-        addressId: updatedAddress.addressId,
-        customerId: updatedAddress.customerId,
-        customerName: updatedAddress.customer?.customerName,
-        shippingCountryId: updatedAddress.shippingCountryId,
-        shippingCountryName: updatedAddress.shippingCountry?.countryName,
-        shippingStateId: updatedAddress.shippingStateId,
-        shippingStateName: updatedAddress.shippingState?.stateName,
-        shippingDistrictId: updatedAddress.shippingDistrictId,
-        shippingDistrictName: updatedAddress.shippingDistrict?.districtName,
-        shippingStreet: updatedAddress.shippingStreet,
-        shippingCity: updatedAddress.shippingCity,
-        shippingPinCode: updatedAddress.shippingPinCode,
-        deliveryTimeSlot: updatedAddress.deliveryTimeSlot,
-        preferredDays: updatedAddress.preferredDays,
-        receiverName: updatedAddress.receiverName,
-        receiverContactNo: updatedAddress.receiverContactNo,
-        isDeleted: updatedAddress.isDeleted,
-      },
+      data: updatedAddress,
     };
-  } catch (error) {
-    throw error;
+
+  } catch (error: any) {
+    console.error("Update Shipping Address Error:", error);
+
+    return {
+      status: 500,
+      message: "Failed to update shipping address",
+      data: error.message,
+    };
   }
 }
 

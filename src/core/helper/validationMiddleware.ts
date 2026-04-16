@@ -139,10 +139,10 @@ export const ResponseHandler = {
         const body: IApiResponse =
         {
             status: 500,
-            message: error,
-            data: undefined
+            message: error?.message || (typeof error === "string" ? error : "Internal Server Error"),
+            data: process.env.NODE_ENV !== "production" ? error?.stack : undefined
         };
 
-        res.send(body);
+        res.status(500).send(body);
     }
 }

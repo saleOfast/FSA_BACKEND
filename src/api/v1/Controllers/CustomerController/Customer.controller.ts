@@ -23,212 +23,259 @@ class CustomerController {
 
   constructor() { }
 
-  async createCustomer(input: CreateCustomer, payload: IUser): Promise<IApiResponse> {
-    try {
-      const {
-        parentId,
-        customerName,
-        customerType,
-        channelType,
-        phone,
-        email,
-        accountOwnerId,
-        beatRouteId,
-        category,
-        billingCountry,
-        billingState,
-        billingDistrict,
-        billingStreet,
-        billingCity,
-        billingPinCode,
-        shippingCountry,
-        shippingState,
-        shippingDistrict,
-        shippingStreet,
-        shippingCity,
-        shippingPinCode,
-        deliveryTimeSlot,
-        preferredDays,
-        gstCertificate,
-        gstNo,
-        businessLicense,
-        panDetail,
-        tanDetail,
-        agreementSigned,
-        cinNo,
-        bankName,
-        bankAccountNo,
-        ifscCode,
-        micrCode,
-        modeOfPayment,
-        currency,
-        paymentTerms,
-        creditLimit,
-        openingBalance,
-        lastPaymentDate,
-        averageMonthlySales,
-        outstandingAmount,
-        discountEligibility,
-        warehouseName
-      } = input;
+ async createCustomer(
+  input: CreateCustomer,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const { emp_id } = payload;
 
-      const { emp_id } = payload;
+    // ============================
+    // 1️⃣ Normalize Input
+    // ============================
+    const normalize = (val?: string) => val?.trim();
 
-      // Check for duplicate phone number
-      const existingCustomer = await this.customerRepository.findOne({
-        where: { phone, isDeleted: false }
-      });
+    const customerName = normalize(input.customerName);
+    const phone = normalize(input.phone);
+    const gstNo = normalize(input.gstNo)?.toUpperCase();
+    const panDetail = normalize(input.panDetail)?.toUpperCase();
+    const tanDetail = normalize(input.tanDetail)?.toUpperCase();
+    const warehouseName = normalize(input.warehouseName)?.toLowerCase();
 
-      if (existingCustomer) {
-        return { message: "Customer with this phone number already exists", status: STATUSCODES.BAD_REQUEST };
-      }
-
-      // Check for duplicate GST number if provided
-      if (gstNo) {
-        const existingGst = await this.customerRepository.findOne({
-          where: { gstNo, isDeleted: false }
-        });
-        if (existingGst) {
-          return { message: "Customer with this GST number already exists", status: STATUSCODES.BAD_REQUEST };
-        }
-      }
-
-      // Check for duplicate PAN if provided
-      if (panDetail) {
-        const existingPan = await this.customerRepository.findOne({
-          where: { panDetail, isDeleted: false }
-        });
-        if (existingPan) {
-          return { message: "Customer with this PAN already exists", status: STATUSCODES.BAD_REQUEST };
-        }
-      }
-
-      // Check for duplicate TAN if provided
-      if (tanDetail) {
-        const existingTan = await this.customerRepository.findOne({
-          where: { tanDetail, isDeleted: false }
-        });
-        if (existingTan) {
-          return { message: "Customer with this TAN already exists", status: STATUSCODES.BAD_REQUEST };
-        }
-      }
-
-      // Get user for audit fields
-      const user = await this.userRepository.findOne({ where: { emp_id } });
-      if (!user) {
-        return { message: "User not found", status: STATUSCODES.NOT_FOUND };
-      }
-
-      // Validate accountOwnerId if provided
-      if (accountOwnerId) {
-        const accountOwner = await this.userRepository.findOne({ where: { emp_id: accountOwnerId } });
-        if (!accountOwner) {
-          return { message: "Account Owner not found", status: STATUSCODES.NOT_FOUND };
-        }
-      }
-
-      // Validate beatRouteId if provided
-      if (beatRouteId) {
-        const beatRoute = await this.beatRepository.findOne({ where: { beatId: beatRouteId } });
-        if (!beatRoute) {
-          return { message: "Beat Route not found", status: STATUSCODES.NOT_FOUND };
-        }
-      }
-
-      // Validate parentId if provided
-      if (parentId) {
-        const parentCustomer = await this.customerRepository.findOne({ 
-          where: { customerId: parentId, isDeleted: false } 
-        });
-        if (!parentCustomer) {
-          return { message: "Parent Customer not found", status: STATUSCODES.NOT_FOUND };
-        }
-      }
-
-      const existingWarehouse= await this.warehouseRepository.findOne({
-        where:{warehouseName, isDeleted: false}
-
-      })
-      if(warehouseName && !existingWarehouse){
-        return {message:"Warehouse not found", status: STATUSCODES.NOT_FOUND}
-      }
-
-
-
-
-      const newCustomer = new Customer();
-      newCustomer.parentId = parentId;
-      newCustomer.customerName = customerName;
-      newCustomer.customerType = customerType;
-      newCustomer.channelType = channelType;
-      newCustomer.phone = phone;
-      newCustomer.email = email;
-      newCustomer.accountOwnerId = accountOwnerId;
-      newCustomer.beatRouteId = beatRouteId;
-      newCustomer.category = category;
-      
-      // Billing Address
-      newCustomer.billingCountry = billingCountry;
-      newCustomer.billingState = billingState;
-      newCustomer.billingDistrict = billingDistrict;
-      newCustomer.billingStreet = billingStreet;
-      newCustomer.billingCity = billingCity;
-      newCustomer.billingPinCode = billingPinCode;
-      
-      // Shipping Address
-      newCustomer.shippingCountry = shippingCountry;
-      newCustomer.shippingState = shippingState;
-      newCustomer.shippingDistrict = shippingDistrict;
-      newCustomer.shippingStreet = shippingStreet;
-      newCustomer.shippingCity = shippingCity;
-      newCustomer.shippingPinCode = shippingPinCode;
-      
-      // Delivery Details
-      newCustomer.deliveryTimeSlot = deliveryTimeSlot;
-      newCustomer.preferredDays = preferredDays;
-      
-      // KYC Details
-      newCustomer.gstCertificate = gstCertificate;
-      newCustomer.gstNo = gstNo;
-      newCustomer.businessLicense = businessLicense;
-      newCustomer.panDetail = panDetail;
-      newCustomer.tanDetail = tanDetail;
-      newCustomer.agreementSigned = agreementSigned;
-      newCustomer.cinNo = cinNo;
-      
-      // Bank Details
-      newCustomer.bankName = bankName;
-      newCustomer.bankAccountNo = bankAccountNo;
-      newCustomer.ifscCode = ifscCode;
-      newCustomer.micrCode = micrCode;
-      newCustomer.modeOfPayment = modeOfPayment;
-      newCustomer.currency = currency;
-      
-      // Financial & Transactional Data
-      newCustomer.paymentTerms = paymentTerms;
-      newCustomer.creditLimit = creditLimit;
-      newCustomer.openingBalance = openingBalance || 0;
-      newCustomer.lastPaymentDate = lastPaymentDate ? new Date(lastPaymentDate) : undefined;
-      newCustomer.averageMonthlySales = averageMonthlySales;
-      newCustomer.outstandingAmount = outstandingAmount || 0;
-      newCustomer.discountEligibility = discountEligibility;
-      newCustomer.warehouseName=warehouseName;
-
-      // Set audit fields
-      newCustomer.setCreatedByUser(user);
-
-      const savedCustomer = await this.customerRepository.save(newCustomer);
-
-      return {
-        status: STATUSCODES.SUCCESS,
-        message: "Customer created successfully.",
-        data: savedCustomer
-      };
-    } catch (error) {
-      console.error("Create Customer Error:", error);
-      throw error;
+    // ============================
+    // 2️⃣ Required Field Validation
+    // ============================
+    if (!customerName) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "Customer name is required" };
     }
+
+    if (!phone) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "Phone is required" };
+    }
+
+    // ============================
+    // 3️⃣ Phone Format Validation (India)
+    // ============================
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Invalid phone number format"
+      };
+    }
+
+    // ============================
+    // 4️⃣ Fetch dependencies in parallel
+    // ============================
+    const [
+      existingCustomer,
+      existingGst,
+      existingPan,
+      existingTan,
+      user,
+      accountOwner,
+      beatRoute,
+      parentCustomer,
+      warehouse
+    ] = await Promise.all([
+      // Phone duplicate
+      this.customerRepository.findOne({
+        where: { phone, isDeleted: false }
+      }),
+
+      // GST duplicate
+      gstNo
+        ? this.customerRepository
+            .createQueryBuilder("c")
+            .where("LOWER(c.gstNo) = :gst", { gst: gstNo.toLowerCase() })
+            .andWhere("c.isDeleted = false")
+            .getOne()
+        : null,
+
+      // PAN duplicate
+      panDetail
+        ? this.customerRepository
+            .createQueryBuilder("c")
+            .where("LOWER(c.panDetail) = :pan", { pan: panDetail.toLowerCase() })
+            .andWhere("c.isDeleted = false")
+            .getOne()
+        : null,
+
+      // TAN duplicate
+      tanDetail
+        ? this.customerRepository
+            .createQueryBuilder("c")
+            .where("LOWER(c.tanDetail) = :tan", { tan: tanDetail.toLowerCase() })
+            .andWhere("c.isDeleted = false")
+            .getOne()
+        : null,
+
+      // Logged-in user
+      this.userRepository.findOne({ where: { emp_id } }),
+
+      // Account owner
+      input.accountOwnerId
+        ? this.userRepository.findOne({ where: { emp_id: input.accountOwnerId } })
+        : null,
+
+      // Beat route
+      input.beatRouteId
+        ? this.beatRepository.findOne({ where: { beatId: input.beatRouteId } })
+        : null,
+
+      // Parent customer
+      input.parentId
+        ? this.customerRepository.findOne({
+            where: { customerId: input.parentId, isDeleted: false }
+          })
+        : null,
+
+      // Warehouse (case-insensitive + trimmed)
+      warehouseName
+        ? this.warehouseRepository
+            .createQueryBuilder("w")
+            .where("LOWER(TRIM(w.warehouseName)) = :name", { name: warehouseName })
+            .andWhere("w.isDeleted = false")
+            .getOne()
+        : null
+    ]);
+
+    // ============================
+    // 5️⃣ Validations
+    // ============================
+
+    if (existingCustomer) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "Phone already exists" };
+    }
+
+    if (gstNo && existingGst) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "GST already exists" };
+    }
+
+    if (panDetail && existingPan) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "PAN already exists" };
+    }
+
+    if (tanDetail && existingTan) {
+      return { status: STATUSCODES.BAD_REQUEST, message: "TAN already exists" };
+    }
+
+    if (!user) {
+      return { status: STATUSCODES.NOT_FOUND, message: "User not found" };
+    }
+
+    if (input.accountOwnerId && !accountOwner) {
+      return { status: STATUSCODES.NOT_FOUND, message: "Account Owner not found" };
+    }
+
+    if (input.beatRouteId && !beatRoute) {
+      return { status: STATUSCODES.NOT_FOUND, message: "Beat Route not found" };
+    }
+
+    if (input.parentId && !parentCustomer) {
+      return { status: STATUSCODES.NOT_FOUND, message: "Parent Customer not found" };
+    }
+
+    if (warehouseName && !warehouse) {
+      return { status: STATUSCODES.NOT_FOUND, message: "Warehouse not found" };
+    }
+
+    // ============================
+    // 6️⃣ Create Customer
+    // ============================
+    const newCustomer = this.customerRepository.create({
+      parentId: input.parentId,
+      customerName,
+      customerType: input.customerType,
+      channelType: input.channelType,
+      phone,
+      email: normalize(input.email),
+      accountOwnerId: input.accountOwnerId,
+      beatRouteId: input.beatRouteId,
+      category: input.category,
+
+      // Billing
+      billingCountry: input.billingCountry,
+      billingState: input.billingState,
+      billingDistrict: input.billingDistrict,
+      billingStreet: normalize(input.billingStreet),
+      billingCity: input.billingCity,
+      billingPinCode: input.billingPinCode,
+
+      // Shipping
+      shippingCountry: input.shippingCountry,
+      shippingState: input.shippingState,
+      shippingDistrict: input.shippingDistrict,
+      shippingStreet: normalize(input.shippingStreet),
+      shippingCity: input.shippingCity,
+      shippingPinCode: input.shippingPinCode,
+
+      // Delivery
+      deliveryTimeSlot: input.deliveryTimeSlot,
+      preferredDays: input.preferredDays,
+
+      // KYC
+      gstCertificate: input.gstCertificate,
+      gstNo,
+      businessLicense: input.businessLicense,
+      panDetail,
+      tanDetail,
+      agreementSigned: input.agreementSigned,
+      cinNo: normalize(input.cinNo),
+
+      // Bank
+      bankName: normalize(input.bankName),
+      bankAccountNo: input.bankAccountNo,
+      ifscCode: normalize(input.ifscCode),
+      micrCode: input.micrCode,
+      modeOfPayment: input.modeOfPayment,
+      currency: input.currency,
+
+      // Financial
+      paymentTerms: input.paymentTerms,
+      creditLimit: input.creditLimit,
+      openingBalance: input.openingBalance || 0,
+      lastPaymentDate: input.lastPaymentDate
+        ? new Date(input.lastPaymentDate)
+        : undefined,
+      averageMonthlySales: input.averageMonthlySales,
+      outstandingAmount: input.outstandingAmount || 0,
+      discountEligibility: input.discountEligibility,
+
+      // ✅ FIXED: store relation instead of name
+   warehouseName: warehouse?.warehouseName || warehouseName
+    });
+
+    // Audit
+    newCustomer.setCreatedByUser(user);
+
+    // ============================
+    // 7️⃣ Save
+    // ============================
+    const savedCustomer = await this.customerRepository.save(newCustomer);
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Customer created successfully",
+      data: savedCustomer
+    };
+
+  } catch (error: any) {
+    console.error("Create Customer Error:", error);
+
+    // ============================
+    // 8️⃣ Handle DB Unique Errors (Best Practice)
+    // ============================
+    if (error.code === "23505") {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Duplicate entry found"
+      };
+    }
+
+    throw error;
   }
+}
 
   async updateCustomer(input: UpdateCustomer, payload: IUser): Promise<IApiResponse> {
     try {

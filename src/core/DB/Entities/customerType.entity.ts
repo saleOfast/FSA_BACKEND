@@ -18,16 +18,16 @@ import { IUserReference } from "../../types/Profile/Profile.types";
 @Entity({ name: "customer_types" })
 export class CustomerType extends BaseEntity implements ICustomerType {
   @PrimaryGeneratedColumn({ name: 'customer_type_id' })
-  customerTypeId!: number;
+  customerTypeId: number;
 
   @Column({ name: 'name' })
-  name!: string;
+  name: string;
 
   @Column({ name: 'description', nullable: true })
   description?: string;
 
   @Column({ name: 'parent_id', nullable: true })
-  parentId?: number;
+  parentId?: number | null;
 
   @ManyToOne(() => CustomerType, { nullable: true })
   @JoinColumn({ name: 'parent_id' })

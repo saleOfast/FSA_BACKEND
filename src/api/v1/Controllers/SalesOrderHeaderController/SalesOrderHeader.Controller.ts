@@ -29,8 +29,10 @@ async createSalesOrderHeader(
   payload: IUser
 ): Promise<IApiResponse> {
   try {
+    return await this.salesOrderHeader.manager.transaction(async (manager) => {
+
     const customer = await this.Customer.findOne({
-      where: { customerId: input.customerId },
+      where: { customerId: input.customerId,isDeleted:false },
     });
     if (!customer) return { status: STATUSCODES.BAD_REQUEST, message: "customer not found" };;
 
@@ -42,9 +44,11 @@ async createSalesOrderHeader(
     const createdByUser = await this.User.findOne({
       where: { emp_id: payload.emp_id },
     });
-    if (!createdByUser) return { status: STATUSCODES.BAD_REQUEST, message: "cretaedbyUser not found" };;
+    if (!createdByUser) return { status: STATUSCODES.BAD_REQUEST, message: "cretaedbyUser not found" };
 
-    const order = this.salesOrderHeader.create({
+          const orderRepo = manager.getRepository(SalesOrderHeader);
+
+    const order = orderRepo.create({
       orderType: input.orderType,
       customer,
       orderDate: new Date(input.orderDate),
@@ -95,9 +99,10 @@ async createSalesOrderHeader(
 
   return {
   status: STATUSCODES.SUCCESS,
-  message: "",
+  message: "Sales Order created successfully",
   data: savedOrder,
 };
+    });
   } catch (error) {
     throw error;
   }

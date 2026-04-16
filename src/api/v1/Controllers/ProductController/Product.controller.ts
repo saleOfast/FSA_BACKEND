@@ -27,6 +27,17 @@ class ProductController {
                 productLifeCycleStage, storageCondition, 
             } = input;
 
+                const normalizedName = productName?.trim().toLowerCase();
+    const normalizedCode = productCode?.trim().toUpperCase();
+
+        if (!normalizedName) {
+      return { message: "Product name is required", status: STATUSCODES.BAD_REQUEST };
+    }
+
+    if (!normalizedCode) {
+      return { message: "Product code is required", status: STATUSCODES.BAD_REQUEST };
+    }
+
             // Validate category
             const category = await this.productCategoryRespositry.findOneBy({ productCategoryId: Number(categoryId), isDeleted: false });
             if (!category) {
@@ -65,15 +76,36 @@ class ProductController {
             //     }
             // }
 
+                if (launchDate && discontinueDate) {
+      if (new Date(launchDate) > new Date(discontinueDate)) {
+        return {
+          message: "Launch date cannot be greater than discontinue date",
+          status: STATUSCODES.BAD_REQUEST
+        };
+      }
+    }
+      const existingProduct = await this.productRepositry.findOne({
+      where: [
+        { productCode: normalizedCode },
+        { productName: normalizedName }
+      ]
+    });
+
+    if (existingProduct) {
+      return {
+        message: "Product with same code or name already exists",
+        status: STATUSCODES.CONFLICT
+      };
+    }
             const product = new this.productModel();
-            product.productCode = productCode;
+            product.productCode = normalizedCode;
             product.productType = productType;
-            product.productName = productName;
+            product.productName = normalizedName;
             product.categoryId = categoryId;
             product.subCategoryId = subCategoryId;
             product.description = description;
             product.status = status || 'Active';
-            product.launchDate = launchDate ? new Date(launchDate) : undefined;
+            product.launchDate = launchDate ? new Date(launchDate) :undefined;
             product.discontinueDate = discontinueDate ? new Date(discontinueDate) : undefined;
             product.vol = vol;
             // product.taxCategoryId = taxCategoryId;
@@ -88,7 +120,13 @@ class ProductController {
             await this.productRepositry.save(product)
 
             return { message: "Success.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
+        } catch (error: any) {
+               if (error.code === "23505") {
+      return {
+        message: "Product already exists",
+        status: STATUSCODES.CONFLICT
+      };
+    }
             throw error;
         }
     }
@@ -101,6 +139,7 @@ class ProductController {
                 image, marketSegment, 
                 productLifeCycleStage, storageCondition
             } = input;
+            const normalize = (val?: string) => val?.trim();
 
             const product: IProducts | null = await this.productRepositry.findOne({
                 where: { productId: Number(productId), isDeleted: false }
@@ -109,6 +148,14 @@ class ProductController {
             if (!product) {
                 return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND }
             }
+                  if (launchDate && discontinueDate) {
+            if (new Date(launchDate) > new Date(discontinueDate)) {
+                return {
+                    message: "Launch date cannot be after discontinue date.",
+                    status: STATUSCODES.BAD_REQUEST
+                };
+            }
+        }
 
             // Validate category if provided
             if (categoryId) {
@@ -126,16 +173,49 @@ class ProductController {
                 }
             }
 
-            // Validate tax category if provided
-        
+                  if (productCode || productName) {
+            const existing = await this.productRepositry.findOne({
+                where: [
+                    { productCode: productCode ?? product.productCode },
+                    { productName: productName ?? product.productName }
+                ]
+            });
 
+            if (existing && existing.productId !== product.productId) {
+                return {
+                    message: "Product with same code or name already exists.",
+                    status: STATUSCODES.CONFLICT
+                };
+            }
+        }
+        
+        
        
 
             // Build update object with only provided fields
             const updateData: any = {};
-            if (productCode !== undefined) updateData.productCode = productCode;
+          if (productCode !== undefined) {
+    if (!productCode || productCode.trim() === "") {
+        return {
+            message: "Product code cannot be empty.",
+            status: STATUSCODES.BAD_REQUEST
+        };
+    }
+    updateData.productCode = productCode.trim().toUpperCase();
+}
             if (productType !== undefined) updateData.productType = productType;
-            if (productName !== undefined) updateData.productName = productName;
+       if (productName !== undefined) {
+    const name = normalize(productName);
+
+    if (!name) {
+        return {
+            message: "Product name cannot be empty.",
+            status: STATUSCODES.BAD_REQUEST
+        };
+    }
+
+    updateData.productName = name;
+}
             if (categoryId !== undefined) updateData.categoryId = categoryId;
             if (subCategoryId !== undefined) updateData.subCategoryId = subCategoryId;
             if (description !== undefined) updateData.description = description;
@@ -149,14 +229,23 @@ class ProductController {
             if (productLifeCycleStage !== undefined) updateData.productLifeCycleStage = productLifeCycleStage;
             if (storageCondition !== undefined) updateData.storageCondition = storageCondition;
 
+                 if (Object.keys(updateData).length === 0) {
+            return {
+                message: "No fields provided to update.",
+                status: STATUSCODES.BAD_REQUEST
+            };
+        }
 
             await this.productRepositry
                 .createQueryBuilder()
-                .update(updateData)
+                .update(Products)
+                .set(updateData)
                 .where({ productId: Number(productId) })
                 .execute()
 
-            return { message: "Success.", status: STATUSCODES.SUCCESS }
+            return { message: "Success.", status: STATUSCODES.SUCCESS ,
+                data:updateData
+            }
         } catch (error) {
             throw error;
         }

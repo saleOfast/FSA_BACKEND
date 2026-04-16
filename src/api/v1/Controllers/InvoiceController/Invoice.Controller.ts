@@ -21,12 +21,15 @@ import { DeliveryHeader, DeliveryHeaderRepository } from "../../../../core/DB/En
 import { Customer } from "../../../../core/DB/Entities/customer.entity";
 import { Warehouse } from "../../../../core/DB/Entities/warehouse.entity";
 import { InvoiceStatusEnum } from "../../../../core/types/Constent/common";
+import {TaxesRepository,Taxes} from "../../../../core/DB/Entities/tax.entity"
+
 
 
 class InvoiceController {
   private invoiceRepo = InvoiceHeaderRepository();
   private invoiceItemRepo = InvoiceItemRepository();
   private deliveryRepo = DeliveryHeaderRepository();
+  private taxRepo = TaxesRepository();
   
   
 
@@ -39,12 +42,15 @@ async createInvoice(
 
   const connection = this.invoiceRepo.manager.connection;
 
+  const toNumber = (val: any) => Number(val) || 0;
+
   return await connection.transaction(async (manager) => {
 
     const invoiceRepo = manager.getRepository(InvoiceHeader);
     const invoiceItemRepo = manager.getRepository(InvoiceItem);
     const deliveryRepo = manager.getRepository(DeliveryHeader);
     const warehouseRepo = manager.getRepository(Warehouse);
+    const taxRepo = manager.getRepository(Taxes);
 
     /* ================= FETCH DELIVERY ================= */
 
@@ -57,7 +63,7 @@ async createInvoice(
         "dispatch.items",
         "dispatch.items.product",
         "dispatch.items.sku",
-       "dispatch.items.salesOrderItem"
+        "dispatch.items.salesOrderItem","dispatch.items.salesOrderItem.tax"
       ],
     });
 
@@ -97,129 +103,154 @@ async createInvoice(
     invoice.delivery = delivery;
     invoice.salesOrder = salesOrder;
 
-    /* Customer */
     invoice.customer = customer;
     invoice.customerName = customer.customerName;
 
-    /* Warehouse */
     invoice.warehouse = warehouse;
     invoice.warehouseId = warehouse.warehouseId;
     invoice.warehouseName = warehouse.warehouseName;
 
-    /* Billing Address */
     invoice.billingAddress = [
       customer.billingStreet,
       customer.billingCity,
       customer.billingPinCode,
-    ]
-      .filter(Boolean)
-      .join(", ");
+    ].filter(Boolean).join(", ");
 
-    /* Shipping Address */
     invoice.shippingAddress = [
       customer.shippingStreet,
       customer.shippingCity,
       customer.shippingPinCode,
-    ]
-      .filter(Boolean)
-      .join(", ");
+    ].filter(Boolean).join(", ");
 
-    /* GST */
     invoice.customerGstin = customer.gstNo || "";
     invoice.sellerGstin = warehouse.gstNo || "";
 
-    /* Place Of Supply */
     invoice.placeOfSupply = warehouse.shippingStateName || "";
 
-    /* Transport Details */
     invoice.transporterName = delivery.transporterName || "";
     invoice.vehicleNumber = delivery.vehicleNumber || "";
     invoice.ewayBillNo = delivery.ewayBillNo || "";
 
-    /* Status */
     invoice.status = InvoiceStatusEnum.DRAFT;
-
-    /* Created By */
     invoice.createdByUser = payload as any;
 
     /* ================= GENERATE INVOICE NUMBER ================= */
 
-    const count = await invoiceRepo.count({
-      where: { isDeleted: false },
-    });
+    const count = await invoiceRepo.count({ where: { isDeleted: false } });
 
     invoice.invoiceNumber = `INV-${new Date().getFullYear()}-${String(
       count + 1
     ).padStart(5, "0")}`;
 
-    /* ================= CREATE INVOICE ITEMS ================= */
+    /* ================= TOTAL VARIABLES ================= */
 
-    let netAmount = 0;
-    let taxAmount = 0;
-    let grossAmount = 0;
-    let discountAmount = 0;
+    let totalNet = 0;
+    let totalDiscount = 0;
+    let totalCgst = 0;
+    let totalSgst = 0;
+    let totalIgst = 0;
+    let totalCess = 0;
+    let totalTax = 0;
+    let totalGross = 0;
 
     const invoiceItems: InvoiceItem[] = [];
 
-   for (const dItem of dispatch.items) {
+    /* ================= LOOP ITEMS ================= */
 
-  if (dItem.dispatchedQty <= 0) continue;
+    for (const dItem of dispatch.items) {
 
-  const item = new InvoiceItem();
-  const soItem = dItem.salesOrderItem;
+      if (dItem.dispatchedQty <= 0) continue;
 
-  item.invoice = invoice;
-  item.orderItem = soItem;
+      const item = new InvoiceItem();
+      const soItem = dItem.salesOrderItem;
 
-  item.product = dItem.product;
-  item.sku = dItem.sku;
+   
 
-  item.hsnCode = dItem.sku?.hsnCode ||"";
+      const net = toNumber(soItem.netAmount);
+      const discount = toNumber(soItem.discountValue);
+      const rate = Number(soItem.tax?.taxPercentage) || 0;
 
-  item.quantity = dItem.dispatchedQty;
+      const isIntraState =
+        customer.shippingState === warehouse.shippingStateName;
 
-  item.unitPrice = soItem.basePrice || 0;
+      let cgst = 0;
+      let sgst = 0;
+      let igst = 0;
+      let cess = 0;
 
-  item.netAmount = soItem.netAmount || 0;
-  item.discountAmount = soItem.discountValue || 0;
+      if (isIntraState) {
+        cgst = (net * rate) / 2 / 100;
+        sgst = (net * rate) / 2 / 100;
+      } else {
+        igst = (net * rate) / 100;
+      }
 
-  item.taxAmount = soItem.taxAmount || 0;
+      // optional cess
+      if (soItem.tax?.taxComponent === "CESS") {
+        cess = (net * rate) / 100;
+      }
 
-  item.cgstAmount =0;
-  item.sgstAmount = 0;
-  item.igstAmount = 0;
-  item.cessAmount = 0;
+      const taxAmt = cgst + sgst + igst + cess;
+      const gross = net + taxAmt;
 
-  item.grossAmount = soItem.grossAmount || 0;
+      /* ===== Assign Item ===== */
 
-  item.lineTotal = soItem.grossAmount || 0;
+      item.invoice = invoice;
+      item.orderItem = soItem;
 
-  netAmount += item.netAmount;
-  taxAmount += item.taxAmount;
-  grossAmount += item.grossAmount;
-  discountAmount += item.discountAmount;
+      item.product = dItem.product;
+      item.sku = dItem.sku;
 
-  invoiceItems.push(item);
-}
+      item.hsnCode = dItem.sku?.hsnCode || "";
 
-    /* ================= AMOUNT SUMMARY ================= */
+      item.quantity = dItem.dispatchedQty;
+      item.unitPrice = soItem.basePrice || 0;
 
-    invoice.discountAmount = discountAmount;
-    invoice.netAmount = netAmount;
-    invoice.taxAmount = taxAmount;
-    invoice.cgstAmount = taxAmount / 2;
-    invoice.sgstAmount = taxAmount / 2;
-    invoice.grossAmount = grossAmount;
+      item.netAmount = net;
+      item.discountAmount = discount;
+
+      item.cgstAmount = cgst;
+      item.sgstAmount = sgst;
+      item.igstAmount = igst;
+      item.cessAmount = cess;
+
+      item.taxAmount = taxAmt;
+      item.grossAmount = gross;
+
+      /* ===== Add Totals ===== */
+
+      totalNet += net;
+      totalDiscount += discount;
+      totalCgst += cgst;
+      totalSgst += sgst;
+      totalIgst += igst;
+      totalCess += cess;
+      totalTax += taxAmt;
+      totalGross += gross;
+
+      invoiceItems.push(item);
+    }
+
+    /* ================= INVOICE TOTAL ================= */
+
+    invoice.netAmount = totalNet;
+    invoice.discountAmount = totalDiscount;
+
+    invoice.cgstAmount = totalCgst;
+    invoice.sgstAmount = totalSgst;
+    invoice.igstAmount = totalIgst;
+    invoice.cessAmount = totalCess;
+
+    invoice.taxAmount = totalTax;
+    invoice.grossAmount = totalGross;
 
     if (input.remarks) {
       invoice.remarks = input.remarks;
     }
 
-    /* ================= SAVE INVOICE ================= */
+    /* ================= SAVE ================= */
 
     const savedInvoice = await invoiceRepo.save(invoice);
-
-    /* ================= SAVE ITEMS ================= */
 
     invoiceItems.forEach((item) => {
       item.invoice = savedInvoice;
@@ -395,7 +426,7 @@ async createInvoice(
     item.igstAmount = 0;
     item.cessAmount = 0;
     item.grossAmount = item.netAmount;
-    item.lineTotal = item.grossAmount;
+    // item.lineTotal = item.grossAmount;
 
     if (input.discountId) item.discountId = input.discountId;
     if (input.schemeId) item.schemeId = input.schemeId;
@@ -441,7 +472,7 @@ async createInvoice(
     // Re-calc amounts
     item.netAmount = item.quantity * item.unitPrice;
     item.grossAmount = item.netAmount; // taxes/discounts zeroed for now
-    item.lineTotal = item.grossAmount;
+    // item.lineTotal = item.grossAmount;
 
     const saved = await this.invoiceItemRepo.save(item);
 

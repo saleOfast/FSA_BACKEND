@@ -9,10 +9,10 @@ import { Country } from "../../../../core/DB/Entities/country.entity";
 import { State } from "../../../../core/DB/Entities/state.entity";
 import { District } from "../../../../core/DB/Entities/district.entity";
 import { Beat } from "../../../../core/DB/Entities/beat.entity";
+import { IsNull ,Not} from "typeorm";
 
 
-
-  import { Channel, CurrencyType , PriceBookType , PriorityType, PriceBookStatus, ApprovalStatus } from "../../../../core/types/Constent/common";
+  import {Channel,CurrencyType , PriceBookType , PriorityType, PriceBookStatus, ApprovalStatus } from "../../../../core/types/Constent/common";
 
 class PriceBookController {
     private priceBookRepo = PriceBookRepository();
@@ -26,84 +26,157 @@ class PriceBookController {
 
     constructor() { }
 
-async createPriceBook(input: CreatePriceBookDto, payload: IUser): Promise<IApiResponse> {
+async createPriceBook(
+  input: CreatePriceBookDto,
+  payload: IUser
+): Promise<IApiResponse> {
   try {
-    // ================== 1️⃣ Fetch customer + location info ==================
-    const customer = await this.customerRepo.findOne({
-      select: ["customerId", "customerName", "channelType"],
-      where: { customerId: input.customerId },
-    });
-    if (!customer) {
-      return { status: STATUSCODES.BAD_REQUEST, message: "Customer not found", data: null };
+
+
+    const code = input.priceBookCode?.trim();
+    const name = input.priceBookName?.trim();
+
+    if (!code) {
+      return { status: 400, message: "priceBookCode is required" };
     }
 
-    const country = await this.countryRepo.findOne({ where: { countryId: input.countryId } });
-    if (!country) return { status: STATUSCODES.BAD_REQUEST, message: "Country not found", data: null };
+    if (!name) {
+      return { status: 400, message: "priceBookName is required" };
+    }
 
-    const state = await this.stateRepo.findOne({ where: { stateId: input.stateId } });
-    if (!state) return { status: STATUSCODES.BAD_REQUEST, message: "State not found", data: null };
+    if (!input.currency) {
+      return { status: 400, message: "currency is required" };
+    }
 
-    const district = await this.districtRepo.findOne({ where: { districtId: input.districtId } });
-    if (!district) return { status: STATUSCODES.BAD_REQUEST, message: "District not found", data: null };
+    if (!input.effectiveFrom) {
+      return { status: 400, message: "effectiveFrom is required" };
+    }
 
-    const beat = input.beatRouteId
-      ? await this.beatRepo.findOne({ where: { beatId: input.beatRouteId } })
-      : null;
 
-    // ================== 2️⃣ Create PriceBook ==================
-    const priceBook = new PriceBook();
-    priceBook.tenantId = input.tenantId;
-    priceBook.priceBookCode = input.priceBookCode;
-    priceBook.priceBookName = input.priceBookName;
+    const start = new Date(input.effectiveFrom);
+    const end = input.effectiveTo ? new Date(input.effectiveTo) : undefined;
+
+    if (isNaN(start.getTime())) {
+      return { status: 400, message: "Invalid effectiveFrom" };
+    }
+
+    if (end && isNaN(end.getTime())) {
+      return { status: 400, message: "Invalid effectiveTo" };
+    }
+
+    if (end && start > end) {
+      return {
+        status: 400,
+        message: "effectiveFrom must be before effectiveTo",
+      };
+    }
+
+    /* =====================================================
+     3️⃣ DUPLICATE CHECK (Bug 91)
+    ===================================================== */
+    const existing = await this.priceBookRepo.findOne({
+      where: {
+        priceBookCode: code,
+        isDeleted: false,
+      },
+    });
+
+    if (existing) {
+      return { status: 409, message: "PriceBook code already exists" };
+    }
+
+    const [
+      customer,
+      country,
+      state,
+      district,
+      beat,
+    ] = await Promise.all([
+      this.customerRepo.findOne({
+        where: { customerId: input.customerId, isDeleted: false },
+      }),
+      this.countryRepo.findOne({
+        where: { countryId: input.countryId },
+      }),
+      this.stateRepo.findOne({
+        where: { stateId: input.stateId, isDeleted: false },
+      }),
+      this.districtRepo.findOne({
+        where: { districtId: input.districtId, isDeleted: false },
+      }),
+      input.beatRouteId
+        ? this.beatRepo.findOne({
+            where: { beatId: input.beatRouteId, isDeleted: false },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    if (!customer) return { status: 400, message: "Customer not found" };
+    if (!country) return { status: 400, message: "Country not found" };
+    if (!state) return { status: 400, message: "State not found" };
+    if (!district) return { status: 400, message: "District not found" };
+
+    /* =====================================================
+     5️⃣ RELATION VALIDATION (IMPORTANT)
+    ===================================================== */
+    if (state.countryId !== country.countryId) {
+      return { status: 400, message: "State does not belong to country" };
+    }
+
+    if (district.stateId !== state.stateId) {
+      return { status: 400, message: "District does not belong to state" };
+    }
+
+    /* =====================================================
+     6️⃣ BEAT VALIDATION (Bug 92)
+    ===================================================== */
+    if (input.beatRouteId && !beat) {
+      return { status: 400, message: "Invalid beatRouteId" };
+    }
+
+  const priceBook = new PriceBook();
+   priceBook.tenantId = input.tenantId;
+    priceBook.priceBookCode = input.priceBookCode; 
+    priceBook.priceBookName = input.priceBookName; 
     priceBook.priceBookType = input.priceBookType;
-    priceBook.Channel = input.Channel;
-    priceBook.customer = customer;
-    priceBook.country = country;
-    priceBook.state = state;
-    priceBook.district = district;
-    priceBook.beatRoute = beat ?? undefined;
-    priceBook.currency = input.currency;
-    priceBook.priority = input.priority;
-    priceBook.effectiveFrom = input.effectiveFrom;
-    priceBook.effectiveTo = input.effectiveTo;
-    priceBook.createdBy = payload.emp_id;
-    // priceBook.approvedBy = input.approvedBy;
-    // priceBook.approvedAt = input.approvedAt;
-    priceBook.version = input.version?? 1;
-    priceBook.status = input.status?? PriceBookStatus.DRAFT;
-    priceBook.approvalStatus = input.approvalStatus?? ApprovalStatus.PENDING;
+     priceBook.Channel = input.Channel; 
+     priceBook.customer = customer; 
+     priceBook.country = country;
+      priceBook.state = state; 
+      priceBook.district = district;
+       priceBook.beatRoute = beat ?? undefined;
+        priceBook.currency = input.currency;
+         priceBook.priority = input.priority; 
+         priceBook.effectiveFrom = input.effectiveFrom;
+          priceBook.effectiveTo = input.effectiveTo; 
+          priceBook.createdBy = payload.emp_id;
+           // priceBook.approvedBy = input.approvedBy;
+           //  // priceBook.approvedAt = input.approvedAt;
+            priceBook.version = input.version?? 1;
+            priceBook.status = input.status?? PriceBookStatus.DRAFT; 
+           priceBook.approvalStatus = input.approvalStatus?? ApprovalStatus.PENDING;
+       
 
-    const savedPriceBook = await PriceBookRepository().save(priceBook);
 
-    // ================== 3️⃣ Flattened response ==================
-    const response = {
-      priceBookId: savedPriceBook.priceBookId,
-      priceBookCode: savedPriceBook.priceBookCode,
-      priceBookName: savedPriceBook.priceBookName,
-      priceBookType: savedPriceBook.priceBookType,
-      Channel: savedPriceBook.Channel,
-      customerName: customer.customerName,
-    //   channel: customer.channelType,
-      countryId: country.countryId,
-      stateId: state.stateId,
-      districtId: district.districtId,
-      beatRouteId: beat?.beatId ?? null,
-      currency: savedPriceBook.currency,
-      priority: savedPriceBook.priority,
-      effectiveFrom: savedPriceBook.effectiveFrom,
-      effectiveTo: savedPriceBook.effectiveTo,
-      createdBy: savedPriceBook.createdBy,
-      createdAt: savedPriceBook.createdAt,
-      updatedAt: savedPriceBook.updatedAt,
-        version: savedPriceBook.version,
-        status: savedPriceBook.status,
-        approvalStatus: savedPriceBook.approvalStatus,
+    const savedPriceBook = await this.priceBookRepo.save(priceBook);
 
+    /* =====================================================
+     9️⃣ RESPONSE
+    ===================================================== */
+    return {
+      status: 201,
+      message: "PriceBook created successfully",
+      data: savedPriceBook,
     };
 
-    return { status: STATUSCODES.SUCCESS, message: "PriceBook created successfully", data: response };
-  } catch (error) {
-    throw error;
+  } catch (error: any) {
+    console.error("Create PriceBook Error:", error);
+
+    return {
+      status: 500,
+      message: "Failed to create price book",
+      data: error.message,
+    };
   }
 }
 
@@ -114,7 +187,7 @@ async updatePriceBook(input: UpdatePriceBookDto, payload: IUser): Promise<IApiRe
 
     // 1️⃣ Find existing price book
     const priceBook = await this.priceBookRepo.findOne({
-      where: { priceBookId },
+      where: { priceBookId ,isDeleted: false },
       relations: ["customer", "customerType", "country", "state", "district", "beatRoute"]
     });
 

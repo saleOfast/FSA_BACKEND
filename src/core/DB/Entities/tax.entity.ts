@@ -21,7 +21,6 @@ taxId: number;
   })
   taxClassification: TaxClassification;
 
-  
   @Column({ type: "varchar", length: 20, nullable: true })
   hsnCode: string;
 

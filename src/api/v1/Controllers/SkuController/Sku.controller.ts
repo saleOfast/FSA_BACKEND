@@ -20,166 +20,324 @@ class SkuController {
 
     constructor() { }
 
-    async createSku(input: CreateSkuRequest, payload: IUser): Promise<IApiResponse> {
-        try {
-            const {
-                skuName,
-                productId,
-                packSize,
-                vom,
-                mrp,
-                basePrice,
-                taxId,
-                barcode,
-                caseSize,
-                shelfLifeDays,
-                netWeight,
-                grossWeight,
-                dimension,
-                status,
-                launchDate,
-                discontinueDate,
-                image,
-        
-                remarks
-            } = input;
+async createSku(input: CreateSkuRequest, payload: IUser): Promise<IApiResponse> {
+  try {
+    let {
+      skuName,
+      productId,
+      packSize,
+      vom,
+      mrp,
+      basePrice,
+      taxId,
+      barcode,
+      caseSize,
+      shelfLifeDays,
+      netWeight,
+      grossWeight,
+      dimension,
+      status,
+      launchDate,
+      discontinueDate,
+      image,
+      remarks
+    } = input;
 
-            // Validate product exists if provided
-            if (productId) {
-                const product = await this.productRepository.findOne({
-                    where: { productId: Number(productId), isDeleted: false }
-                });
-                if (!product) {
-                    return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
+    /* =========================================================
+       1️⃣ TRIM + NORMALIZE (Bug 35, 36)
+    ========================================================= */
+    skuName = skuName?.trim();
+    barcode = barcode?.trim();
 
-            // Validate tax if provided
-          let taxData: any = null;
+    const normalizedSkuName = skuName?.toLowerCase();
+    const normalizedBarcode = barcode?.toLowerCase();
 
-if (taxId) {
-    taxData = await this.taxRepository.findOne({
-        where: { taxId: Number(taxId) }
+    /* =========================================================
+       2️⃣ REQUIRED FIELD VALIDATION (Bug 39)
+    ========================================================= */
+    if (!skuName) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "SKU Name is required"
+      };
+    }
+
+    /* =========================================================
+       3️⃣ DUPLICATE CHECK (Bug 34, 35, 36)
+    ========================================================= */
+    const existingSku = await this.skuRepository
+      .createQueryBuilder("sku")
+      .where("LOWER(TRIM(sku.skuName)) = :skuName", { skuName: normalizedSkuName })
+      .orWhere("LOWER(TRIM(sku.barcode)) = :barcode", { barcode: normalizedBarcode })
+      .andWhere("sku.isDeleted = false")
+      .getOne();
+
+    if (existingSku) {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "SKU with same name or barcode already exists"
+      };
+    }
+
+    /* =========================================================
+       4️⃣ PRODUCT VALIDATION
+    ========================================================= */
+    if (productId) {
+      const product = await this.productRepository.findOne({
+        where: { productId: Number(productId), isDeleted: false }
+      });
+
+      if (!product) {
+        return {
+          message: "Product Not Found.",
+          status: STATUSCODES.NOT_FOUND
+        };
+      }
+    }
+
+    /* =========================================================
+       5️⃣ TAX VALIDATION (Bug 37)
+    ========================================================= */
+    let taxData: any = null;
+
+    if (taxId) {
+      taxData = await this.taxRepository.findOne({
+        where: { taxId: Number(taxId), isDeleted: false }
+      });
+
+      if (!taxData) {
+        return {
+          message: "Tax Not Found.",
+          status: STATUSCODES.NOT_FOUND
+        };
+      }
+    }
+
+    /* =========================================================
+       6️⃣ DATE VALIDATION (Bug 38)
+    ========================================================= */
+    if (launchDate && discontinueDate) {
+      const lDate = new Date(launchDate);
+      const dDate = new Date(discontinueDate);
+
+      if (lDate > dDate) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Launch date cannot be greater than discontinue date"
+        };
+      }
+    }
+
+    /* =========================================================
+       7️⃣ CREATE SKU
+    ========================================================= */
+    const sku = this.skuRepository.create({
+      skuName,
+      productId,
+      packSize,
+      vom,
+      mrp,
+      basePrice,
+      taxId,
+      // ⚠️ Bug 40 FIX: avoid storing redundant HSN
+      // hsnCode: taxData?.hsnCode || null,  ❌ REMOVE THIS
+      barcode,
+      caseSize,
+      shelfLifeDays,
+      netWeight,
+      grossWeight,
+      dimension,
+      status: status || SkuStatus.ACTIVE,
+      launchDate: launchDate ? new Date(launchDate) : undefined,
+      discontinueDate: discontinueDate ? new Date(discontinueDate) : undefined,
+      image,
+      remarks
     });
 
-    if (!taxData) {
-        return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
-    }
-}
+    const skuData = await this.skuRepository.save(sku);
 
-      
-
-    
-            const sku = this.skuRepository.create({
-                skuName,
-                productId,
-                packSize,
-                vom,
-                mrp,
-                basePrice,
-                taxId,
-                 hsnCode: taxData?.hsnCode || null,
-                barcode,
-                caseSize,
-                shelfLifeDays,
-                netWeight,
-                grossWeight,
-                dimension,
-                status: status || SkuStatus.ACTIVE,
-                launchDate: launchDate ? new Date(launchDate) : undefined,
-                discontinueDate: discontinueDate ? new Date(discontinueDate) : undefined,
-                image,
-                remarks
-            });
-
-        const skuData=    await this.skuRepository.save(sku);
-return {
-    message: "SKU created successfully.",
-    status: STATUSCODES.SUCCESS,
-    data: {
-      ...skuData,
-       
+    return {
+      message: "SKU created successfully.",
+      status: STATUSCODES.SUCCESS,
+      data: {
+        ...skuData,
+        // If needed, return HSN dynamically instead
         hsnCode: taxData?.hsnCode || null
-    }
+      }
+    };
+
+  } catch (error) {
+    throw error;
+  }
 }
-        } catch (error) {
-            throw error;
-        }
-    }
 
-    async updateSku(input: UpdateSkuRequest, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { skuId, ...updateData } = input;
+async updateSku(input: UpdateSkuRequest, payload: IUser): Promise<IApiResponse> {
+  try {
+    const { skuId, ...updateData } = input;
 
-            const sku: ISku | null = await this.skuRepository.findOne({
-                where: { skuId: Number(skuId), isDeleted: false }
-            });
-
-            if (!sku) {
-                return { message: "SKU Not Found.", status: STATUSCODES.NOT_FOUND };
-            }
-
-            // Validate product if provided
-            if (updateData.productId) {
-                const product = await this.productRepository.findOne({
-                    where: { productId: Number(updateData.productId), isDeleted: false }
-                });
-                if (!product) {
-                    return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND };
-                }
-            }
-
-            // Validate tax if provided
-        let taxData: any = null;
-
-if (updateData.taxId) {
-    taxData = await this.taxRepository.findOne({
-        where: { taxId: Number(updateData.taxId) }
+    /* =========================================================
+       1️⃣ FIND SKU
+    ========================================================= */
+    const sku = await this.skuRepository.findOne({
+      where: { skuId: Number(skuId), isDeleted: false }
     });
 
-    if (!taxData) {
+    if (!sku) {
+      return { message: "SKU Not Found.", status: STATUSCODES.NOT_FOUND };
+    }
+
+    /* =========================================================
+       2️⃣ TRIM + NORMALIZE
+    ========================================================= */
+    if (updateData.skuName !== undefined) {
+      updateData.skuName = updateData.skuName?.trim();
+    }
+
+    if (updateData.barcode !== undefined) {
+      updateData.barcode = updateData.barcode?.trim();
+    }
+
+    const normalizedSkuName = updateData.skuName?.toLowerCase();
+    const normalizedBarcode = updateData.barcode?.toLowerCase();
+
+    /* =========================================================
+       3️⃣ REQUIRED FIELD CHECK (if provided empty)
+    ========================================================= */
+    if (updateData.skuName !== undefined && !updateData.skuName) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "SKU Name cannot be empty"
+      };
+    }
+
+    /* =========================================================
+       4️⃣ DUPLICATE CHECK (excluding current SKU)
+    ========================================================= */
+    if (normalizedSkuName || normalizedBarcode) {
+      const duplicate = await this.skuRepository
+        .createQueryBuilder("sku")
+        .where("sku.skuId != :skuId", { skuId })
+        .andWhere("sku.isDeleted = false")
+        .andWhere(
+          `(LOWER(TRIM(sku.skuName)) = :skuName OR LOWER(TRIM(sku.barcode)) = :barcode)`,
+          {
+            skuName: normalizedSkuName,
+            barcode: normalizedBarcode
+          }
+        )
+        .getOne();
+
+      if (duplicate) {
+        return {
+          status: STATUSCODES.CONFLICT,
+          message: "SKU with same name or barcode already exists"
+        };
+      }
+    }
+
+    /* =========================================================
+       5️⃣ PRODUCT VALIDATION
+    ========================================================= */
+    if (updateData.productId !== undefined) {
+      const product = await this.productRepository.findOne({
+        where: { productId: Number(updateData.productId), isDeleted: false }
+      });
+
+      if (!product) {
+        return { message: "Product Not Found.", status: STATUSCODES.NOT_FOUND };
+      }
+    }
+
+    /* =========================================================
+       6️⃣ TAX VALIDATION (with soft delete)
+    ========================================================= */
+    let taxData: any = null;
+
+    if (updateData.taxId !== undefined) {
+      taxData = await this.taxRepository.findOne({
+        where: { taxId: Number(updateData.taxId), isDeleted: false }
+      });
+
+      if (!taxData) {
         return { message: "Tax Not Found.", status: STATUSCODES.NOT_FOUND };
+      }
     }
-}
 
+    /* =========================================================
+       7️⃣ DATE VALIDATION
+    ========================================================= */
+    const finalLaunchDate = updateData.launchDate
+      ? new Date(updateData.launchDate)
+      : sku.launchDate;
 
+    const finalDiscontinueDate = updateData.discontinueDate
+      ? new Date(updateData.discontinueDate)
+      : sku.discontinueDate;
 
-            // Prepare update object
-            const updateObject: any = {};
-            if (updateData.skuName !== undefined) updateObject.skuName = updateData.skuName;
-            if (updateData.productId !== undefined) updateObject.productId = updateData.productId;
-            if (updateData.packSize !== undefined) updateObject.packSize = updateData.packSize;
-            if (updateData.vom !== undefined) updateObject.vom = updateData.vom;
-            if (updateData.mrp !== undefined) updateObject.mrp = updateData.mrp;
-            if (updateData.basePrice !== undefined) updateObject.basePrice = updateData.basePrice;
-          if (updateData.taxId !== undefined) {
-    updateObject.taxId = updateData.taxId;
-    updateObject.hsnCode = taxData?.hsnCode || null;
-}
-            if (updateData.barcode !== undefined) updateObject.barcode = updateData.barcode;
-            if (updateData.caseSize !== undefined) updateObject.caseSize = updateData.caseSize;
-            if (updateData.shelfLifeDays !== undefined) updateObject.shelfLifeDays = updateData.shelfLifeDays;
-            if (updateData.netWeight !== undefined) updateObject.netWeight = updateData.netWeight;
-            if (updateData.grossWeight !== undefined) updateObject.grossWeight = updateData.grossWeight;
-            if (updateData.dimension !== undefined) updateObject.dimension = updateData.dimension;
-            if (updateData.status !== undefined) updateObject.status = updateData.status;
-            if (updateData.launchDate !== undefined) updateObject.launchDate = new Date(updateData.launchDate);
-            if (updateData.discontinueDate !== undefined) updateObject.discontinueDate = new Date(updateData.discontinueDate);
-            if (updateData.image !== undefined) updateObject.image = updateData.image;
-
-            if (updateData.remarks !== undefined) updateObject.remarks = updateData.remarks;
-
-            await this.skuRepository
-                .createQueryBuilder()
-                .update(updateObject)
-                .where({ skuId: Number(skuId) })
-                .execute();
-
-            return { message: "SKU updated successfully.", status: STATUSCODES.SUCCESS };
-        } catch (error) {
-            throw error;
-        }
+    if (finalLaunchDate && finalDiscontinueDate && finalLaunchDate > finalDiscontinueDate) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Launch date cannot be greater than discontinue date"
+      };
     }
+
+    /* =========================================================
+       8️⃣ PREPARE UPDATE OBJECT
+    ========================================================= */
+    const updateObject: any = {};
+
+    if (updateData.skuName !== undefined) updateObject.skuName = updateData.skuName;
+    if (updateData.productId !== undefined) updateObject.productId = updateData.productId;
+    if (updateData.packSize !== undefined) updateObject.packSize = updateData.packSize;
+    if (updateData.vom !== undefined) updateObject.vom = updateData.vom;
+    if (updateData.mrp !== undefined) updateObject.mrp = updateData.mrp;
+    if (updateData.basePrice !== undefined) updateObject.basePrice = updateData.basePrice;
+
+    if (updateData.taxId !== undefined) {
+      updateObject.taxId = updateData.taxId;
+      // ❌ DO NOT STORE HSN
+    }
+
+    if (updateData.barcode !== undefined) updateObject.barcode = updateData.barcode;
+    if (updateData.caseSize !== undefined) updateObject.caseSize = updateData.caseSize;
+    if (updateData.shelfLifeDays !== undefined) updateObject.shelfLifeDays = updateData.shelfLifeDays;
+    if (updateData.netWeight !== undefined) updateObject.netWeight = updateData.netWeight;
+    if (updateData.grossWeight !== undefined) updateObject.grossWeight = updateData.grossWeight;
+    if (updateData.dimension !== undefined) updateObject.dimension = updateData.dimension;
+    if (updateData.status !== undefined) updateObject.status = updateData.status;
+
+    if (updateData.launchDate !== undefined) {
+      updateObject.launchDate = updateData.launchDate ? new Date(updateData.launchDate) : null;
+    }
+
+    if (updateData.discontinueDate !== undefined) {
+      updateObject.discontinueDate = updateData.discontinueDate
+        ? new Date(updateData.discontinueDate)
+        : null;
+    }
+
+    if (updateData.image !== undefined) updateObject.image = updateData.image;
+    if (updateData.remarks !== undefined) updateObject.remarks = updateData.remarks;
+
+    /* =========================================================
+       9️⃣ UPDATE
+    ========================================================= */
+    await this.skuRepository
+      .createQueryBuilder()
+      .update() // or .update(SkuEntity)
+      .set(updateObject)
+      .where("skuId = :skuId", { skuId: Number(skuId) })
+      .execute();
+
+    return {
+      message: "SKU updated successfully.",
+      status: STATUSCODES.SUCCESS
+    };
+
+  } catch (error) {
+    throw error;
+  }
+}
 
     async getById(input: GetSkuById): Promise<IApiResponse> {
         try {
@@ -281,6 +439,7 @@ if (updateData.taxId) {
         }
     }
 }
+
 
 export { SkuController as SkuService };
 

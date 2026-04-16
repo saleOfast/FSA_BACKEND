@@ -19,11 +19,19 @@ class CountryController {
 
   async createCountry(input: CreateCountry, payload: IUser): Promise<IApiResponse> {
     try {
-      const { countryName } = input;
+  
+       const normalizedName = input.countryName?.trim().toLowerCase();
+
+       if (!normalizedName) {
+  return {
+    status: STATUSCODES.BAD_REQUEST,
+    message: "Country name is required"
+  };
+}
 
       // Check for duplicate name
       const existingCountry = await this.countryRepository.findOne({
-        where: { countryName, deletedAt: IsNull() }
+        where: { countryName:normalizedName, deletedAt: IsNull() }
       });
 
       if (existingCountry) {
@@ -31,7 +39,7 @@ class CountryController {
       }
 
       const newCountry = new Country();
-      newCountry.countryName = countryName;
+      newCountry.countryName =  normalizedName;
 
       const savedCountry = await this.countryRepository.save(newCountry);
 
@@ -40,47 +48,87 @@ class CountryController {
         message: "Country created successfully.",
         data: savedCountry
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create Country Error:", error);
-      throw error;
-    }
-  }
 
-  async updateCountry(input: UpdateCountry, payload: IUser): Promise<IApiResponse> {
-    try {
-      const { countryId, countryName } = input;
-
-      const country = await this.countryRepository.findOne({
-        where: { countryId: Number(countryId), deletedAt: IsNull() }
-      });
-
-      if (!country) {
-        return { message: "Country not found", status: STATUSCODES.NOT_FOUND };
-      }
-
-      // Check for duplicate name (excluding current country)
-      if (countryName !== country.countryName) {
-        const existingCountry = await this.countryRepository.findOne({
-          where: { countryName, deletedAt: IsNull() }
-        });
-        if (existingCountry && existingCountry.countryId !== Number(countryId)) {
-          return { message: "Country with this name already exists", status: STATUSCODES.BAD_REQUEST };
-        }
-      }
-
-      country.countryName = countryName;
-      const updatedCountry = await this.countryRepository.save(country);
-
+          if (error.code === "23505") {
       return {
-        status: STATUSCODES.SUCCESS,
-        message: "Country updated successfully.",
-        data: updatedCountry
+        status: STATUSCODES.CONFLICT,
+        message: "Country already exists"
       };
-    } catch (error) {
-      console.error("Update Country Error:", error);
+    }
       throw error;
     }
   }
+
+async updateCountry(input: UpdateCountry, payload: IUser): Promise<IApiResponse> {
+  try {
+    const { countryId } = input;
+
+    const countryName = input.countryName?.trim().toLowerCase();
+
+    // 🚨 1. Empty validation
+    if (!countryName) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Country name is required"
+      };
+    }
+
+  
+
+    // 2️⃣ Find existing country
+    const country = await this.countryRepository.findOne({
+      where: { countryId: Number(countryId), deletedAt: IsNull() }
+    });
+
+    if (!country) {
+      return {
+        message: "Country not found",
+        status: STATUSCODES.NOT_FOUND
+      };
+    }
+
+    // 3️⃣ Check duplicate (exclude current record)
+    const existingCountry = await this.countryRepository.findOne({
+      where: {
+        countryName: countryName,
+        deletedAt: IsNull()
+      }
+    });
+
+    if (existingCountry && existingCountry.countryId !== Number(countryId)) {
+      return {
+        message: "Country with this name already exists",
+        status: STATUSCODES.BAD_REQUEST
+      };
+    }
+
+    // 4️⃣ Update
+    country.countryName = countryName;
+
+    const updatedCountry = await this.countryRepository.save(country);
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Country updated successfully.",
+      data: updatedCountry
+    };
+
+  } catch (error: any) {
+    console.error("Update Country Error:", error);
+
+    // 5️⃣ DB duplicate protection
+    if (error.code === "23505") {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "Country already exists"
+      };
+    }
+
+    throw error;
+  }
+}
 
   async deleteCountry(input: DeleteCountryById): Promise<IApiResponse> {
     try {

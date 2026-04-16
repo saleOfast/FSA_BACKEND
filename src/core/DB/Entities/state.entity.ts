@@ -33,6 +33,9 @@ export class State extends BaseEntity implements IState {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt!: Date;
+
+  @Column({name:'is_deleted', type: 'boolean', default: false})
+  isDeleted!: boolean;
 }
 
 export const StateRepository = (): Repository<State> => {

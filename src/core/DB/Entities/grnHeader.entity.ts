@@ -46,9 +46,9 @@ export class GrnHeader extends BaseEntity implements IGrnHeader{
   @Column({ type: 'uuid', nullable: true })
   poId?: string;
 
-//   @ManyToOne(() => PurchaseOrder, { nullable: true })
-//   @JoinColumn({ name: 'po_id' })
-//   purchaseOrder?: PurchaseOrder;
+  // @ManyToOne(() => PurchaseOrder, { nullable: true })
+  // @JoinColumn({ name: 'po_id' })
+  // purchaseOrder?: PurchaseOrder;
 
   // Created By (User)
   @Column({ name: 'created_by' })

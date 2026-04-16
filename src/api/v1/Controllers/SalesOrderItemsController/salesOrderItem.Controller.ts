@@ -1,10 +1,10 @@
-import { STATUSCODES } from "../../../../core/types/Constent/common";
+import { PriceBookStatus, STATUSCODES } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
 import { CreateSalesOrderItemDto,UpdateSalesOrderItemDto,GetSalesOrderItemById,DeleteSalesOrderItemById,GetSalesOrderItemsByOrderId,SalesOrderItemListFilter } from '../../../../core/types/SalesOderItemService/salesOrderItemService';
 import { SalesOrderItem, SalesOrderItemRepository } from '../../../../core/DB/Entities/salesOrderItem.entity';
 import { Sku, SkuRepository } from '../../../../core/DB/Entities/sku.entity';
-import { DiscountRepository } from '../../../../core/DB/Entities/discount.entity';
+import {  DiscountRepository } from '../../../../core/DB/Entities/discount.entity';
 import { getSchemeRepository } from '../../../../core/DB/Entities/scheme.entity';
 import { TaxesRepository } from '../../../../core/DB/Entities/tax.entity';
 import { SalesOrderHeaderRepository } from '../../../../core/DB/Entities/SalesOrderHeader.entity';
@@ -16,8 +16,137 @@ import { Products,ProductRepository } from "../../../../core/DB/Entities/product
 import { ShippingAddressRepository } from "../../../../core/DB/Entities/shippingAddress.entity"
 
 import { Warehouse, WarehouseRepository }  from "../../../../core/DB/Entities/warehouse.entity";
-import { InventoryRepository } from "../../../../core/DB/Entities/inventory"
+import { InventoryRepository } from "../../../../core/DB/Entities/inventory";
+import { Inventory } from "../../../../core/DB/Entities/inventory"; // ✅ ADD THIS
+// import { Tax } from "../../../../core/DB/Entities/tax.entity";
+// import { Discount } from "../../../../core/DB/Entities/discount.entity";
+import { Batch } from "../../../../core/DB/Entities/inventoryBatch.entity"
+import { PriceBookItemRepository } from "../../../../core/DB/Entities/price_book_item.entity";
 
+async function sumBatchFreeStock(
+  batchRepo: import("typeorm").Repository<Batch>,
+  inventoryId: number
+): Promise<number> {
+  const row = await batchRepo
+    .createQueryBuilder("b")
+    .select("COALESCE(SUM(b.currentStock - b.reservedStock), 0)", "avail")
+    .where("b.inventoryId = :inventoryId", { inventoryId })
+    .andWhere("b.isDeleted = :d", { d: false })
+    .getRawOne();
+  return Number(row?.avail) || 0;
+}
+
+/** Deduct saleQty from batch currentStock (FEFO), never below reservedStock */
+function fifoConsumeCurrentStock(batches: Batch[], saleQty: number): void {
+  let remaining = saleQty;
+  for (const b of batches) {
+    if (remaining <= 0) break;
+    const free = Math.max(
+      0,
+      (b.currentStock ?? 0) - (b.reservedStock ?? 0)
+    );
+    if (free <= 0) continue;
+    const take = Math.min(free, remaining);
+    b.currentStock = (b.currentStock ?? 0) - take;
+    remaining -= take;
+  }
+  if (remaining > 0) {
+    throw new Error("Insufficient stock in selected warehouse");
+  }
+}
+
+
+/** Return qty to stock: adds to first FEFO batch (totals stay correct; per-batch is approximate). */
+function fifoRestoreStock(batchesFefoOrdered: Batch[], qty: number): void {
+  if (qty <= 0) return;
+  if (batchesFefoOrdered.length === 0) {
+    throw new Error("No batches to restore stock");
+  }
+  const b = batchesFefoOrdered[0];
+  b.currentStock = (b.currentStock ?? 0) + qty;
+}
+
+async function loadLockedBatchesFefo(
+  manager: import("typeorm").EntityManager,
+  inventoryId: number
+): Promise<Batch[]> {
+  const batchRepo = manager.getRepository(Batch);
+  return batchRepo
+    .createQueryBuilder("b")
+    .where("b.inventoryId = :inventoryId", { inventoryId })
+    .andWhere("b.isDeleted = :d", { d: false })
+    .orderBy("b.expiryDate IS NULL", "ASC")
+    .addOrderBy("b.expiryDate", "ASC")
+    .addOrderBy("b.batchId", "ASC")
+    .setLock("pessimistic_write")
+    .getMany();
+}
+
+/** delta > 0 = consume more stock; delta < 0 = return stock to warehouse. */
+async function applyInventoryDeltaForLine(
+  manager: import("typeorm").EntityManager,
+  inventoryId: number,
+  delta: number
+): Promise<void> {
+  if (delta === 0) return;
+  const invRepo = manager.getRepository(Inventory);
+  const batchRepo = manager.getRepository(Batch);
+  const inv = await invRepo.findOne({
+    where: { inventoryId, isDeleted: false },
+    lock: { mode: "pessimistic_write" },
+  });
+  if (!inv) throw new Error("Inventory row missing");
+  const batchCount = await batchRepo.count({
+    where: { inventoryId, isDeleted: false },
+  });
+  if (batchCount > 0) {
+    const batches = await loadLockedBatchesFefo(manager, inventoryId);
+    if (delta > 0) {
+      const avail = await sumBatchFreeStock(batchRepo, inventoryId);
+      if (avail < delta) {
+        throw new Error("Insufficient stock in selected warehouse");
+      }
+      fifoConsumeCurrentStock(batches, delta);
+    } else {
+      fifoRestoreStock(batches, -delta);
+    }
+    for (const b of batches) {
+      await batchRepo.save(b);
+    }
+    await syncInventoryStockFromBatches(manager, inventoryId);
+  } else {
+    if (delta > 0) {
+      if (inv.stockQuantity < delta) {
+        throw new Error("Insufficient stock in selected warehouse");
+      }
+      inv.stockQuantity -= delta;
+    } else {
+      inv.stockQuantity += -delta;
+    }
+    await invRepo.save(inv);
+  }
+}
+
+async function syncInventoryStockFromBatches(
+  manager: import("typeorm").EntityManager,
+  inventoryId: number
+): Promise<void> {
+  const batchRepo = manager.getRepository(Batch);
+  const invRepo = manager.getRepository(Inventory);
+  const total = await batchRepo
+    .createQueryBuilder("b")
+    .select("COALESCE(SUM(b.currentStock), 0)", "total")
+    .where("b.inventoryId = :inventoryId", { inventoryId })
+    .andWhere("b.isDeleted = :d", { d: false })
+    .getRawOne();
+  const inv = await invRepo.findOne({
+    where: { inventoryId, isDeleted: false },
+    lock: { mode: "pessimistic_write" },
+  });
+  if (!inv) throw new Error("Inventory row missing");
+  inv.stockQuantity = Number(total?.total) || 0;
+  await invRepo.save(inv);
+}
 export class SalesOrderItemController {
   private salesOrderHeaderRepository = SalesOrderHeaderRepository();
   private salesOrderItem = SalesOrderItemRepository();
@@ -29,6 +158,7 @@ export class SalesOrderItemController {
   private shippingAddress= ShippingAddressRepository()
   private warehouse=WarehouseRepository()
   private inventory=InventoryRepository()
+  private priceBookItem=PriceBookItemRepository()
 
   constructor() { }
 
@@ -46,19 +176,13 @@ public async createSalesOrderItem(
       schemeId,
       taxId,
       skuId,
+    priceBookItemId,
       warehouseId
     } = input;
 
     /* =====================================================
        1️⃣ Validate Sales Order
     ====================================================== */
-    if (!salesOrderId) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: 'Sales Order ID is required'
-      };
-    }
-
     const salesOrderHeader = await this.salesOrderHeaderRepository.findOne({
       where: { soId: salesOrderId, isDeleted: false }
     });
@@ -84,8 +208,40 @@ public async createSalesOrderItem(
       };
     }
 
-    const basePrice = Number(sku.basePrice);
-    const uom = sku.vom;
+    /* =====================================================
+       🔥 Fetch PriceBookItem (IMPORTANT FIX APPLIED)
+    ====================================================== */
+   const priceBookItem = await this.priceBookItem.findOne({
+  where: {
+   priceBookItemId : priceBookItemId,
+    isDeleted: false
+  },
+  relations: ["priceBook"]
+});
+
+if (!priceBookItem) {
+  return {
+    status: STATUSCODES.BAD_REQUEST,
+    message: "Invalid PriceBookItem"
+  };
+}
+
+if (priceBookItem.priceBook.status !== PriceBookStatus.ACTIVE) {
+  return {
+    status: STATUSCODES.BAD_REQUEST,
+    message: "Inactive PriceBook"
+  };
+}
+
+if (priceBookItem.skuId !== skuId) {
+  return {
+    status: STATUSCODES.BAD_REQUEST,
+    message: "PriceBookItem does not match SKU"
+  };
+}
+
+    const basePrice = Number(priceBookItem.basePrice);
+    const uom = sku.vom; // ✅ fixed typo
 
     /* =====================================================
        3️⃣ Validate Product
@@ -116,7 +272,7 @@ public async createSalesOrderItem(
     }
 
     /* =====================================================
-       5️⃣ Validate Warehouse
+       5️⃣ Validate Warehouse + Inventory
     ====================================================== */
     const warehouse = await this.warehouse.findOne({
       where: { warehouseId, isDeleted: false }
@@ -129,76 +285,74 @@ public async createSalesOrderItem(
       };
     }
 
-    /* =====================================================
-       6️⃣ Validate SKU exists in Warehouse (Inventory Check)
-    ====================================================== */
     const inventory = await this.inventory.findOne({
       where: {
         sku: { skuId },
         warehouse: { warehouseId },
-        isDeleted: false
+        product: { productId },
+        isDeleted: false,
       },
-      relations: ['sku', 'warehouse']
+      relations: ["sku", "warehouse"],
     });
 
     if (!inventory) {
       return {
         status: STATUSCODES.BAD_REQUEST,
-        message: 'This SKU is not available in selected warehouse'
-      };
-    }
-
-    if (inventory.stockQuantity < saleQty) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: 'Insufficient stock in selected warehouse'
+        message: "SKU not available in selected warehouse"
       };
     }
 
     /* =====================================================
-       7️⃣ Fetch Tax
+       6️⃣ Pre Stock Check
     ====================================================== */
-    let tax;
+    const batchRepoPre = this.salesOrderItem.manager.getRepository(Batch);
+
+    const hasBatches =
+      (await batchRepoPre.count({
+        where: { inventoryId: inventory.inventoryId, isDeleted: false },
+      })) > 0;
+
+    if (hasBatches) {
+      const avail = await sumBatchFreeStock(batchRepoPre, inventory.inventoryId);
+      if (avail < saleQty) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Insufficient stock",
+        };
+      }
+    } else if (inventory.stockQuantity < saleQty) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Insufficient stock",
+      };
+    }
+
+    /* =====================================================
+       7️⃣ Tax
+    ====================================================== */
+    let tax: any;
     let taxPercent = 0;
 
     if (taxId) {
-      tax = await this.taxRepository.findOne({
-        where: { taxId }
-      });
-
-      if (!tax) {
-        return {
-          status: STATUSCODES.BAD_REQUEST,
-          message: 'Invalid Tax'
-        };
-      }
-
+      tax = await this.taxRepository.findOne({ where: { taxId } });
+      if (!tax) throw new Error("Invalid Tax");
       taxPercent = Number(tax.taxPercentage);
     }
 
     /* =====================================================
-       8️⃣ Fetch Discount
+       8️⃣ Discount
     ====================================================== */
-    let discount;
+    let discount: any;
     let discountPercentage = 0;
 
     if (discountId) {
-      discount = await this.discountRepository.findOne({
-        where: { discountId }
-      });
-
-      if (!discount) {
-        return {
-          status: STATUSCODES.BAD_REQUEST,
-          message: 'Invalid Discount'
-        };
-      }
-
+      discount = await this.discountRepository.findOne({ where: { discountId } });
+      if (!discount) throw new Error("Invalid Discount");
       discountPercentage = Number(discount.discountPercentage);
     }
 
     /* =====================================================
-       9️⃣ Calculations
+       9️⃣ Calculation
     ====================================================== */
     const amounts = calculateSalesOrderAmounts({
       saleQty,
@@ -208,31 +362,60 @@ public async createSalesOrderItem(
     });
 
     /* =====================================================
-       🔟 Create Sales Order Item
+       🔟 Transaction (Stock + Save)
     ====================================================== */
-    const item = this.salesOrderItem.create({
-      salesOrder: salesOrderHeader,
-      product: product,
-      sku: sku,
-      warehouse: warehouse,                       // FK relation
-      warehouseName: warehouse.warehouseName,     // Snapshot name stored in DB
-      shippingAddress: shippingAddress,
-      saleQty,
-      basePrice,
-      uom,
-      discountPercentage,
-      scheme: schemeId ? { id: schemeId } : undefined,
-      tax: tax,
-      taxPercentage: taxPercent,
-      discount: discount,
-      ...amounts,
-      // createdBy: payload.userId
-    });
+    const savedItem = await this.salesOrderItem.manager.transaction(
+      async (manager) => {
+        const itemRepo = manager.getRepository(SalesOrderItem);
+        const invRepo = manager.getRepository(Inventory);
+        const batchRepo = manager.getRepository(Batch);
 
-    const savedItem = await this.salesOrderItem.save(item);
+        const inv = await invRepo.findOne({
+          where: { inventoryId: inventory.inventoryId, isDeleted: false },
+          lock: { mode: "pessimistic_write" },
+        });
+
+        if (!inv) throw new Error("Inventory row missing");
+
+        if (inv.stockQuantity < saleQty) {
+          throw new Error("Insufficient stock");
+        }
+
+        inv.stockQuantity -= saleQty;
+        await invRepo.save(inv);
+
+        /* ================== FINAL SAVE ================== */
+        const item = itemRepo.create({
+          salesOrder: salesOrderHeader,
+          product,
+          sku,
+          warehouse,
+          warehouseName: warehouse.warehouseName,
+          shippingAddress,
+
+          saleQty,
+
+          // 🔥 MOST IMPORTANT LINE
+          priceBookItem: { priceBookItemId: priceBookItem.priceBookItemId },
+
+          basePrice,
+          uom,
+
+          discountPercentage,
+          discount,
+          scheme: schemeId ? ({ id: schemeId } as any) : undefined,
+          tax,
+          taxPercentage: taxPercent,
+
+          ...amounts,
+        });
+
+        return itemRepo.save(item);
+      }
+    );
 
     /* =====================================================
-       1️⃣1️⃣ Update Header Amounts
+       1️⃣1️⃣ Update Header
     ====================================================== */
     await updateSalesOrderHeaderAmounts(salesOrderId);
 
@@ -242,121 +425,202 @@ public async createSalesOrderItem(
       data: savedItem
     };
 
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    const msg = error?.message || "";
+
+    if (msg.includes("stock") || msg.includes("Inventory")) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: msg,
+      };
+    }
+
     throw error;
   }
 }
 
  public async updateSalesOrderItem(
-    input: UpdateSalesOrderItemDto,
-    payload: IUser
-  ): Promise<IApiResponse> {
-    try {
-      const { id, productId, skuId, shippingAddressId, saleQty, discountId, schemeId, taxId } = input;
+  input: UpdateSalesOrderItemDto,
+  payload: IUser
+): Promise<IApiResponse> {
+  try {
+    const {
+      id,
+      productId,
+      skuId,
+      shippingAddressId,
+      saleQty,
+      discountId,
+      schemeId,
+      taxId
+    } = input;
 
-      const item = await this.salesOrderItem.findOne({
-        where: { id, isDeleted: false },
-        relations: ['salesOrder', 'sku', 'tax', 'discount']
+    /* =====================================================
+       1️⃣ Fetch Item
+    ====================================================== */
+    const item = await this.salesOrderItem.findOne({
+      where: { id, isDeleted: false },
+      relations: ["salesOrder", "sku", "tax", "discount", "warehouse", "priceBookItem"],
+    });
+
+    if (!item) {
+      return {
+        status: STATUSCODES.NOT_FOUND,
+        message: "Sales order item not found",
+      };
+    }
+
+    /* =====================================================
+       2️⃣ Prevent SKU Change
+    ====================================================== */
+    if (skuId !== undefined && skuId !== item.sku.skuId) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Changing SKU is not supported; create new line item.",
+      };
+    }
+
+    const salesOrderId = item.salesOrder.soId;
+
+    /* =====================================================
+       3️⃣ Quantity & Inventory Handling
+    ====================================================== */
+    const prevQty = Number(item.saleQty);
+    const nextQty = saleQty !== undefined ? saleQty : prevQty;
+
+    const invRow = await this.inventory.findOne({
+      where: {
+        sku: { skuId: item.sku.skuId },
+        warehouse: { warehouseId: item.warehouse.warehouseId },
+        isDeleted: false,
+      },
+    });
+
+    if (!invRow) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Inventory not found",
+      };
+    }
+
+    if (nextQty !== prevQty) {
+      const delta = nextQty - prevQty;
+
+      try {
+        await this.salesOrderItem.manager.transaction(async (manager) => {
+          await applyInventoryDeltaForLine(manager, invRow.inventoryId, delta);
+        });
+      } catch (e: any) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: e.message,
+        };
+      }
+    }
+
+    /* =====================================================
+       4️⃣ Basic Updates
+    ====================================================== */
+    if (productId) item.product = { id: productId } as any;
+    if (shippingAddressId) item.shippingAddress = { id: shippingAddressId } as any;
+    if (saleQty !== undefined) item.saleQty = nextQty;
+
+    /* =====================================================
+       5️⃣ Pricing (FREEZE - DO NOT CHANGE)
+    ====================================================== */
+    let basePrice = Number(item.basePrice); // 🔥 keep existing
+    let discountPercentage = Number(item.discountPercentage);
+    let taxPercent = Number(item.taxPercentage);
+
+    let needsRecalculation = false;
+
+    /* =====================================================
+       6️⃣ Discount
+    ====================================================== */
+    if (discountId !== undefined) {
+      if (discountId) {
+        const discount = await this.discountRepository.findOne({
+          where: { discountId },
+        });
+
+        if (!discount) {
+          return {
+            status: STATUSCODES.BAD_REQUEST,
+            message: "Invalid Discount",
+          };
+        }
+
+        discountPercentage = Number(discount.discountPercentage);
+        item.discount = { id: discountId } as any;
+      } else {
+        discountPercentage = 0;
+        item.discount = undefined;
+      }
+
+      item.discountPercentage = discountPercentage;
+      needsRecalculation = true;
+    }
+
+    /* =====================================================
+       7️⃣ Tax
+    ====================================================== */
+    if (taxId !== undefined) {
+      const tax = await this.taxRepository.findOne({ where: { taxId } });
+
+      if (!tax) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Invalid Tax",
+        };
+      }
+
+      taxPercent = Number(tax.taxPercentage);
+      item.tax = { taxId } as any;
+      item.taxPercentage = taxPercent;
+      needsRecalculation = true;
+    }
+
+    /* =====================================================
+       8️⃣ Scheme
+    ====================================================== */
+    if (schemeId !== undefined) {
+      item.scheme = schemeId ? ({ id: schemeId } as any) : undefined;
+    }
+
+    /* =====================================================
+       9️⃣ Recalculate Amounts
+    ====================================================== */
+    if (needsRecalculation || saleQty !== undefined) {
+      const amounts = calculateSalesOrderAmounts({
+        saleQty: item.saleQty,
+        basePrice,
+        discountPercentage,
+        taxPercent,
       });
 
-      if (!item) {
-        return { status: STATUSCODES.NOT_FOUND, message: 'Sales order item not found' };
-      }
-
-      const salesOrderId = item.salesOrder.soId;
-
-      // Update fields if provided
-      if (productId) item.product = { id: productId } as any;
-      if (shippingAddressId) item.shippingAddress = { id: shippingAddressId } as any;
-      if (saleQty !== undefined) item.saleQty = saleQty;
-
-      // Recalculate if SKU, discount, scheme, or tax changed
-      let needsRecalculation = false;
-      let basePrice = item.basePrice;
-      let uom = item.uom;
-      let discountPercentage = item.discountPercentage;
-      let taxPercent = item.taxPercentage;
-
-      if (skuId) {
-        const sku = await Sku.findOne({ where: { skuId } });
-        if (!sku) {
-          return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid SKU' };
-        }
-        basePrice = Number(sku.basePrice);
-        uom = sku.vom || item.uom; // Use existing uom if sku.vom is undefined
-        item.basePrice = basePrice;
-        item.uom = uom;
-        needsRecalculation = true;
-      }
-
-      if (discountId !== undefined) {
-        if (discountId) {
-           const discount = await this.discountRepository.findOne({ where: { discountId } });
-          if (!discount) {
-            return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Discount' };
-          }
-          discountPercentage = Number(discount.discountPercentage);
-          item.discount = { id: discountId } as any;
-        } else {
-          discountPercentage = 0;
-          item.discount = undefined;
-        }
-        item.discountPercentage = discountPercentage;
-        needsRecalculation = true;
-      }
-
-      if (taxId !== undefined) {
-        const tax = await this.taxRepository.findOne({ where: { taxId } });
-        if (!tax) {
-          return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Tax' };
-        }
-        taxPercent = Number(tax.taxPercentage);
-        item.tax = { taxId } as any;
-        item.taxPercentage = taxPercent;
-        needsRecalculation = true;
-      }
-
-      if (schemeId !== undefined) {
-        if (schemeId) {
-          const scheme = await this.schemeRepository.findOne({ where: { id: schemeId } });
-          if (!scheme) {
-            return { status: STATUSCODES.BAD_REQUEST, message: 'Invalid Scheme' };
-          }
-          item.scheme = { id: schemeId } as any;
-        } else {
-          item.scheme = undefined;
-        }
-        if (schemeId !== undefined) {
-          item.schemeId = schemeId;
-        }
-      }
-
-      // Recalculate amounts if needed
-      if (needsRecalculation || saleQty !== undefined) {
-        const amounts = calculateSalesOrderAmounts({
-          saleQty: item.saleQty,
-          basePrice,
-          discountPercentage,
-          taxPercent
-        });
-        Object.assign(item, amounts);
-      }
-
-      await item.save();
-
-      /* ---------- Update SalesOrderHeader Amounts ---------- */
-      await updateSalesOrderHeaderAmounts(salesOrderId);
-
-      return {
-        status: STATUSCODES.SUCCESS,
-        message: 'Sales order item updated successfully',
-        data: item
-      };
-    } catch (error) {
-      throw error;
+      Object.assign(item, amounts);
     }
+
+    /* =====================================================
+       🔟 Save
+    ====================================================== */
+    await item.save();
+
+    /* =====================================================
+       1️⃣1️⃣ Update Header
+    ====================================================== */
+    await updateSalesOrderHeaderAmounts(salesOrderId);
+
+    return {
+      status: STATUSCODES.SUCCESS,
+      message: "Sales order item updated successfully",
+      data: item,
+    };
+
+  } catch (error) {
+    throw error;
   }
+}
 
   public async deleteSalesOrderItem(input: DeleteSalesOrderItemById): Promise<IApiResponse> {
     try {
@@ -364,24 +628,45 @@ public async createSalesOrderItem(
 
       const item = await this.salesOrderItem.findOne({
         where: { id, isDeleted: false },
-        relations: ['salesOrder']
+        relations: ["salesOrder", "sku", "warehouse"],
       });
 
       if (!item) {
-        return { status: STATUSCODES.NOT_FOUND, message: 'Sales order item not found' };
+        return { status: STATUSCODES.NOT_FOUND, message: "Sales order item not found" };
       }
 
       const salesOrderId = item.salesOrder.soId;
 
+      const invRow = await this.inventory.findOne({
+        where: {
+          skuId: item.sku.skuId,
+          warehouseId: item.warehouse.warehouseId,
+          isDeleted: false,
+        },
+      });
+
+      if (invRow) {
+        const qty = Number(item.saleQty);
+        try {
+          await this.salesOrderItem.manager.transaction(async (manager) => {
+            await applyInventoryDeltaForLine(manager, invRow.inventoryId, -qty);
+          });
+        } catch (e: any) {
+          const msg = e?.message || "";
+          if (msg.includes("No batches to restore") || msg.includes("Inventory row missing")) {
+            return { status: STATUSCODES.BAD_REQUEST, message: msg };
+          }
+          throw e;
+        }
+      }
+
       item.isDeleted = true;
       await item.save();
-
-      /* ---------- Update SalesOrderHeader Amounts ---------- */
       await updateSalesOrderHeaderAmounts(salesOrderId);
 
       return {
         status: STATUSCODES.SUCCESS,
-        message: 'Sales order item deleted successfully'
+        message: "Sales order item deleted successfully",
       };
     } catch (error) {
       throw error;

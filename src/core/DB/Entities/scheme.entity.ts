@@ -11,7 +11,7 @@ import { Warehouse } from "./warehouse.entity";
 import { Posm } from "./posm.entity";
 import { CustomerType } from "./customerType.entity";
 import { SchemeType, SchemeNature, SchemeStatus, BenefitType, ClaimPeriod } from "../../types/Constent/common"
-
+import { Beat } from "./beat.entity";
 @Entity()
 export class Scheme extends BaseEntity implements IScheme {
    @PrimaryGeneratedColumn({ name: "scheme_id" })
@@ -51,9 +51,9 @@ export class Scheme extends BaseEntity implements IScheme {
     @JoinColumn({ name: "customer_type_id" })
     customerType?: CustomerType;
 
-//   @ManyToOne(() => Products, { nullable: true })
-//   @JoinColumn({ name: "product_id" })
-//   product?: Products;
+  @ManyToOne(() => Products, { nullable: true })
+  @JoinColumn({ name: "product_id" })
+  product?: Products;
 //  @OneToMany(() => Products, (products) => products.scheme)
 // products?: Products[];
 
@@ -69,12 +69,12 @@ export class Scheme extends BaseEntity implements IScheme {
   @JoinColumn({ name: "posm_id" })
   posm?: Posm;
   
-  @Column({ name:"beat_id"})
-    beatId?: number;
-
-//   @ManyToOne(() => Beat, { nullable: true })
-//   @JoinColumn({ name: "beat_id" })
-//   beat?: Beat;
+@ManyToOne(() => Beat, (beat) => beat.schemes, {
+  nullable: true,
+  onDelete: "SET NULL"
+})
+@JoinColumn({ name: "beat_id" })
+beat?: Beat;
   /* ================= CONDITIONS ================= */
 
   @Column({ name: "min_qty", type: "int", nullable: true })
@@ -134,6 +134,6 @@ createdBy: number;
 
 }
 
-export const getSchemeRepository = (): Repository<IScheme> => {
+export const getSchemeRepository = (): Repository<Scheme> => {
     return DbConnections.AppDbConnection.getConnection().getRepository(Scheme);
 }

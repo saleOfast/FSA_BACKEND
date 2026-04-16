@@ -24,11 +24,16 @@ class DistrictController {
 
   async createDistrict(input: CreateDistrict, payload: IUser): Promise<IApiResponse> {
     try {
-      const { districtName, stateId, countryId } = input;
+      const {  stateId, countryId } = input;
 
+         const districtName = input.districtName?.trim().toLowerCase();
+
+         if(!districtName){
+        return { message: "District name is required", status: STATUSCODES.BAD_REQUEST };
+         }
       // Validate state exists
       const state = await this.stateRepository.findOne({
-        where: { stateId }
+        where: { stateId ,isDeleted: false }
       });
 
       if (!state) {
@@ -51,7 +56,7 @@ class DistrictController {
 
       // Check for duplicate district name in the same state
       const existingDistrict = await this.districtRepository.findOne({
-        where: { districtName, stateId }
+        where: { districtName, stateId ,  isDeleted: false}
       });
 
       if (existingDistrict) {
@@ -65,19 +70,26 @@ class DistrictController {
 
       const savedDistrict = await this.districtRepository.save(newDistrict);
 
-      // Load relations for response
-      const districtWithRelations = await this.districtRepository.findOne({
-        where: { districtId: savedDistrict.districtId },
-        relations: ['state', 'country']
-      });
+      // // Load relations for response
+      // const districtWithRelations = await this.districtRepository.findOne({
+      //   where: { districtId: savedDistrict.districtId },
+      //   relations: ['state', 'country']
+      // });
 
       return {
         status: STATUSCODES.SUCCESS,
         message: "District created successfully.",
-        data: districtWithRelations
+        data: {...savedDistrict, state,
+        country}
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Create District Error:", error);
+         if (error.code === "23505") {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "District already exists"
+      };
+    }
       throw error;
     }
   }
@@ -87,7 +99,7 @@ class DistrictController {
       const { districtId, districtName, stateId, countryId } = input;
 
       const district = await this.districtRepository.findOne({
-        where: { districtId: Number(districtId) }
+        where: { districtId: Number(districtId), isDeleted: false, }
       });
 
       if (!district) {
@@ -96,7 +108,7 @@ class DistrictController {
 
       // Validate state exists
       const state = await this.stateRepository.findOne({
-        where: { stateId }
+        where: { stateId,  isDeleted: false, }
       });
 
       if (!state) {
@@ -125,8 +137,7 @@ class DistrictController {
         if (existingDistrict && existingDistrict.districtId !== Number(districtId)) {
           return { message: "District with this name already exists in the selected state", status: STATUSCODES.BAD_REQUEST };
         }
-      }
-
+      }           
       district.districtName = districtName;
       district.stateId = stateId;
       district.countryId = countryId;
@@ -161,7 +172,8 @@ class DistrictController {
         return { message: "District not found", status: STATUSCODES.NOT_FOUND };
       }
 
-      await this.districtRepository.remove(district);
+      district.isDeleted = true;
+      await this.districtRepository.save(district);
 
       return { message: "District deleted successfully", status: STATUSCODES.SUCCESS };
     } catch (error) {
@@ -175,7 +187,7 @@ class DistrictController {
       const { districtId } = input;
 
       const district = await this.districtRepository.findOne({
-        where: { districtId: Number(districtId) },
+        where: { districtId: Number(districtId) ,isDeleted: false},
         relations: ['state', 'country']
       });
 

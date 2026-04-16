@@ -63,7 +63,7 @@ async createTaxes(input: TaxesC, payload: IUser): Promise<IApiResponse> {
 
     // ================= 2. COUNTRY EXISTS =================
     const countryExists = await this.Country.exists({
-      where: { countryId },
+      where: { countryId,deletedAt: IsNull() },
     });
 
     if (!countryExists) {
@@ -77,8 +77,8 @@ async createTaxes(input: TaxesC, payload: IUser): Promise<IApiResponse> {
     // ================= 3. STATE BELONGS TO COUNTRY =================
     const stateExists = await this.state.exists({
       where: {
-        stateId,
-        country: { countryId },
+        stateId, isDeleted: false,
+        country: { countryId, deletedAt: IsNull() },
       },
     });
 

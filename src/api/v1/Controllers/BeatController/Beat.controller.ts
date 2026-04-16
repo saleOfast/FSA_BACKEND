@@ -10,10 +10,21 @@ import {
   VisitFrequency,
   VisitDay } from "../../../../core/types/Constent/common";
   import { Customer } from "../../../../core/DB/Entities/customer.entity";
+  import { Warehouse, WarehouseRepository, } from "../../../../core/DB/Entities/warehouse.entity";
+  import{ Country ,CountryRepository} from "../../../../core/DB/Entities/country.entity"
+  import { State, StateRepository } from "../../../../core/DB/Entities/state.entity";
+  import { District, DistrictRepository } from "../../../../core/DB/Entities/district.entity";
+  import { User, UserRepository } from "../../../../core/DB/Entities/User.entity";
+import { IsNull } from "typeorm/find-options/operator/IsNull";
 
 class BeatController {
     private beatRepositry = BeatRepository();
     private customerRepo = Customer.getRepository();
+    private warehouseRepo = WarehouseRepository();
+    private countryRepo = CountryRepository();
+    private districtRepo = DistrictRepository();
+    private stateRepo = StateRepository();
+    private  userRepo = UserRepository();
 
     constructor() { }
 async createBeat(
@@ -21,45 +32,202 @@ async createBeat(
   payload: IUser
 ): Promise<IApiResponse> {
   try {
-     const customerChannel = await this.customerRepo.findOne({
-      select: ["channelType"],      // Only fetch channelType
-      where: { customerId: input.customerId },
-    });
 
-    if (!customerChannel) {
+    /* =====================================================
+     1️⃣ BASIC VALIDATION (Bug 61 & 65)
+    ===================================================== */
+    if (!input.beatName || input.beatName.trim() === "") {
       return {
         status: STATUSCODES.BAD_REQUEST,
-        message: "Customer not found",
+        message: "Beat name is required",
         data: null,
       };
     }
 
+    if (!input.beatType) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Beat type is required",
+        data: null,
+      };
+    }
+
+    if (!input.visitFrequency) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Visit frequency is required",
+        data: null,
+      };
+    }
+
+const beatName = input.beatName.trim().toLowerCase();
+
+
+    /* =====================================================
+     2️⃣ CUSTOMER VALIDATION (Bug 57)
+    ===================================================== */
+    const customer = await this.customerRepo.findOne({
+      select: ["customerId", "channelType"],
+      where: {
+        customerId: input.customerId,
+        isDeleted: false,
+      },
+    });
+
+    if (!customer) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Customer not found or deleted",
+        data: null,
+      };
+    }
+
+    if (input.userId) {
+  const user = await this.userRepo.findOne({
+    where: {
+      emp_id: input.userId,isDeleted: false
+    },
+  });
+
+  if (!user) {
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: "Invalid userId",
+      data: null,
+    };
+  }
+}
+
+    /* =====================================================
+     3️⃣ WAREHOUSE VALIDATION (Bug 58)
+    ===================================================== */
+    const warehouse = await this.warehouseRepo.findOne({
+      where: {
+        warehouseId: String(input.warehouseId),
+        isDeleted: false,
+      },
+    });
+
+    if (!warehouse) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Invalid or inactive warehouse",
+        data: null,
+      };
+    }
+
+   
+    /* =====================================================
+     5️⃣ DUPLICATE CHECK (Bug 60)
+    ===================================================== */
+    const existingBeat = await this.beatRepositry.findOne({
+      where: {
+        beatName: beatName,
+        customerId: input.customerId,
+        isDeleted: false,
+      },
+    });
+
+    if (existingBeat) {
+      return {
+        status: STATUSCODES.CONFLICT,
+        message: "Beat with same name already exists",
+        data: null,
+      };
+    }
+
+    /* =====================================================
+     6️⃣ LOCATION VALIDATION (Bug 62)
+    ===================================================== */
+    const country = await this.countryRepo.findOne({
+      where: { countryId: input.countryId, deletedAt: IsNull() },
+    });
+
+    if (!country) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Invalid country",
+        data: null,
+      };
+    }
+
+    const state = await this.stateRepo.findOne({
+      where: {
+        stateId: input.stateId,
+        country: { countryId: input.countryId },
+        isDeleted: false,
+      },
+    });
+
+    if (!state) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "State does not belong to country",
+        data: null,
+      };
+    }
+
+    const district = await this.districtRepo.findOne({
+      where: {
+        districtId: input.districtId,
+        state: { stateId: input.stateId },
+        isDeleted: false,
+      },
+    });
+
+    if (!district) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "District does not belong to state",
+        data: null,
+      };
+    }
+
+    /* =====================================================
+     7️⃣ TIME VALIDATION (Bug 63)
+    ===================================================== */
+    if (
+      input.plannedStartTime &&
+      input.plannedEndTime &&
+      input.plannedEndTime <= input.plannedStartTime
+    ) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "End time must be greater than start time",
+        data: null,
+      };
+    }
+
+    /* =====================================================
+     8️⃣ CREATE BEAT
+    ===================================================== */
     const beat = new Beat();
 
-    /* ---------- Identity ---------- */
-    beat.beatName = input.beatName;
+    beat.beatName = beatName;
     beat.beatCode = `BT-${Date.now()}`;
 
-    /* ---------- Ownership ---------- */
-    beat.customerId =  input.customerId;
-    beat.warehouseId = input.warehouseId;
+    /* Ownership */
+    beat.customerId = input.customerId;
+    beat.warehouseId = String(input.warehouseId);
     beat.userId = input.userId;
 
-    /* ---------- Business ---------- */
+    /* Business */
     beat.beatType = input.beatType;
     beat.visitFrequency = input.visitFrequency;
     beat.defaultVisitDays = input.defaultVisitDays;
     beat.priority = input.priority;
-    beat.status = BeatStatus.ACTIVE;
 
-    /* ---------- Location ---------- */
+    /* Bug 64 Fix → Use input OR default */
+   beat.status = BeatStatus.ACTIVE;
+
+    /* Location */
     beat.countryId = input.countryId;
     beat.stateId = input.stateId;
     beat.districtId = input.districtId;
-    beat.area = input.area;
-    beat.zone = input.zone;
+    beat.area = input.area?.trim() || undefined;
+    beat.zone = input.zone?.trim() || undefined;
 
-    /* ---------- Route ---------- */
+    /* Route */
     beat.startLat = input.startLat;
     beat.startLng = input.startLng;
     beat.endLat = input.endLat;
@@ -67,22 +235,23 @@ async createBeat(
     beat.plannedStartTime = input.plannedStartTime;
     beat.plannedEndTime = input.plannedEndTime;
 
-    /* ---------- Audit ---------- */
+    /* Audit */
     beat.createdBy = payload.emp_id;
-        const beatData = await this.beatRepositry.save(beat);
 
-    // Save the beat
-      const responseData = {
-      ...beatData,
-      channel: customerChannel.channelType, // only this field
-    };
+    const beatData = await this.beatRepositry.save(beat);
 
-
+    /* =====================================================
+     9️⃣ RESPONSE
+    ===================================================== */
     return {
       status: STATUSCODES.SUCCESS,
       message: "Beat created successfully",
-      data: responseData, // now beatWithCustomer.channel will return channel
+      data: {
+        ...beatData,
+        channel: customer.channelType,
+      },
     };
+
   } catch (error) {
     throw error;
   }
@@ -93,64 +262,242 @@ async updateBeat(
   input: UpdateBeatDto
 ): Promise<IApiResponse> {
   try {
-    const { beatId, ...updateData } = input;
+    const { beatId } = input;
 
-    // 1️⃣ Check if beat exists
+    /* =====================================================
+     1️⃣ CHECK BEAT (Soft Delete Fix)
+    ===================================================== */
     const beat = await this.beatRepositry.findOne({
-      where: { beatId },
+      where: { beatId, isDeleted: false },
     });
 
     if (!beat) {
       return {
         status: STATUSCODES.BAD_REQUEST,
-        message: "Beat not found",
+        message: "Beat not found or deleted",
         data: null,
       };
     }
 
-    // 2️⃣ Update only provided fields
-    await this.beatRepositry.update(
-      { beatId },
-      { ...updateData }
-    );
+    /* =====================================================
+     2️⃣ VALIDATIONS (ONLY IF FIELD PROVIDED)
+    ===================================================== */
 
-    // 3️⃣ Fetch the updated beat
-    const updatedBeat = await this.beatRepositry.findOne({
-      where: { beatId },
-    });
+    /* ✅ Beat Name */
+    if (input.beatName !== undefined) {
+      const beatName = input.beatName.trim().toLowerCase();
 
-    if (!updatedBeat) {
-      // Safety check in case something went wrong after update
+      if (!beatName) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Beat name cannot be empty",
+          data: null,
+        };
+      }
+
+      // Duplicate check
+      const existing = await this.beatRepositry.findOne({
+        where: {
+          beatName,
+          customerId: beat.customerId,
+          isDeleted: false,
+        },
+      });
+
+      if (existing && existing.beatId !== beatId) {
+        return {
+          status: STATUSCODES.CONFLICT,
+          message: "Beat name already exists",
+          data: null,
+        };
+      }
+
+      beat.beatName = beatName;
+    }
+
+    /* ✅ Warehouse */
+    if (input.warehouseId !== undefined) {
+      const warehouse = await this.warehouseRepo.findOne({
+        where: { warehouseId: String(input.warehouseId), isDeleted: false },
+      });
+
+      if (!warehouse) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Invalid warehouse",
+          data: null,
+        };
+      }
+
+      beat.warehouseId = String(input.warehouseId);
+    }
+
+    if (input.userId !== undefined) {
+  const user = await this.userRepo.findOne({
+    where: {
+      emp_id: input.userId,
+    },
+  });
+
+  if (!user) {
+    return {
+      status: STATUSCODES.BAD_REQUEST,
+      message: "Invalid userId",
+      data: null,
+    };
+  }
+
+  beat.userId = input.userId;
+}
+
+    /* =====================================================
+     3️⃣ PICKLIST STATUS VALIDATION
+    ===================================================== */
+    // if (input.status !== undefined) {
+    //   const statusRecord = await this.picklistRepo.findOne({
+    //     where: {
+    //       picklistCode: "BEAT_STATUS",
+    //       value: input.status,
+    //       isDeleted: false,
+    //     },
+    //   });
+
+    //   if (!statusRecord) {
+    //     return {
+    //       status: STATUSCODES.BAD_REQUEST,
+    //       message: "Invalid status",
+    //       data: null,
+    //     };
+    //   }
+
+    //   beat.status = statusRecord.value;
+    // }
+
+    /* =====================================================
+     4️⃣ LOCATION VALIDATION
+    ===================================================== */
+    if (input.countryId !== undefined) {
+      const country = await this.countryRepo.findOne({
+        where: { countryId: input.countryId, deletedAt: IsNull() },
+      });
+
+      if (!country) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Invalid country",
+          data: null,
+        };
+      }
+
+      beat.countryId = input.countryId;
+    }
+
+    if (input.stateId !== undefined) {
+      const state = await this.stateRepo.findOne({
+        where: {
+          stateId: input.stateId,
+          country: { countryId: input.countryId || beat.countryId },
+          isDeleted: false,
+        },
+      });
+
+      if (!state) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Invalid state",
+          data: null,
+        };
+      }
+
+      beat.stateId = input.stateId;
+    }
+
+    if (input.districtId !== undefined) {
+      const district = await this.districtRepo.findOne({
+        where: {
+          districtId: input.districtId,
+          state: { stateId: input.stateId || beat.stateId },
+          isDeleted: false,
+        },
+      });
+
+      if (!district) {
+        return {
+          status: STATUSCODES.BAD_REQUEST,
+          message: "Invalid district",
+          data: null,
+        };
+      }
+
+      beat.districtId = input.districtId;
+    }
+
+    /* =====================================================
+     5️⃣ TIME VALIDATION
+    ===================================================== */
+    const startTime = input.plannedStartTime ?? beat.plannedStartTime;
+    const endTime = input.plannedEndTime ?? beat.plannedEndTime;
+
+    if (startTime && endTime && endTime <= startTime) {
       return {
         status: STATUSCODES.BAD_REQUEST,
-        message: "Failed to fetch updated beat",
+        message: "End time must be greater than start time",
         data: null,
       };
     }
 
-    // 4️⃣ Fetch customer channel
+    if (input.plannedStartTime !== undefined) {
+      beat.plannedStartTime = input.plannedStartTime;
+    }
+
+    if (input.plannedEndTime !== undefined) {
+      beat.plannedEndTime = input.plannedEndTime;
+    }
+
+    /* =====================================================
+     6️⃣ SAFE FIELD UPDATES
+    ===================================================== */
+    if (input.beatType !== undefined) beat.beatType = input.beatType;
+    if (input.visitFrequency !== undefined) beat.visitFrequency = input.visitFrequency;
+    if (input.defaultVisitDays !== undefined) beat.defaultVisitDays = input.defaultVisitDays;
+    if (input.priority !== undefined) beat.priority = input.priority;
+
+    if (input.area !== undefined) beat.area = input.area?.trim() || undefined;
+    if (input.zone !== undefined) beat.zone = input.zone?.trim() || undefined;
+
+    if (input.startLat !== undefined) beat.startLat = input.startLat;
+    if (input.startLng !== undefined) beat.startLng = input.startLng;
+    if (input.endLat !== undefined) beat.endLat = input.endLat;
+    if (input.endLng !== undefined) beat.endLng = input.endLng;
+
+
+
+    /* =====================================================
+     8️⃣ SAVE
+    ===================================================== */
+    const updatedBeat = await this.beatRepositry.save(beat);
+
+    /* =====================================================
+     9️⃣ CUSTOMER CHANNEL
+    ===================================================== */
     const customer = await this.customerRepo.findOne({
       select: ["channelType"],
-      where: { customerId: updatedBeat.customerId },
+      where: { customerId: updatedBeat.customerId, isDeleted: false },
     });
-
-    // 5️⃣ Prepare response with channel
-    const responseData = {
-      ...updatedBeat,
-      channel: customer?.channelType ?? null, // safe fallback
-    };
 
     return {
       status: STATUSCODES.SUCCESS,
       message: "Beat updated successfully",
-      data: responseData,
+      data: {
+        ...updatedBeat,
+        channel: customer?.channelType ?? null,
+      },
     };
+
   } catch (error) {
     throw error;
   }
 }
-
-
 
 async delete(
   payload: IUser,
@@ -242,7 +589,15 @@ async getAllBeats(input: GetAllBeatDto, payload: IUser): Promise<IApiResponse> {
         "customer.customerName",
         "customer.channelType",
       ]);
+      
 
+      if (input.isDeleted !== undefined) {
+  query.andWhere("beat.isDeleted = :isDeleted", {
+    isDeleted: input.isDeleted,
+  });
+} else {
+  query.andWhere("beat.isDeleted = false");
+}
     // ================= Filters =================
     if (input.customerId) query.andWhere("beat.customerId = :customerId", { customerId: input.customerId });
     if (input.warehouseId) query.andWhere("beat.warehouseId = :warehouseId", { warehouseId: input.warehouseId });
