@@ -136,13 +136,46 @@ export const ResponseHandler = {
 
     sendErrorResponse: function (res: express.Response, error: any) {
 
-        const body: IApiResponse =
-        {
+        // Postgres / TypeORM QueryFailedError gives helpful metadata:
+        // - error.code (e.g. 23503 foreign key violation)
+        // - error.detail (e.g. Key (product_id)=(123) is not present ...)
+        // - error.table / error.constraint
+        const pgCode = error?.code;
+
+        // 23503 = foreign_key_violation
+        if (pgCode === "23503") {
+            const detail: string = error?.detail || "";
+            const constraint: string = error?.constraint || "";
+
+            const body: IApiResponse = {
+                status: 400,
+                message: "Invalid reference id. One of the related records does not exist.",
+                data: process.env.NODE_ENV !== "production"
+                    ? { detail, constraint, table: error?.table }
+                    : undefined
+            };
+
+            return res.status(400).send(body);
+        }
+
+        // 23505 = unique_violation
+        if (pgCode === "23505") {
+            const body: IApiResponse = {
+                status: 409,
+                message: "Duplicate value. A record with the same unique field already exists.",
+                data: process.env.NODE_ENV !== "production"
+                    ? { detail: error?.detail, constraint: error?.constraint, table: error?.table }
+                    : undefined
+            };
+            return res.status(409).send(body);
+        }
+
+        const body: IApiResponse = {
             status: 500,
             message: error?.message || (typeof error === "string" ? error : "Internal Server Error"),
             data: process.env.NODE_ENV !== "production" ? error?.stack : undefined
         };
 
-        res.status(500).send(body);
+        return res.status(500).send(body);
     }
 }
