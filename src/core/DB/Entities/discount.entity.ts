@@ -12,9 +12,9 @@ export enum DiscountType {
     FLAT = "Flat",
     PERCENTAGE = "%age",
     SLAB = "Slab",
-    BILL_LEVEL = "Bill Level",
-    SKU_LEVEL = "SKU Level",
-    PRODUCT_LEVEL = "Product Level"
+    // BILL_LEVEL = "Bill Level",
+    // SKU_LEVEL = "SKU Level",
+    // PRODUCT_LEVEL = "Product Level"
 }
 
 export enum DiscountCategory {
@@ -44,6 +44,10 @@ export enum PktType {
     BAGS = "Bags"
 }
 
+export enum scopeType {
+    LINE="LINE",
+    ORDER="ORDER"
+}
 export enum DiscountValueType {
     PERCENTAGE = "Percentage",
     AMOUNT = "Amount"
@@ -56,7 +60,7 @@ export interface IDiscount {
     discountCategory: DiscountCategory;
     customerTypeId?: number;
     customerId?: number;
-    skuId?: number;
+    skuId: number|null;
     countryId?: number;
     stateId?: number;
     districtId?: number;
@@ -105,7 +109,7 @@ export class Discount extends BaseEntity implements IDiscount {
     customer?: Customer;
 
     @Column({ name: 'sku_id', nullable: true })
-    skuId?: number;
+    skuId: number| null;
 
     @ManyToOne(() => Sku, { nullable: true })
     @JoinColumn({ name: 'sku_id' })
@@ -179,6 +183,29 @@ export class Discount extends BaseEntity implements IDiscount {
     updatedAt: Date;
     @Column({ name: 'is_deleted', default: false })
     isDeleted!: boolean;
+
+    @Column({ name:'priority', type: 'int', default: 0 })
+    priority: number;
+
+    @Column({ name:'isStackable', type: 'boolean', default: false })
+    isStackable: boolean;
+
+    @Column({name:'isStickable', type:'boolean', default:false})
+    isStickable:boolean
+@Column({
+  name: 'scope_type',
+  type: 'enum',
+  enum:  scopeType ,
+  default: scopeType.LINE, 
+})
+scopeType?: scopeType;
+
+    @Column({ name: 'line_cap', type: 'decimal', precision: 10, scale: 2, nullable: true })
+    lineCap?: number;
+
+    @Column({ name: 'order_cap', type: 'decimal', precision: 10, scale: 2, nullable: true })
+    orderCap?: number;
+
 }
 
 export const DiscountRepository = (): Repository<Discount> => {

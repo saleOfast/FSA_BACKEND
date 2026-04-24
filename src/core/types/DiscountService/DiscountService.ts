@@ -4,9 +4,9 @@ import {
   IsString,
   IsNumber,
   IsEnum,
-  IsDateString
+  IsDateString,IsBoolean
 } from "class-validator";
-import { DiscountType, DiscountCategory, DiscountStatus, ApprovalStatus, PktType, DiscountValueType } from "../../DB/Entities/discount.entity";
+import { DiscountType, DiscountCategory, DiscountStatus, ApprovalStatus, PktType, DiscountValueType ,scopeType} from "../../DB/Entities/discount.entity";
 
 export interface IDiscount {
   discountId: number;
@@ -15,7 +15,7 @@ export interface IDiscount {
   discountCategory: DiscountCategory;
   customerTypeId?: number;
   customerId?: number;
-  skuId?: number;
+    skuId: number | null;
   countryId?: number;
   stateId?: number;
   districtId?: number;
@@ -33,6 +33,13 @@ export interface IDiscount {
   discountPercentage?: number;
   createdAt: Date;
   updatedAt: Date;
+
+  priority: number;
+  isStackable: boolean;
+  isStickable: boolean;
+  scopeType?: scopeType;
+  lineCap?: number;
+  orderCap?: number;
 }
 
 export class CreateDiscount {
@@ -56,9 +63,9 @@ export class CreateDiscount {
   @IsNumber()
   customerId?: number;
 
-  @IsOptional()
-  @IsNumber()
-  skuId?: number;
+@IsOptional()
+@IsNumber()
+skuId: number | null; 
 
   @IsOptional()
   @IsNumber()
@@ -119,6 +126,30 @@ export class CreateDiscount {
   @IsOptional()
   @IsNumber()
   discountPercentage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  priority?: number;
+
+  @IsOptional()
+  isStackable?: boolean;
+
+  @IsOptional()
+  isStickable?: boolean;
+
+  @IsOptional()
+  @IsEnum(scopeType)
+  scopeType?: scopeType;
+
+  @IsOptional()
+  @IsNumber()
+  lineCap?: number;
+
+  @IsOptional()
+  @IsNumber()
+  orderCap?: number;
+
+
 }
 
 export class UpdateDiscount {
@@ -146,9 +177,9 @@ export class UpdateDiscount {
   @IsNumber()
   customerId?: number;
 
-  @IsOptional()
-  @IsNumber()
-  skuId?: number;
+@IsOptional()
+@IsNumber()
+skuId: number | null; 
 
   @IsOptional()
   @IsNumber()
@@ -209,6 +240,30 @@ export class UpdateDiscount {
   @IsOptional()
   @IsNumber()
   discountPercentage?: number;
+
+  @IsOptional()
+@IsNumber()
+priority?: number;
+
+@IsOptional()
+@IsBoolean()
+isStackable?: boolean;
+
+@IsOptional()
+@IsBoolean()
+isStickable?: boolean;
+
+@IsOptional()
+@IsEnum(scopeType)
+scopeType?: scopeType;
+
+@IsOptional()
+@IsNumber()
+lineCap?: number;
+
+@IsOptional()
+@IsNumber()
+orderCap?: number;
 }
 
 export class GetDiscountById {
@@ -279,5 +334,28 @@ export class DiscountListFilter {
   @IsNotEmpty()
   @IsString()
   pageSize!: string;
+
+    @IsOptional()
+  @IsEnum(scopeType)
+  scopeType?: scopeType;
+
+  @IsOptional()
+  isStackable?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  priority?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minQty?: number;
+
+  @IsOptional()
+  @IsNumber()
+  maxQty?: number;
+
+  @IsOptional()
+  @IsNumber()
+  minimumOrderValue?: number;
 }
 
