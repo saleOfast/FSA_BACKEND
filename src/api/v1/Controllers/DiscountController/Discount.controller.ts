@@ -21,6 +21,8 @@ import { IsNull } from "typeorm";
 import { DiscountStatus, ApprovalStatus} from "../../../../core/DB/Entities/discount.entity";
 import { scopeType as ScopeType } from "../../../../core/DB/Entities/discount.entity";
 
+
+
 class DiscountController {
   private discountRepository = DiscountRepository();
   private customerTypeRepository = CustomerTypeRepository();
@@ -30,6 +32,8 @@ class DiscountController {
   private stateRepository = StateRepository();
   private districtRepository = DistrictRepository();
   private beatRepository = BeatRepository();
+
+
 
   constructor() { }
 

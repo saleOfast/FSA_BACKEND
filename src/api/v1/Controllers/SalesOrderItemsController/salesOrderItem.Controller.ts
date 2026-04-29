@@ -22,6 +22,10 @@ import { Inventory } from "../../../../core/DB/Entities/inventory"; // ✅ ADD T
 // import { Discount } from "../../../../core/DB/Entities/discount.entity";
 import { Batch } from "../../../../core/DB/Entities/inventoryBatch.entity"
 import { PriceBookItemRepository } from "../../../../core/DB/Entities/price_book_item.entity";
+import { DiscountResolver } from "../../../../core/helper/discountResolver";
+import { applyDiscountEngine } from "../../../../core/helper/applyDiscount";
+
+
 
 async function sumBatchFreeStock(
   batchRepo: import("typeorm").Repository<Batch>,
@@ -167,8 +171,13 @@ export class SalesOrderItemController {
   private warehouse=WarehouseRepository()
   private inventory=InventoryRepository()
   private priceBookItem=PriceBookItemRepository()
+  private discountResolver = new DiscountResolver();
+// private applyDiscountEngine = new applyDiscountEngine();
 
   constructor() { }
+
+// ✅ NEW IMPORTS (ADDED)
+
 
 public async createSalesOrderItem(
   input: CreateSalesOrderItemDto,
@@ -180,18 +189,19 @@ public async createSalesOrderItem(
       productId,
       shippingAddressId,
       saleQty,
-      discountId,
       schemeId,
       taxId,
       skuId,
       warehouseId
     } = input;
 
+
     /* =====================================================
        1️⃣ Validate Sales Order
     ====================================================== */
     const salesOrderHeader = await this.salesOrderHeaderRepository.findOne({
-      where: { soId: salesOrderId, isDeleted: false }
+      where: { soId: salesOrderId, isDeleted: false },
+      relations: ["customer"],
     });
 
     if (!salesOrderHeader) {
@@ -216,49 +226,29 @@ public async createSalesOrderItem(
     }
 
     /* =====================================================
-       🔥 Fetch PriceBookItem (IMPORTANT FIX APPLIED)
+       3️⃣ PriceBookItem
     ====================================================== */
- 
-const priceBookItem = await this.priceBookItem.findOne({
-  where: {
-    sku: {
-      skuId: sku.skuId,   // ✅ filter by skuId
-    },
-    isDeleted: false,
-    priceBook: {
-      status: PriceBookStatus.ACTIVE
+    const priceBookItem = await this.priceBookItem.findOne({
+      where: {
+        sku: { skuId: sku.skuId },
+        isDeleted: false,
+        priceBook: { status: PriceBookStatus.ACTIVE }
+      },
+      relations: ["sku", "priceBook"]
+    });
+
+    if (!priceBookItem) {
+      return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Invalid PriceBookItem"
+      };
     }
-  },
-  relations: ["sku", "priceBook"]
-});
-
-if (!priceBookItem) {
-  return {
-    status: STATUSCODES.BAD_REQUEST,
-    message: "Invalid PriceBookItem"
-  };
-}
-
-if (priceBookItem.priceBook.status !== PriceBookStatus.ACTIVE) {
-  return {
-    status: STATUSCODES.BAD_REQUEST,
-    message: "Inactive PriceBook"
-  };
-}
-
-console.log("priceBookItem.sku.skuId:", priceBookItem.sku.skuId, "input skuId:", skuId); 
-if (priceBookItem.skuId !== skuId) {
-  return {
-    status: STATUSCODES.BAD_REQUEST,
-    message: "PriceBookItem does not match SKU"
-  };
-}
 
     const basePrice = Number(priceBookItem.basePrice);
-    const uom = sku.vom; // ✅ fixed typo
+    const uom = sku.vom;
 
     /* =====================================================
-       3️⃣ Validate Product
+       4️⃣ Product
     ====================================================== */
     const product = await this.products.findOne({
       where: { productId, isDeleted: false }
@@ -272,7 +262,7 @@ if (priceBookItem.skuId !== skuId) {
     }
 
     /* =====================================================
-       4️⃣ Validate Shipping Address
+       5️⃣ Shipping Address
     ====================================================== */
     const shippingAddress = await this.shippingAddress.findOne({
       where: { addressId: shippingAddressId, isDeleted: false }
@@ -286,7 +276,7 @@ if (priceBookItem.skuId !== skuId) {
     }
 
     /* =====================================================
-       5️⃣ Validate Warehouse + Inventory
+       6️⃣ Warehouse + Inventory
     ====================================================== */
     const warehouse = await this.warehouse.findOne({
       where: { warehouseId, isDeleted: false }
@@ -306,38 +296,12 @@ if (priceBookItem.skuId !== skuId) {
         product: { productId },
         isDeleted: false,
       },
-      relations: ["sku", "warehouse"],
     });
 
     if (!inventory) {
       return {
         status: STATUSCODES.BAD_REQUEST,
         message: "SKU not available in selected warehouse"
-      };
-    }
-
-    /* =====================================================
-       6️⃣ Pre Stock Check
-    ====================================================== */
-    const batchRepoPre = this.salesOrderItem.manager.getRepository(Batch);
-
-    const hasBatches =
-      (await batchRepoPre.count({
-        where: { inventoryId: inventory.inventoryId, isDeleted: false },
-      })) > 0;
-
-    if (hasBatches) {
-      const avail = await sumBatchFreeStock(batchRepoPre, inventory.inventoryId);
-      if (avail < saleQty) {
-        return {
-          status: STATUSCODES.BAD_REQUEST,
-          message: "Insufficient stock",
-        };
-      }
-    } else if (inventory.stockQuantity < saleQty) {
-      return {
-        status: STATUSCODES.BAD_REQUEST,
-        message: "Insufficient stock",
       };
     }
 
@@ -354,16 +318,31 @@ if (priceBookItem.skuId !== skuId) {
     }
 
     /* =====================================================
-       8️⃣ Discount
+       🔥 8️⃣ DISCOUNT (FULLY UPDATED LOGIC)
     ====================================================== */
-    let discount: any;
-    let discountPercentage = 0;
 
-    if (discountId) {
-      discount = await this.discountRepository.findOne({ where: { discountId } });
-      if (!discount) throw new Error("Invalid Discount");
-      discountPercentage = Number(discount.discountPercentage);
-    }
+    // Auto-fetch discount strictly from rules engine.
+    const applicableDiscounts = await this.discountResolver.getApplicableDiscounts({
+      skuId,
+      customerId: salesOrderHeader.customer?.customerId,
+      qty: saleQty,
+      orderValue: basePrice * saleQty,
+      countryId: shippingAddress.shippingCountryId,
+      stateId: shippingAddress.shippingStateId,
+      districtId: shippingAddress.shippingDistrictId,
+    });
+    const discountResult = applyDiscountEngine({
+      discounts: applicableDiscounts,
+      basePrice,
+      qty: saleQty,
+      scope: "LINE",
+    }) ?? { discountValue: 0, discountPercentage: 0 };
+    const discountValue = discountResult.discountValue;
+    const discountPercentage = discountResult.discountPercentage;
+
+    console.log("Applicable Discounts:", applicableDiscounts);
+    console.table(applicableDiscounts);
+    console.log("Calculated Discount Percentage:", discountPercentage);
 
     /* =====================================================
        9️⃣ Calculation
@@ -376,15 +355,14 @@ if (priceBookItem.skuId !== skuId) {
     });
 
     /* =====================================================
-       🔟 Transaction (Stock + Save)
+       🔟 Transaction
     ====================================================== */
     const savedItem = await this.salesOrderItem.manager.transaction(
       async (manager) => {
         const itemRepo = manager.getRepository(SalesOrderItem);
-        // Keep create/update/delete stock movements consistent with batch-aware logic.
+
         await applyInventoryDeltaForLine(manager, inventory.inventoryId, saleQty);
 
-        /* ================== FINAL SAVE ================== */
         const item = itemRepo.create({
           salesOrder: salesOrderHeader,
           product,
@@ -395,14 +373,17 @@ if (priceBookItem.skuId !== skuId) {
 
           saleQty,
 
-          // 🔥 MOST IMPORTANT LINE
           priceBookItem: { priceBookItemId: priceBookItem.priceBookItemId },
 
           basePrice,
           uom,
 
+          // ✅ UPDATED FIELDS
           discountPercentage,
-          discount,
+          // discountValue: discountValue ,
+         
+          // appliedDiscounts: discountResult.appliedDiscounts, // optional (store JSON)
+
           scheme: schemeId ? ({ id: schemeId } as any) : undefined,
           tax,
           taxPercentage: taxPercent,
@@ -422,7 +403,7 @@ if (priceBookItem.skuId !== skuId) {
     return {
       status: STATUSCODES.SUCCESS,
       message: 'Sales order item created successfully',
-      data: savedItem
+      data: {...savedItem,appliedDiscounts: discountResult.appliedDiscounts}
     };
 
   } catch (error: any) {
@@ -460,7 +441,7 @@ public async updateSalesOrderItem(
     ====================================================== */
     const item = await this.salesOrderItem.findOne({
       where: { id, isDeleted: false },
-      relations: ["salesOrder", "sku", "tax", "discount", "warehouse", "priceBookItem"],
+      relations: ["salesOrder", "salesOrder.customer", "sku", "tax", "discount", "warehouse", "priceBookItem", "shippingAddress"],
     });
 
     if (!item) {
@@ -558,31 +539,33 @@ public async updateSalesOrderItem(
     let needsRecalculation = false;
 
     /* =====================================================
-       6️⃣ Discount
+       6️⃣ Discount (auto rules)
     ====================================================== */
-    if (discountId !== undefined) {
-      if (discountId) {
-        const discount = await this.discountRepository.findOne({
-          where: { discountId },
-        });
+    const applicableDiscounts = await this.discountResolver.getApplicableDiscounts({
+      skuId: item.sku?.skuId,
+      customerId: item.salesOrder?.customer?.customerId,
+      qty: item.saleQty,
+      orderValue: basePrice * item.saleQty,
+      countryId: item.shippingAddress?.shippingCountryId,
+      stateId: item.shippingAddress?.shippingStateId,
+      districtId: item.shippingAddress?.shippingDistrictId,
+    });
+    const discountResult = applyDiscountEngine({
+      discounts: applicableDiscounts,
+      basePrice,
+      qty: item.saleQty,
+      scope: "LINE",
+    });
+    discountPercentage = Number(discountResult?.discountPercentage) || 0;
 
-        if (!discount) {
-          return {
-            status: STATUSCODES.BAD_REQUEST,
-            message: "Invalid Discount",
-          };
-        }
+    const discountValue = Number(discountResult?.discountValue) || 0;
+    item.discount = undefined;
+    item.discountPercentage = discountPercentage;
+    item.discountValue = discountValue; 
 
-        discountPercentage = Number(discount.discountPercentage);
-        item.discount = { discountId } as any;
-      } else {
-        discountPercentage = 0;
-        item.discount = undefined;
-      }
-
-      item.discountPercentage = discountPercentage;
-      needsRecalculation = true;
-    }
+    // optional (for API response only)
+(item as any).appliedDiscounts = discountResult?.appliedDiscounts;
+    needsRecalculation = true;
 
     /* =====================================================
        7️⃣ Tax
