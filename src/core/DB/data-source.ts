@@ -69,6 +69,10 @@ import { State } from './Entities/state.entity';
 import { District } from './Entities/district.entity';
 import { Tab } from './Entities/Tab.entity';
 import { TabPermission } from './Entities/TabPermission.entity';
+import { FieldPermission } from './Entities/FieldPermission.entity';
+import { ObjectFieldDefinition } from './Entities/ObjectFieldDefinition.entity';
+import { ObjectRecordTypeDefinition } from './Entities/ObjectRecordTypeDefinition.entity';
+import { RecordTypeAccess } from './Entities/RecordTypeAccess.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
 import { Posm } from './Entities/posm.entity';
 import { Sku } from './Entities/sku.entity';
@@ -111,7 +115,7 @@ export const AppDataSource = new DataSource({
 		UserLeave, LeaveApplication,
 		ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 	Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-	Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, Sku, Batch,
+	Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, FieldPermission, ObjectFieldDefinition, ObjectRecordTypeDefinition, RecordTypeAccess, SystemPermission, Posm, Sku, Batch,
 	PriceBook, PriceBookItem, ItemShippingAddress, Collection, GrnHeader, GrnItem, DispatchHeader, DispatchItem, DeliveryHeader, DeliveryItem, SalesOrderItem, SalesOrderHeader,InvoiceHeader,InvoiceItem
 ],
 	migrations: [path.join(__dirname, 'migrations', '*.ts')],

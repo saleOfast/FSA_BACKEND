@@ -75,6 +75,10 @@ import { State } from './Entities/state.entity';
 import { District } from './Entities/district.entity';
 import { Tab } from './Entities/Tab.entity';
 import { TabPermission } from './Entities/TabPermission.entity';
+import { FieldPermission } from './Entities/FieldPermission.entity';
+import { ObjectFieldDefinition } from './Entities/ObjectFieldDefinition.entity';
+import { ObjectRecordTypeDefinition } from './Entities/ObjectRecordTypeDefinition.entity';
+import { RecordTypeAccess } from './Entities/RecordTypeAccess.entity';
 import { SystemPermission } from './Entities/systemPermission.entity';
 import { Posm } from './Entities/posm.entity';
 import { Sku } from './Entities/sku.entity';
@@ -149,8 +153,8 @@ class Postgresdb {
 				UserLeave, LeaveApplication,
 				ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 				Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
-				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Posm, 
-				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress,SalesOrderHeader,SalesOrderItem,Batch,GrnHeader,GrnItem,DispatchHeader,DispatchItem,DeliveryHeader,DeliveryItem,InvoiceHeader,InvoiceItem
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, FieldPermission, ObjectFieldDefinition, ObjectRecordTypeDefinition, RecordTypeAccess, SystemPermission, Posm, 
+				Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, FieldPermission, ObjectFieldDefinition, ObjectRecordTypeDefinition, RecordTypeAccess, SystemPermission, Sku,PriceBook,PriceBookItem,ItemShippingAddress,SalesOrderHeader,SalesOrderItem,Batch,GrnHeader,GrnItem,DispatchHeader,DispatchItem,DeliveryHeader,DeliveryItem,InvoiceHeader,InvoiceItem
 			];
 			// Determine if we should use migrations or synchronize
 			const useMigrations = process.env.USE_MIGRATIONS === 'true';

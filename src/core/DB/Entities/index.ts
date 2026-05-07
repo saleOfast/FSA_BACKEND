@@ -19,6 +19,10 @@ import { ObjectEntity } from "./object.entity";
 import { ObjectPermission } from "./ObjectPermission.entity";
 import { Tab } from "./Tab.entity";
 import { TabPermission } from "./TabPermission.entity";
+import { FieldPermission } from "./FieldPermission.entity";
+import { ObjectFieldDefinition } from "./ObjectFieldDefinition.entity";
+import { ObjectRecordTypeDefinition } from "./ObjectRecordTypeDefinition.entity";
+import { RecordTypeAccess } from "./RecordTypeAccess.entity";
 import { SystemPermission } from "./systemPermission.entity";
 import { Sku } from "./sku.entity";
 
@@ -44,6 +48,10 @@ const dbentities = [
   ObjectPermission,
   Tab,
   TabPermission,
+  FieldPermission,
+  ObjectFieldDefinition,
+  ObjectRecordTypeDefinition,
+  RecordTypeAccess,
   SystemPermission,
   Sku
 ];

@@ -2,6 +2,10 @@ import { Entity, Column, OneToMany } from "typeorm";
 import { BaseEntity } from "./Base.entity";
 import { ObjectPermission } from "./ObjectPermission.entity";
 import { Tab } from "./Tab.entity";
+import { FieldPermission } from "./FieldPermission.entity";
+import { RecordTypeAccess } from "./RecordTypeAccess.entity";
+import { ObjectFieldDefinition } from "./ObjectFieldDefinition.entity";
+import { ObjectRecordTypeDefinition } from "./ObjectRecordTypeDefinition.entity";
 
 @Entity("objects")
 export class ObjectEntity extends BaseEntity {
@@ -50,4 +54,16 @@ export class ObjectEntity extends BaseEntity {
 
   @OneToMany(() => Tab, (tab) => tab.object)
   tabs: Tab[];
+
+  @OneToMany(() => FieldPermission, (fp) => fp.object)
+  fieldPermissions: FieldPermission[];
+
+  @OneToMany(() => RecordTypeAccess, (r) => r.object)
+  recordTypeAccesses: RecordTypeAccess[];
+
+  @OneToMany(() => ObjectFieldDefinition, (d) => d.object)
+  fieldDefinitions: ObjectFieldDefinition[];
+
+  @OneToMany(() => ObjectRecordTypeDefinition, (d) => d.object)
+  recordTypeDefinitions: ObjectRecordTypeDefinition[];
 }

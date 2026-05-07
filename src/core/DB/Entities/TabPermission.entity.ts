@@ -5,11 +5,13 @@ import { Profile } from "./profile.entity";
 
 @Entity("tab_permissions")
 export class TabPermission extends BaseEntity {
-  @Column({ default: false })
-  isVisible: boolean;
+  /** DB column legacy name; maps to UI "Read Only" for the tab */
+  @Column({ name: "isVisible", default: false })
+  readOnly: boolean;
 
-  @Column({ default: false })
-  isAvailable: boolean;
+  /** DB column legacy name; maps to UI "Default On" (tab shown by default) */
+  @Column({ name: "isAvailable", default: false })
+  defaultOn: boolean;
 
   // Relations
   @ManyToOne(() => Tab, (tab) => tab.tabPermissions, { onDelete: "CASCADE" })

@@ -11,6 +11,8 @@ import { IProfile, IUserReference } from "../../types/Profile/Profile.types";
 import { ObjectPermission } from "./ObjectPermission.entity";
 import { TabPermission } from "./TabPermission.entity";
 import { SystemPermission } from "./systemPermission.entity";
+import { FieldPermission } from "./FieldPermission.entity";
+import { RecordTypeAccess } from "./RecordTypeAccess.entity";
 
 
 @Entity({ name: "profiles" })
@@ -26,6 +28,12 @@ export class Profile implements IProfile {
 
   @Column({ type: "text", nullable: true })
   remarks?: string;
+
+  @Column({ type: "varchar", length: 100, nullable: true })
+  department?: string;
+
+  @Column({ type: "boolean", default: false })
+  isDeleted!: boolean;
 
   @CreateDateColumn({ name: 'createdDate', type: "timestamp" })
   createdDate!: Date;
@@ -51,6 +59,12 @@ export class Profile implements IProfile {
  
    @OneToMany(() => SystemPermission, (perm) => perm.profile)
    systemPermissions: SystemPermission[];
+
+   @OneToMany(() => FieldPermission, (perm) => perm.profile)
+   fieldPermissions: FieldPermission[];
+
+   @OneToMany(() => RecordTypeAccess, (perm) => perm.profile)
+   recordTypeAccesses: RecordTypeAccess[];
 
   // Helper method to set createdBy from a User entity
   setCreatedByUser(user: User) {

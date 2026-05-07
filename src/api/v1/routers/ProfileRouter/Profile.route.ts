@@ -32,6 +32,89 @@ router.get('/get', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUT
   }
 }));
 
+// Catalog routes — must be before /:profileId
+router.get('/catalog/objects', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const data = await ProfileController.getObjectsCatalog();
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+router.get('/catalog/fields', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const objectName = req.query.objectName;
+    if (!objectName || typeof objectName !== "string") {
+      return ResponseHandler.sendErrorResponse(res, { status: 400, message: "Query objectName is required" });
+    }
+    let profileId: number | undefined;
+    const rawPid = req.query.profileId;
+    if (rawPid != null && String(rawPid).trim() !== "") {
+      const n = parseInt(String(rawPid), 10);
+      if (Number.isNaN(n)) {
+        return ResponseHandler.sendErrorResponse(res, { status: 400, message: "Invalid profileId" });
+      }
+      profileId = n;
+    }
+    const data = await ProfileController.getFieldCatalog(objectName, profileId);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+function parseOptionalProfileId(req: Request): number | undefined {
+  const raw = req.query.profileId;
+  if (raw == null || String(raw).trim() === "") return undefined;
+  const n = parseInt(String(raw), 10);
+  if (Number.isNaN(n)) return undefined;
+  return n;
+}
+
+router.get('/catalog/tabs', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const profileId = parseOptionalProfileId(req);
+    const data = await ProfileController.getTabsCatalog(profileId);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+router.get('/catalog/object-permissions', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const profileId = parseOptionalProfileId(req);
+    const data = await ProfileController.getObjectPermissionsCatalog(profileId);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+router.get('/catalog/record-types', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+  try {
+    const objectName = req.query.objectName;
+    if (!objectName || typeof objectName !== "string") {
+      return ResponseHandler.sendErrorResponse(res, { status: 400, message: "Query objectName is required" });
+    }
+    const profileId = parseOptionalProfileId(req);
+    const data = await ProfileController.getRecordTypeCatalog(objectName, profileId);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
+router.post('/catalog/sync', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (_req: Request, res: Response) => {
+  try {
+    const data = await ProfileController.syncMetadataCatalog();
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
+});
+
 // Get all profiles with pagination - must be defined before :profileId route
 router.get('/all', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
   try {
