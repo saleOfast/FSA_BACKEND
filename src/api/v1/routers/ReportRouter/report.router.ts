@@ -7,16 +7,16 @@ import { JwtTokenTypes } from "../../../../core/types/Constent/common";
 const router = express.Router();
 
 
-router.get('/list',  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const usersListService = new UsersListService();
-        const data = await usersListService.getUsersList(payload);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/list',  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getUsersList(payload);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.get('/managersList', async (req: Request, res: Response) => {
     try {
@@ -39,17 +39,17 @@ router.get('/userDetails/:empId', async (req: Request, res: Response) => {
     }
 });
 
-router.post('/update', validateDtoMiddleware(UpdateUser), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: UpdateUser = RequestHandler.Defaults.getBody<UpdateUser>(req, UpdateUser);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const brandService = new UsersListService();
-        const data = await brandService.updateUser(payload, input);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.post('/update', validateDtoMiddleware(UpdateUser), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: UpdateUser = RequestHandler.Defaults.getBody<UpdateUser>(req, UpdateUser);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const brandService = new UsersListService();
+//         const data = await brandService.updateUser(payload, input);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 // router.get('/getById/:brandId', validateDtoMiddleware(GetBrand), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
 //     try {
@@ -85,17 +85,17 @@ router.get('/learningRoleList', async (req: Request, res: Response) => {
     }
 });
 
-router.get('/getStoresByEmpId/:empId',AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: GetUsers = RequestHandler.Defaults.getParams<GetUsers>(req, GetUsers);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
+// router.get('/getStoresByEmpId/:empId',AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: GetUsers = RequestHandler.Defaults.getParams<GetUsers>(req, GetUsers);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
        
-        const usersListService = new UsersListService();
-        const data = await usersListService.getStoresByEmpId(input, payload);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getStoresByEmpId(input, payload);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 export { router as ReportRoute };

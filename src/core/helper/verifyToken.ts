@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { unAuthorize, notFound, badRequest } from '../utils/response';
 import { config as envConfig } from '../config';
 import { UserRole } from "../../core/types/Constent/common";
-const { privateKey, expiry } = envConfig();
+const { privateKey, expiry, forgotPasswordPrivateKey, forgotPasswordExpiry } = envConfig();
 
 
 const generateToken = async (object: { id: number, email: string, role: UserRole }) => {
@@ -15,6 +15,39 @@ const generateToken = async (object: { id: number, email: string, role: UserRole
 }
 
 
+const generateForgotPasswordToken = async (
+    object: {  id: number, role: number }  
+) => {
+
+    if (!forgotPasswordPrivateKey || !forgotPasswordExpiry) {
+        throw new Error("Forgot Password Secret key Not Found.");
+    }
+
+    const token = await jwt.sign(
+        object,
+        forgotPasswordPrivateKey,
+        {
+            expiresIn: forgotPasswordExpiry
+        }
+    );
+
+    return token;
+}
+
+
+const verifyForgotPasswordToken = (token: string) => {
+
+    if (!forgotPasswordPrivateKey) {
+        throw new Error("Forgot Password Secret key Not Found.");
+    }
+
+    const decoded = jwt.verify(
+        token,
+        forgotPasswordPrivateKey
+    );
+
+    return decoded;
+}
 const authentication = (token: string): { id: number, email: string, isVarified?: boolean } => {
     try {
         if (!privateKey) {
@@ -82,4 +115,4 @@ const verifyEmailToken = async (req: any, res: Response , next: NextFunction) =>
     }
 }
 
-export { generateToken, generateVerifyEmailToken, authentication, verifyRefreshToken, verifyEmailToken }
+export { generateToken, generateVerifyEmailToken, authentication, verifyRefreshToken, verifyEmailToken,generateForgotPasswordToken,verifyForgotPasswordToken  }

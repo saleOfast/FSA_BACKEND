@@ -57,7 +57,7 @@ export interface IUserReference {
 
 export interface ICreateProfileDto {
   profileName: string;
-  userLicence: string;
+  userLicence?: string;
   remarks?: string;
   department?: string;
   tabPermissions?: ITabPermissionInput[];

@@ -83,7 +83,9 @@ export const config = () => {
 		accessKey: process.env.AWSACCESSKEY,
 		secretKey: process.env.AWSSECRETKEY,
 		region: process.env.AWSREGION,
-		bucketName: process.env.AWSBUCKETNAME
+		bucketName: process.env.AWSBUCKETNAME,
+		forgotPasswordPrivateKey:process.env.FORGOT_PASSWORD_SECRET,
+		forgotPasswordExpiry:process.env.FORGOT_PASSWORD_EXPIRY
 	};
 };
 

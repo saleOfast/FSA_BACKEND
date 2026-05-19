@@ -44,9 +44,9 @@ class RCPAService {
         try {
             const RCPAList = await this.RCPARepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true,
-                    // , product: true,
-                     competitorBrand: true },
+                // relations: { store: true, user: true,
+                //     // , product: true,
+                //      competitorBrand: true },
                 order: { createdAt: "DESC" },
             });
             return { status: STATUSCODES.SUCCESS, message: "RCPA list retrieved successfully.", data: RCPAList };

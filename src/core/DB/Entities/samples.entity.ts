@@ -27,9 +27,9 @@ export class Samples extends BaseEntity {
     @Column({ name: 'date', nullable: true })
     date: Date;
 
-    @ManyToOne(() => User, (user) => user.samples, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
-    user: User;
+    // @ManyToOne(() => User, (user) => user.samples, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
+    // user: User;
 
     @Column({ name: 'added_by', nullable: true })
     addedBy: number;

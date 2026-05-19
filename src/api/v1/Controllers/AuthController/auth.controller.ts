@@ -1,15 +1,17 @@
 import bcrypt from 'bcryptjs';
-import { generateToken, generateVerifyEmailToken } from '../../../../core/helper/verifyToken';
+import { generateToken, generateForgotPasswordToken, verifyForgotPasswordToken} from '../../../../core/helper/verifyToken';
 import { emailGenerator } from '../../../../core/helper/sendEmail';
 import { UserRepository, User } from '../../../../core/DB/Entities/User.entity';
 import { Profile } from '../../../../core/DB/Entities/profile.entity';
-import { IUser, Login, SignUp as ISignUp } from '../../../../core/types/AuthService/AuthService';
+import { IUser, Login, SignUp as ISignUp, ForgetPassword } from '../../../../core/types/AuthService/AuthService';
 import { UserRole } from '../../../../core/types/Constent/common';
 import { IApiResponse } from '../../../../core/types/Constent/commonService';
 import { STATUSCODES } from '../../../../core/types/Constent/common';
-
+// const { privateKey, expiry } = process.env;
+const { forgotPasswordPrivateKey, forgotPasswordExpiry } = process.env;
+import jwt from "jsonwebtoken";
 interface SignUp extends Omit<ISignUp, 'role'> {
-  role: UserRole;
+//   role: UserRole;
   profileId?: number;
 }
 
@@ -17,172 +19,360 @@ const salt = bcrypt.genSaltSync(10);
 
 const userController = {
     login: async (input: Login): Promise<IApiResponse> => {
-        try {
-            const { phone: inputPhone, password: inputPassword } = input;
-            const user: IUser | null = await UserRepository().findOne({ where: { phone: inputPhone, isDeleted: false } })
-            if (!user) {
-                return { status: STATUSCODES.NOT_FOUND, message: "User Not Found." }
+    try {
+
+        const {
+            phone: inputPhone,
+            password: inputPassword
+        } = input;
+
+        const user: IUser | null = await UserRepository().findOne({
+            where: {
+                phone: inputPhone,
+                isDeleted: false
+            },
+            relations: ["profile"]
+        });
+
+        if (!user) {
+            return {
+                status: STATUSCODES.NOT_FOUND,
+                message: "User Not Found."
+            };
+        }
+
+        const isMatch: boolean = await bcrypt.compare(
+            inputPassword,
+            user.password
+        );
+
+        if (!isMatch) {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "Invalid Password"
+            };
+        }
+
+        const token = await generateToken(
+            JSON.parse(
+                JSON.stringify({
+                    id: user.emp_id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.roleId
+                })
+            )
+        );
+
+        const { password, ...userData } = user;
+
+        return {
+            status: STATUSCODES.SUCCESS,
+            message: "Success.",
+            data: {
+                accessToken: token,
+                user: userData
             }
-            
-            const isMatch: boolean = await bcrypt.compare(inputPassword, user.password);
-            if (!isMatch) {
-                return { status: STATUSCODES.BAD_REQUEST, message: "Invalid Password" }
-            }
-            
-            // Get user with profile details
-            const userWithProfile = await UserRepository().findOne({
-                where: { emp_id: user.emp_id },
-                relations: ['profile'] // This will load the profile relation
+        };
+
+    } catch (error) {
+        throw error;
+    }
+},
+
+
+  createUser: async (input: SignUp): Promise<IApiResponse> => {
+
+    try {
+
+        const {
+            firstname,
+            middlename,
+            lastname,
+            username,
+            email,
+            password,
+            active,
+            country,
+            state,
+            city,
+            region,
+            pincode,
+            street,
+            phone,
+            mobile,
+            department,
+            division,
+            team,
+            vertical,
+            title,
+            language,
+            timeZone,
+            employeeId,
+            joining_date,
+            resignationDate,
+            managerId,
+            delegatedApproverId,
+            roleId,
+            profileId,
+            // role
+        } = input;
+
+        const existingUser = await UserRepository().findOne({
+            where: [
+                { phone },
+                { username },
+                { employeeId }
+            ]
+        });
+
+        if (existingUser) {
+            return {
+                status: STATUSCODES.DATABASE_DUPLICATE_ERROR_CODE,
+                message: "User Already Exists."
+            };
+        }
+
+        const hashPassword = bcrypt.hashSync(password, salt);
+
+        const newUser = new User();
+
+        newUser.firstname = firstname;
+        newUser.middlename = middlename!;
+        newUser.lastname = lastname;
+
+        newUser.username = username;
+
+        newUser.email = email!;
+
+        newUser.password = hashPassword;
+
+        newUser.active = active ?? true;
+
+        newUser.country = country!;
+        newUser.state = state!;
+        newUser.city = city!;
+        newUser.region = region!;
+        newUser.pincode = pincode!;
+        newUser.street = street!;
+
+        newUser.phone = phone!;
+        newUser.mobile = mobile!;
+
+        newUser.department = department!;
+        newUser.division = division!;
+        newUser.team = team!;
+        newUser.vertical = vertical!;
+        newUser.title = title!;
+
+        newUser.language = language!;
+        newUser.timeZone = timeZone!;
+        newUser.employeeId = employeeId!;
+
+        newUser.joining_date = joining_date!;
+        newUser.resignationDate = resignationDate!;
+
+        newUser.managerId = managerId!;
+        newUser.delegatedApproverId = delegatedApproverId!;
+
+        newUser.roleId = roleId!;
+
+        // newUser.role = roleId;
+
+        if (profileId) {
+
+            const profile = await UserRepository().manager.findOne(Profile, {
+                where: { profileId,isDeleted: false }
             });
 
-            if (!userWithProfile) {
-                return { status: STATUSCODES.NOT_FOUND, message: "User not found" };
+            if (!profile) {
+                return {
+                    status: STATUSCODES.BAD_REQUEST,
+                    message: "Profile Not Found"
+                };
             }
 
-            const token = await generateToken(JSON.parse(JSON.stringify({ 
-                id: user.emp_id, 
-                email: user.email, 
-                role: user.role 
-            })));
-            
-            // Extract only necessary user data to return
-            const { password: _, ...userData } = userWithProfile;
-            
-            return { 
-                status: STATUSCODES.SUCCESS, 
-                message: "Success.", 
-                data: { 
-                    accessToken: token,
-                    user: userData
-                } 
-            }
-        } catch (error) {
-            throw error;
+            newUser.profile = profile;
         }
-    },
 
-    createUser: async (input: SignUp): Promise<IApiResponse> => {
-        try {
-            const { email, password, firstname, lastname, age, phone, address, city, state, pincode, zone, joining_date, dob, managerId, role, learningRole } = input;
-            const hashPassword = bcrypt.hashSync(password, salt);
-            const userData = await UserRepository().findOne({ where: { phone } });
-            if (!userData) {
-                const newUser = new User();
-                newUser.firstname = firstname;
-                newUser.lastname = lastname;
-                newUser.email = email;
-                newUser.password = hashPassword;
-                newUser.address = address;
-                newUser.city = city;
-                newUser.state = state;
-                newUser.pincode = pincode;
-                newUser.age = age;
-                newUser.phone = phone;
-                newUser.zone = zone;
-                newUser.joining_date = joining_date;
-                newUser.dob = dob;
-                newUser.managerId = managerId;
-                newUser.role = role;
-                newUser.learningRole = learningRole;
-                
-                // Set profile if profileId is provided
-                if (input.profileId) {
-                    const profile = await UserRepository().manager.findOne(Profile, { where: { profileId: input.profileId } });
-                    if (profile) {
-                        newUser.profile = profile;
-                    }
-                }
-                
-                await UserRepository().save(newUser);
-                return { message: "Success.", status: STATUSCODES.SUCCESS }
-            }
-            return { status: STATUSCODES.DATABASE_DUPLICATE_ERROR_CODE, message: "User Already Exists." }
-        } catch (error) {
-            throw error;
-        }
-    },
+        await UserRepository().save(newUser);
 
-    async createUsers(inputs: SignUp[]): Promise<IApiResponse> {
-        const newUsers: User[] = [];
-        const skippedUsers: string[] = [];  // Track skipped users
-        const processedPhones: Set<string> = new Set();  // Track unique phone numbers in input
-    
-        // Validate and map each input to a User entity
-        for (const input of inputs) {
-            const { email, password, firstname, lastname, age, phone, address, zone, joining_date, dob, managerId, role, learningRole, profileId } = input;
-            
-            // Hash the password
-            const hashPassword = bcrypt.hashSync(password, salt);
-    
-            // Check for in-memory duplicates
-            if (processedPhones.has(phone)) {
-                skippedUsers.push(`User with phone ${phone} (Duplicate in input)`);
-                continue;  // Skip the user if a duplicate is found in the input
-            }
-    
-            // Mark this phone number as processed
-            processedPhones.add(phone);
-    
-            // Check if user already exists in the database
-            const existingUser = await UserRepository().findOne({ where: { phone } });
-            if (existingUser) {
-                skippedUsers.push(`User with phone ${phone} (Already exists in database)`);
-                continue;  // Skip the user if they already exist in the database
-            }
+        return {
+            status: STATUSCODES.SUCCESS,
+            message: "Success."
+        };
 
-            // Check if profile exists
-            if (profileId) {
-                const profile = await UserRepository().manager.findOne(Profile, { where: { profileId } });
-                if (!profile) {
-                    skippedUsers.push(`User with phone ${phone} (Profile not found)`);
-                    continue;
-                }
-            }
-    
-            // Create new user entity
-            const newUser = new User();
-            newUser.firstname = firstname;
-            newUser.lastname = lastname;
-            newUser.email = email;
-            newUser.password = hashPassword;
-            newUser.address = address;
-            newUser.age = age;
-            newUser.phone = phone;
-            newUser.zone = zone;
-            newUser.joining_date = joining_date;
-            newUser.dob = dob;
-            newUser.managerId = managerId;
-            newUser.role = role;
-            newUser.learningRole = learningRole;
-            
-            // Only assign profile if profileId is provided
-            if (profileId !== undefined) {
-                const profile = await UserRepository().manager.findOne(Profile, { where: { profileId } });
-                if (profile) {
-                    newUser.profile = profile;
-                }
-            }
-    
-            newUsers.push(newUser);  // Add the new user to the list of users to be saved
+    } catch (error) {
+        throw error;
+    }
+},
+
+createUsers: async (inputs: SignUp[]): Promise<IApiResponse> => {
+
+    const newUsers: User[] = [];
+
+    const skippedUsers: string[] = [];
+
+    const processedPhones: Set<string> = new Set();
+
+    const processedUsernames: Set<string> = new Set();
+
+    for (const input of inputs) {
+
+        const {
+            firstname,
+            middlename,
+            lastname,
+            username,
+            email,
+            password,
+            active,
+            country,
+            state,
+            city,
+            region,
+            pincode,
+            street,
+            phone,
+            mobile,
+            department,
+            division,
+            team,
+            vertical,
+            title,
+            language,
+            timeZone,
+            employeeId,
+            joining_date,
+            resignationDate,
+            managerId,
+            delegatedApproverId,
+            roleId,
+            profileId,
+            // role
+        } = input;
+
+        if (processedPhones.has(phone!)) {
+            skippedUsers.push(
+                `User with phone ${phone} already exists in input`
+            );
+            continue;
         }
-    
-        try {
-            // Save all valid users at once
-            if (newUsers.length > 0) {
-                await UserRepository().save(newUsers);
-            }
-    
-            // Construct the response message
-            const message = skippedUsers.length > 0
-                ? `Users created successfully. Skipped users: ${skippedUsers.join(', ')}.`
-                : "All users created successfully.";
-    
-            return { status: STATUSCODES.SUCCESS, message };
-        } catch (error) {
-            console.error(error);
-            throw error;
+
+        if (processedUsernames.has(username)) {
+            skippedUsers.push(
+                `User with username ${username} already exists in input`
+            );
+            continue;
         }
-    },
+
+        processedPhones.add(phone!);
+
+        processedUsernames.add(username);
+
+        const existingUser = await UserRepository().findOne({
+            where: [
+                { phone: phone! },
+                { username: username },
+                { employeeId: employeeId! }
+            ]
+        });
+
+        if (existingUser) {
+            skippedUsers.push(
+                `User with phone ${phone} already exists`
+            );
+            continue;
+        }
+
+        let profile: Profile | null = null;
+
+        if (profileId) {
+
+            profile = await UserRepository().manager.findOne(Profile, {
+                where: { profileId }
+            });
+
+            if (!profile) {
+                skippedUsers.push(
+                    `Profile not found for user ${phone}`
+                );
+                continue;
+            }
+        }
+
+        const hashPassword = bcrypt.hashSync(password, salt);
+
+        const newUser = new User();
+
+        newUser.firstname = firstname!;
+        newUser.middlename = middlename!;
+        newUser.lastname = lastname!;
+
+        newUser.username = username;
+
+        newUser.email = email!;
+
+        newUser.password = hashPassword;
+
+        newUser.active = active ?? true;
+
+        newUser.country = country!;
+        newUser.state = state!;
+        newUser.city = city!;
+        newUser.region = region!;
+        newUser.pincode = pincode!;
+        newUser.street = street!;
+
+        newUser.phone = phone!;
+        newUser.mobile = mobile!;
+
+        newUser.department = department!;
+        newUser.division = division!;
+        newUser.team = team!;
+        newUser.vertical = vertical!;
+        newUser.title = title!;
+
+        newUser.language = language!;
+        newUser.timeZone = timeZone!;
+
+        newUser.employeeId = employeeId!;
+
+        newUser.joining_date = joining_date!;
+        newUser.resignationDate = resignationDate!;
+
+        newUser.managerId = managerId!;
+        newUser.delegatedApproverId = delegatedApproverId!;
+
+        newUser.roleId = roleId!;
+
+        // newUser.role = role;
+
+        if (profile) {
+            newUser.profile = profile;
+        }
+
+        newUsers.push(newUser);
+    }
+
+    try {
+
+        if (newUsers.length > 0) {
+            await UserRepository().save(newUsers);
+        }
+
+        return {
+            status: STATUSCODES.SUCCESS,
+            message:
+                skippedUsers.length > 0
+                    ? `Users created successfully. Skipped users: ${skippedUsers.join(", ")}`
+                    : "All users created successfully."
+        };
+
+    } catch (error) {
+        throw error;
+    }
+},
 
     // verifyEmail: async (userId: number) => {
     //     try {
@@ -223,21 +413,21 @@ const userController = {
     //     }
     // },
 
-    verifyEmail: async (userId: number) => {
-        try {
-            const user: IUser | null = await UserRepository().findOne({ where: { id: userId } });
-            const emailConfirmed = true;
-            if (user) {
-                const { firstname, lastname, email, password } = user;
-                await UserRepository().save({ ...user, emailConfirmed });
-                return { error: false, status: 200, message: "Success.", data: [] };
-            } else {
-                return { error: { error: true, status: 404, message: "User Not Found.", data: [] } };
-            }
-        } catch (error) {
-            throw error;
-        }
-    },
+    // verifyEmail: async (userId: number) => {
+    //     try {
+    //         const user: IUser | null = await UserRepository().findOne({ where: { id: userId } });
+    //         const emailConfirmed = true;
+    //         if (user) {
+    //             const { firstname, lastname, email, password } = user;
+    //             await UserRepository().save({ ...user, emailConfirmed });
+    //             return { error: false, status: 200, message: "Success.", data: [] };
+    //         } else {
+    //             return { error: { error: true, status: 404, message: "User Not Found.", data: [] } };
+    //         }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // },
 
     // token: async (input: any, refreshToken: string) => {
     //     try {
@@ -252,75 +442,181 @@ const userController = {
     //         throw error;
     //     }
     // },
-    forgotPassword: async (input: any): Promise<IApiResponse> => {
-        try {
-            const { email, phone, dob } = input;
-            // const { empId } = payload;
-            const user: IUser | null = await UserRepository().findOne({
-                where: { phone, isDeleted: false },
-                select: ['emp_id', 'role', 'dob']
-            });
-                
-            
-            if (!user) {
 
-                // const passwordResetToken = await generateVerifyEmailToken(JSON.parse(JSON.stringify({ id: user.emp_id, email: email })))
-                // const url = `${process.env.HOST}/reset-password/${user.emp_id}/${passwordResetToken}/`;
-                // const name = `${user.firstname} ${user.lastname}`;
-                // const html = await resetPassword(url, name);
-                // await emailGenerator(email, "Saleofast Forgot Password ✔", html);
-                // return { status: STATUSCODES.SUCCESS, message: 'PASSWORD_RESET_EMAIL_SENT', data: null };
-                return { status: STATUSCODES.BAD_REQUEST, message: 'User Invalid', data: null };
+    forgotPassword: async (input: ForgetPassword): Promise<IApiResponse> => {
+    try {
 
-            }
-            const inputDob = new Date(dob);
-            const userDob = new Date(user.dob);
-    
-            // Validate the day, month, and year components
-            const isDobValid = inputDob.getDate() === userDob.getDate() &&
-                               inputDob.getMonth() === userDob.getMonth() &&
-                               inputDob.getFullYear() === userDob.getFullYear();
-                               console.log({isDobValid})
-    
-            if (!isDobValid) {
-                return { status: STATUSCODES.BAD_REQUEST, message: 'Wrong Date of Birth', data: null };
-            }
-    
+        const { phone, joining_date } = input;
 
-            return { status: STATUSCODES.SUCCESS, message: 'Success', data: user };
+        const user: IUser | null = await UserRepository().findOne({
+            where: {
+                phone,
+                isDeleted: false
+            },
+            select: [
+                "emp_id",
+                "firstname",
+                "lastname",
+                "phone",
+                "joining_date",
+                "roleId"
+            ]
+        });
 
-        } catch (error) {
-            throw error;
+        if (!user) {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "User Invalid",
+                data: null
+            };
         }
-    },
 
-    forgotRedirect: async (input: any): Promise<IApiResponse> => {
-        try {
-            const { id, token } = input;
-            const user: IUser | null = await UserRepository().findOne({ where: { emp_id: Number(id) } });
-            if (user) {
-                return { status: STATUSCODES.SUCCESS, message: 'SUCCESS.', data: null };
-            } else {
-                return { status: STATUSCODES.BAD_REQUEST, message: 'INVALID USER.', data: null };
-            }
-        } catch (error) {
-            throw error;
-        }
-    },
+        const inputJoiningDate = new Date(joining_date);
+        const userJoiningDate = new Date(user.joining_date!);
 
-    resetPasswordConfirm: async (input: any): Promise<IApiResponse> => {
-        try {
-            const { password, confirmPassword, empId } = input;
-            if (password !== confirmPassword) {
-                return { status: STATUSCODES.BAD_REQUEST, message: 'Password do not match', data: null };
-            }
-            const hashPassword = bcrypt.hashSync(password, salt);
-            await UserRepository().createQueryBuilder().update({ password: hashPassword }).where({ emp_id: empId }).execute();
-            return { status: STATUSCODES.SUCCESS, message: 'PASSWORD_RESET_SUCCESSFULLY', data: null };
-        } catch (error) {
-            throw error;
+        const isJoiningDateValid =
+            inputJoiningDate.getDate() === userJoiningDate.getDate() &&
+            inputJoiningDate.getMonth() === userJoiningDate.getMonth() &&
+            inputJoiningDate.getFullYear() === userJoiningDate.getFullYear();
+
+        if (!isJoiningDateValid) {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "Wrong Joining Date",
+                data: null
+            };
         }
-    },
+
+const token = await generateForgotPasswordToken({
+    id: user.emp_id,
+    role: user.roleId!
+});
+
+const resetLink =
+`http://localhost:4000/reset-password/${user.emp_id}/${token}`;
+
+return {
+   status: STATUSCODES.SUCCESS,
+   message: "Success",
+   data: {
+      resetLink
+   }
+};
+    } catch (error) {
+        throw error;
+    }
+},
+    // forgotRedirect: async (input: any): Promise<IApiResponse> => {
+    //     try {
+    //         const { id, token } = input;
+    //         const user: IUser | null = await UserRepository().findOne({ where: { emp_id: Number(id) } });
+    //         if (user) {
+    //             return { status: STATUSCODES.SUCCESS, message: 'SUCCESS.', data: null };
+    //         } else {
+    //             return { status: STATUSCODES.BAD_REQUEST, message: 'INVALID USER.', data: null };
+    //         }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // },
+
+resetPasswordConfirm: async (input: any): Promise<IApiResponse> => {
+    try {
+
+        const {
+            empId,
+            token,
+            password,
+            confirmPassword
+        } = input;
+
+        // CHECK PASSWORD MATCH
+        if (password !== confirmPassword) {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "Password do not match",
+                data: null
+            };
+        }
+
+        console.log("TOKEN RECEIVED ====================================>", token);
+        // VERIFY TOKEN
+ const decoded: any =
+            verifyForgotPasswordToken(token);
+
+        console.log("DECODED TOKEN =====>", decoded);
+
+
+console.log("DECODED TOKEN ==================================>", decoded);
+        // CHECK TOKEN USER MATCH
+        if (decoded.id != empId) {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "Invalid Token",
+                data: null
+            };
+        }
+
+        // CHECK USER EXISTS
+        const user: IUser | null = await UserRepository().findOne({
+            where: {
+                emp_id: empId,
+                isDeleted: false
+            }
+        });
+
+        if (!user) {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "User Not Found",
+                data: null
+            };
+        }
+
+        // HASH PASSWORD
+        const hashPassword = bcrypt.hashSync(password, salt);
+
+        // UPDATE PASSWORD
+        await UserRepository()
+            .createQueryBuilder()
+            .update(User)
+            .set({
+                password: hashPassword
+            })
+            .where({
+                emp_id: empId
+            })
+            .execute();
+
+        return {
+            status: STATUSCODES.SUCCESS,
+            message: "PASSWORD_RESET_SUCCESSFULLY",
+            data: null
+        };
+
+    } catch (error: any) {
+
+        // TOKEN EXPIRED
+        if (error.name === "TokenExpiredError") {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "Token Expired",
+                data: null
+            };
+        }
+
+        // INVALID TOKEN
+        if (error.name === "JsonWebTokenError") {
+            return {
+                status: STATUSCODES.BAD_REQUEST,
+                message: "Invalid Token",
+                data: null
+            };
+        }
+
+        throw error;
+    }
+},
 
     // forgotPassword: async (input: any) => {
     //     try {

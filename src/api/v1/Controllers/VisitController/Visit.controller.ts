@@ -52,30 +52,30 @@ class VisitController {
 
     async visitList(payload: IUser, input: VisitListFilter): Promise<IApiResponse> {
         try {
-            const { emp_id, role } = payload;
+            const { emp_id} = payload;
             let { duration, beatId, pageNumber, pageSize, status } = input;
             duration = duration ? duration : DurationEnum.TODAY;
 
             let fitlerQuery: any = {};
 
-            if (role === UserRole.RSM) {
-                const visitIds: any = await this.visitRepositry.createQueryBuilder("visits")
-                    .leftJoin("visits.user", "user")
-                    .where("user.managerId = :managerId", { managerId: emp_id })
-                    .select("visits.visitId")
-                    .getMany()
-                    .then((visits: IVisit[]) => visits.map(visit => visit.visitId));
+            // if (role === UserRole.RSM) {
+            //     const visitIds: any = await this.visitRepositry.createQueryBuilder("visits")
+            //         .leftJoin("visits.user", "user")
+            //         .where("user.managerId = :managerId", { managerId: emp_id })
+            //         .select("visits.visitId")
+            //         .getMany()
+            // //         .then((visits: IVisit[]) => visits.map(visit => visit.visitId));
 
-                if (visitIds.length > 0) {
-                    fitlerQuery.visitId = In(visitIds);
-                } else {
-                    return { message: "No visitIds found for admin user.", status: STATUSCODES.NOT_FOUND };
-                }
-            } else if (role === UserRole.SSM || role === UserRole.RETAILER) {
-                fitlerQuery = {
-                    empId: emp_id
-                };
-            }
+            //     if (visitIds.length > 0) {
+            //         fitlerQuery.visitId = In(visitIds);
+            //     } else {
+            //         return { message: "No visitIds found for admin user.", status: STATUSCODES.NOT_FOUND };
+            //     }
+            // } else if (role === UserRole.SSM || role === UserRole.RETAILER) {
+            //     fitlerQuery = {
+            //         empId: emp_id
+            //     };
+            // }
 
 
             if (duration == DurationEnum.WEEK) {
@@ -161,82 +161,82 @@ class VisitController {
         }
     }
 
-    async getVisitById(payload: IUser, input: GetVisitById): Promise<IApiResponse> {
-        try {
-            const { emp_id, role } = payload;
-            const { visitId } = input;
-            let fitlerQuery
-            if (role === UserRole.SSM || role === UserRole.RETAILER) {
-                fitlerQuery = {
-                    empId: emp_id,
-                    visitId: Number(visitId)
-                }
-            } else {
-                fitlerQuery = {
-                    visitId: Number(visitId)
-                }
-            }
-            const visit: IVisit | null = await this.visitRepositry.findOne({ where: fitlerQuery });
+    // async getVisitById(payload: IUser, input: GetVisitById): Promise<IApiResponse> {
+    //     try {
+    //         const { emp_id, role } = payload;
+    //         const { visitId } = input;
+    //         let fitlerQuery
+    //         if (role === UserRole.SSM || role === UserRole.RETAILER) {
+    //             fitlerQuery = {
+    //                 empId: emp_id,
+    //                 visitId: Number(visitId)
+    //             }
+    //         } else {
+    //             fitlerQuery = {
+    //                 visitId: Number(visitId)
+    //             }
+    //         }
+    //         const visit: IVisit | null = await this.visitRepositry.findOne({ where: fitlerQuery });
 
-            if (!visit) {
-                return { message: "Not Found.", status: STATUSCODES.NOT_FOUND }
-            }
-            const storeDetails: IStore | null = await this.storeRepositry.findOne({ where: { storeId: visit.storeId }, relations: ["storeCat"] });
-            if (!storeDetails) {
-                return { message: `Store not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
-            }
+    //         if (!visit) {
+    //             return { message: "Not Found.", status: STATUSCODES.NOT_FOUND }
+    //         }
+    //         const storeDetails: IStore | null = await this.storeRepositry.findOne({ where: { storeId: visit.storeId }, relations: ["storeCat"] });
+    //         if (!storeDetails) {
+    //             return { message: `Store not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
+    //         }
 
-            const beatDetails: IBeat | null = await this.beatRepositry.findOne({ where: { beatId: visit.beat } });
-            if (!beatDetails) {
-                return { message: `Beat not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
-            }
+    //         const beatDetails: IBeat | null = await this.beatRepositry.findOne({ where: { beatId: visit.beat } });
+    //         if (!beatDetails) {
+    //             return { message: `Beat not find for vist: ${visit.visitId} and StoreId: ${visit.storeId}`, status: STATUSCODES.NOT_FOUND }
+    //         }
 
-            let visitData: IVisitList = {
-                visitId: visit.visitId,
-                empId: visit.empId,
-                visitDate: visit.visitDate,
-                visitStatus: visit.status,
-                beatDetails: {
-                    beatId: visit.beat,
-                    beatName: beatDetails.beatName
-                },
-                storeDetails: storeDetails,
-                checkOut: visit.checkOut,
-                checkIn: visit.checkIn,
-                status: visit.status,
-                callType: visit.isCallType,
-                image: visit.image,
-                noOrderReason: visit.noOrderReason
-            }
+    //         let visitData: IVisitList = {
+    //             visitId: visit.visitId,
+    //             empId: visit.empId,
+    //             visitDate: visit.visitDate,
+    //             visitStatus: visit.status,
+    //             beatDetails: {
+    //                 beatId: visit.beat,
+    //                 beatName: beatDetails.beatName
+    //             },
+    //             storeDetails: storeDetails,
+    //             checkOut: visit.checkOut,
+    //             checkIn: visit.checkIn,
+    //             status: visit.status,
+    //             callType: visit.isCallType,
+    //             image: visit.image,
+    //             noOrderReason: visit.noOrderReason
+    //         }
 
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: visitData }
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: visitData }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
 
-    async updateImage(payload: IUser, input: UpdateImage): Promise<IApiResponse> {
-        try {
-            const { image, visitId } = input;
+    // async updateImage(payload: IUser, input: UpdateImage): Promise<IApiResponse> {
+    //     try {
+    //         const { image, visitId } = input;
 
-            const visit = await this.visitRepositry.findOne({ where: { visitId } });
+    //         const visit = await this.visitRepositry.findOne({ where: { visitId } });
 
-            if (!visit) {
-                return { message: "Visit not found.", status: STATUSCODES.NOT_FOUND }
-            }
+    //         if (!visit) {
+    //             return { message: "Visit not found.", status: STATUSCODES.NOT_FOUND }
+    //         }
 
-            await this.visitRepositry.createQueryBuilder().update({ image }).where({ visitId }).execute();
+    //         await this.visitRepositry.createQueryBuilder().update({ image }).where({ visitId }).execute();
 
-            return { message: "Success.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async checkIn(payload: IUser, input: CheckInRequest): Promise<IApiResponse> {
         try {
-            const { emp_id, role } = payload;
+            const { emp_id,  } = payload;
             const { visitId, checkIn, checkInLat, checkInLong, action } = input;
 
             const visit = await this.visitRepositry.findOne({ where: { visitId } });
@@ -359,7 +359,7 @@ class VisitController {
     }
 
     async dayTrackingReport(payload: IUser, input: any): Promise<IApiResponse> {
-        const { role, emp_id } = payload;
+        const { emp_id } = payload;
         const { timePeriod } = input;
 
         let startTimeline: any = null, endTimeline: any = null
@@ -390,12 +390,12 @@ class VisitController {
             // .orderBy('visits.checkIn', 'ASC')
             // .getRawMany();
             // console.log(dayTracking)
-            if (role === UserRole.RSM) {
-                queryBuilder.andWhere("visits.empId IN (:...empIds)", { empIds })
-            }
-            if (role === UserRole.SSM || role === UserRole.RETAILER) {
-                queryBuilder.andWhere("visits.empId = :empId", { empId: emp_id })
-            }
+            // if (role === UserRole.RSM) {
+            //     queryBuilder.andWhere("visits.empId IN (:...empIds)", { empIds })
+            // }
+            // if (role === UserRole.SSM || role === UserRole.RETAILER) {
+            //     queryBuilder.andWhere("visits.empId = :empId", { empId: emp_id })
+            // }
             const dayTracking = await queryBuilder.orderBy('visits.checkIn', 'ASC')
                 .getRawMany();
             return { status: STATUSCODES.SUCCESS, message: "Success.", data: dayTracking };
@@ -421,7 +421,7 @@ class VisitController {
 
     async getPastNoOrder(payload: IUser, input: any): Promise<IApiResponse> {
         try {
-            const { role, emp_id } = payload;
+            const {  emp_id } = payload;
             const { empId, storeId } = input;
             let queryBuilder = (await this.visitRepositry.createQueryBuilder('visits')
                 .select([
@@ -443,7 +443,7 @@ class VisitController {
 
     async getPictureByStoreId(payload: IUser, input: any): Promise<IApiResponse> {
         try {
-            const { role, emp_id } = payload;
+            const {  emp_id } = payload;
             const { storeId } = input;
             let queryBuilder = (await this.visitRepositry.createQueryBuilder('visits')
                 .select([

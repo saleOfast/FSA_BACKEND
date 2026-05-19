@@ -14,53 +14,53 @@ class UsersController {
 
     constructor() { }
 
-    async getUsersList(payload: IUser): Promise<IApiResponse> {
-        const { emp_id, role } = payload;
-        try {
-            const queryBuilder = this.userListRepositry.createQueryBuilder('user')
-                .select(['user.emp_id', 'user.firstname', 'user.lastname', 'user.zone', 'user.role', 'user.managerId'])
-                .orderBy('user.updatedAt', 'DESC')
-                .addOrderBy('user.createdAt', 'DESC')
-                .where('user.role != :role', {role: UserRole.SUPER_ADMIN})
-                .andWhere('user.isDeleted = :isDeleted', {isDeleted: false});
+    // async getUsersList(payload: IUser): Promise<IApiResponse> {
+    //     const { emp_id, roleId } = payload;
+    //     try {
+    //         const queryBuilder = this.userListRepositry.createQueryBuilder('user')
+    //             .select(['user.emp_id', 'user.firstname', 'user.lastname', 'user.zone', 'user.role', 'user.managerId'])
+    //             .orderBy('user.updatedAt', 'DESC')
+    //             .addOrderBy('user.createdAt', 'DESC')
+    //             .where('user.role != :role', {role: UserRole.SUPER_ADMIN})
+    //             .andWhere('user.isDeleted = :isDeleted', {isDeleted: false});
                
 
-            if (role === UserRole.RSM) {
-                queryBuilder.andWhere('user.role = :role', { role: UserRole.SSM })
-                .andWhere('user.managerId = :emp_id', { emp_id });
-            }
-            const users: IUser[] | null = await queryBuilder.getMany();
-            const adminRole: any = users.find((data)=>data.role === UserRole.ADMIN)
-            let usersList: IUser[] | null = [];
-            for (const user of users) {
-                const managerDetails: IUser | null = await this.userListRepositry.findOne({
-                    select: ["emp_id"],
-                    where: {
-                        emp_id: user.managerId
-                    },
-                });
-                const managerData = await this.userListRepositry.findOne({
-                    select: ["firstname", "lastname"],
-                    where: { emp_id: managerDetails ? user.managerId : adminRole.emp_id },
-                    order: {
-                        updatedAt: 'DESC',
-                        createdAt: 'DESC'
-                    }
-                });
-                let usersData: any = {
-                    name: `${user.firstname} ${user.lastname}`,
-                    emp_id: user.emp_id,
-                    zone: user.zone,
-                    role: user.role,
-                    manager: `${managerData.firstname} ${managerData.lastname}`
-                }
-                usersList.push(usersData);
-            }
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: usersList }
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         if (role === UserRole.RSM) {
+    //             queryBuilder.andWhere('user.role = :role', { role: UserRole.SSM })
+    //             .andWhere('user.managerId = :emp_id', { emp_id });
+    //         }
+    //         const users: IUser[] | null = await queryBuilder.getMany();
+    //         const adminRole: any = users.find((data)=>data.role === UserRole.ADMIN)
+    //         let usersList: IUser[] | null = [];
+    //         for (const user of users) {
+    //             const managerDetails: IUser | null = await this.userListRepositry.findOne({
+    //                 select: ["emp_id"],
+    //                 where: {
+    //                     emp_id: user.managerId
+    //                 },
+    //             });
+    //             const managerData = await this.userListRepositry.findOne({
+    //                 select: ["firstname", "lastname"],
+    //                 where: { emp_id: managerDetails ? user.managerId : adminRole.emp_id },
+    //                 order: {
+    //                     updatedAt: 'DESC',
+    //                     createdAt: 'DESC'
+    //                 }
+    //             });
+    //             let usersData: any = {
+    //                 name: `${user.firstname} ${user.lastname}`,
+    //                 emp_id: user.emp_id,
+    //                 zone: user.zone,
+    //                 role: user.role,
+    //                 manager: `${managerData.firstname} ${managerData.lastname}`
+    //             }
+    //             usersList.push(usersData);
+    //         }
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: usersList }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async getManagersList(): Promise<IApiResponse> {
         try {
@@ -124,21 +124,21 @@ class UsersController {
     // }
 
 
-    async updateUser(payload: IUser, input: UpdateUser): Promise<IApiResponse> {
-        try {
-            const { emp_id } = payload;
-            const { firstname, lastname, empId, role, dob, zone, managerId, address, city, state, pincode, learningRole, phone, email, joining_date, age } = input;
-            // if (!name) {
-            //     return { message: "Name can't be empty.", status: STATUSCODES.BAD_REQUEST }
-            // }
+    // async updateUser(payload: IUser, input: UpdateUser): Promise<IApiResponse> {
+    //     try {
+    //         const { emp_id } = payload;
+    //         const { firstname, lastname, empId, role, dob, zone, managerId, address, city, state, pincode, learningRole, phone, email, joining_date, age } = input;
+    //         // if (!name) {
+    //         //     return { message: "Name can't be empty.", status: STATUSCODES.BAD_REQUEST }
+    //         // }
 
-            await this.userListRepositry.createQueryBuilder().update({ firstname: firstname, lastname: lastname, role: role, zone: zone, managerId: managerId, address: address, city, state, pincode, learningRole: learningRole, phone: phone, email: email, joining_date: joining_date, age: age, dob }).where({ emp_id: empId }).execute();
+    //         await this.userListRepositry.createQueryBuilder().update({ firstname: firstname, lastname: lastname, role: role, zone: zone, managerId: managerId, address: address, city, state, pincode, learningRole: learningRole, phone: phone, email: email, joining_date: joining_date, age: age, dob }).where({ emp_id: empId }).execute();
 
-            return { message: "Updated.", status: STATUSCODES.SUCCESS }
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         return { message: "Updated.", status: STATUSCODES.SUCCESS }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async deleteUser(input: DeleteUser): Promise<IApiResponse> {
         try {
@@ -341,75 +341,77 @@ class UsersController {
     //         throw error;
     //     }
     // }
-    async getStoresByEmpId(input: GetUsers, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { empId } = input;
-            const { role } = payload;
+
+
+    // async getStoresByEmpId(input: GetUsers, payload: IUser): Promise<IApiResponse> {
+    //     try {
+    //         const { empId } = input;
+    //         // const { role } = payload;
     
-            console.log({ input, payload });
+    //         console.log({ input, payload });
     
-            let storeQueryBuilder = this.storeRepositry.createQueryBuilder("stores")
-                .select([
-                    "stores.storeId AS storeId",
-                    "stores.storeName AS storeName",
-                    "stores.updatedAt AS updatedAt",
-                    "stores.createdAt AS createdAt",
-                ])
-                .orderBy("stores.updatedAt", "DESC")
-                .addOrderBy("stores.createdAt", "DESC");
+    //         let storeQueryBuilder = this.storeRepositry.createQueryBuilder("stores")
+    //             .select([
+    //                 "stores.storeId AS storeId",
+    //                 "stores.storeName AS storeName",
+    //                 "stores.updatedAt AS updatedAt",
+    //                 "stores.createdAt AS createdAt",
+    //             ])
+    //             .orderBy("stores.updatedAt", "DESC")
+    //             .addOrderBy("stores.createdAt", "DESC");
     
-            if (role === UserRole.ADMIN) {
-                // ADMIN can access all stores
-                console.log("Admin accessing all stores.");
-            } else {
-                let storeIds: number[] = [];
+    //         if (role === UserRole.ADMIN) {
+    //             // ADMIN can access all stores
+    //             console.log("Admin accessing all stores.");
+    //         } else {
+    //             let storeIds: number[] = [];
     
-                if (role === UserRole.SSM || role === UserRole.MANAGER) {
-                    // Fetch stores from beats assigned to the user
-                    const storeIdByBeat = await this.beatRepository
-                        .createQueryBuilder("beat")
-                        .select("beat.store")
-                        .where("beat.empId = :empId", { empId: Number(empId) })
-                        .getMany();
+    //             if (role === UserRole.SSM || role === UserRole.MANAGER) {
+    //                 // Fetch stores from beats assigned to the user
+    //                 const storeIdByBeat = await this.beatRepository
+    //                     .createQueryBuilder("beat")
+    //                     .select("beat.store")
+    //                     .where("beat.empId = :empId", { empId: Number(empId) })
+    //                     .getMany();
     
-                    console.log({ storeIdByBeat });
+    //                 console.log({ storeIdByBeat });
     
-                    storeIds = storeIdByBeat.flatMap((beat: any) => {
-                        if (!beat.store || beat.store === "NaN") return [];
-                        return Array.isArray(beat.store) ? beat.store : [beat.store];
-                    });
+    //                 storeIds = storeIdByBeat.flatMap((beat: any) => {
+    //                     if (!beat.store || beat.store === "NaN") return [];
+    //                     return Array.isArray(beat.store) ? beat.store : [beat.store];
+    //                 });
     
-                    storeIds = [...new Set(storeIds)]; // Remove duplicates
-                    console.log({ storeIds });
+    //                 storeIds = [...new Set(storeIds)]; // Remove duplicates
+    //                 console.log({ storeIds });
     
-                    if (storeIds.length > 0) {
-                        storeQueryBuilder.andWhere("stores.storeId IN (:...storeIds)", { storeIds });
-                    }
-                }
+    //                 if (storeIds.length > 0) {
+    //                     storeQueryBuilder.andWhere("stores.storeId IN (:...storeIds)", { storeIds });
+    //                 }
+    //             }
     
-                if (role === UserRole.MANAGER) {
-                    // Fetch employees under the manager
-                    const userLists: IUser[] = await this.userListRepositry.find({ where: { managerId: empId } });
-                    const empIds = userLists.map((data: IUser) => data.emp_id);
+    //             if (role === UserRole.MANAGER) {
+    //                 // Fetch employees under the manager
+    //                 const userLists: IUser[] = await this.userListRepositry.find({ where: { managerId: empId } });
+    //                 const empIds = userLists.map((data: IUser) => data.emp_id);
     
-                    if (empIds.length > 0) {
-                        storeQueryBuilder.andWhere("stores.empId IN (:...empIds)", { empIds });
-                    } else {
-                        return { message: "No stores found.", status: STATUSCODES.NOT_FOUND, data: [] };
-                    }
-                }
-            }
+    //                 if (empIds.length > 0) {
+    //                     storeQueryBuilder.andWhere("stores.empId IN (:...empIds)", { empIds });
+    //                 } else {
+    //                     return { message: "No stores found.", status: STATUSCODES.NOT_FOUND, data: [] };
+    //                 }
+    //             }
+    //         }
     
-            // Execute the query
-            const storeData = await storeQueryBuilder.getRawMany();
+    //         // Execute the query
+    //         const storeData = await storeQueryBuilder.getRawMany();
     
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: storeData ?? [] };
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: storeData ?? [] };
     
-        } catch (error) {
-            console.error("Error in getStoresByEmpId:", error);
-            throw error;
-        }
-    }
+    //     } catch (error) {
+    //         console.error("Error in getStoresByEmpId:", error);
+    //         throw error;
+    //     }
+    // }
     
     
     async getStoresByBeatId(input: any, payload: IUser): Promise<IApiResponse> {

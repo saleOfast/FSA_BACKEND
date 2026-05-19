@@ -30,9 +30,9 @@ class GiftsService {
         try {
             const GiftsList = await this.GiftsRepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true
-                    // , product: true 
-                },
+                // relations: { store: true, user: true
+                //     // , product: true 
+                // },
                 order: { createdAt: "DESC" },
             });
             return { status: STATUSCODES.SUCCESS, message: "Gifts list retrieved successfully.", data: GiftsList };

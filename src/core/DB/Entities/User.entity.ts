@@ -1,5 +1,5 @@
 import { ExpenseReportClaimType, UserRole } from "../../types/Constent/common";
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, DeleteDateColumn, ManyToOne, JoinColumn, OneToMany, OneToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository, DeleteDateColumn, ManyToOne, JoinColumn, OneToMany, OneToOne, BeforeUpdate, BeforeInsert, } from "typeorm";
 import { DbConnections } from "../postgresdb";
 import { IUser } from "../../../core/types/AuthService/AuthService";
 import { UserTypes } from "./userType.entity";
@@ -17,87 +17,131 @@ import { NewTarget } from "./new.target.entity";
 import { Profile } from "./profile.entity";
 
 
+
 @Entity({ name: "users" })
 export class User extends BaseEntity implements IUser {
-    @PrimaryGeneratedColumn()
-    emp_id: number
+@PrimaryGeneratedColumn()
+emp_id: number
 
-    @Column({ name: 'user_type_id', nullable: true })
-    userTypeId: string
+@Column({ type: "varchar", length: 100 })
+firstname: string;
 
-    @ManyToOne(() => UserTypes, { nullable: true })
-    @JoinColumn({ name: 'user_type_id' })
-    userType?: UserTypes;
+@Column({ type: "varchar", length: 100, nullable: true })
+middlename: string;
 
-    @Column()
-    firstname: string
+@Column({ type: "varchar", length: 100 })
+lastname: string;
 
-    @Column({ nullable: true })
-    lastname: string
 
-    @Column({ nullable: true })
-    orgName: string
+@Column({ type: "varchar", length: 255, nullable: true })
+name: string;
 
-    // @Column({
-    //     nullable: true,
-    //     name: 'practice_type',
-    //     enum: PracticeTypeEnum,
-    // })
-    // practice_type: PracticeTypeEnum
+@BeforeInsert()
+@BeforeUpdate()
+generateFullName() {
+  this.name = [
+    this.firstname,
+    this.middlename,
+    this.lastname,
+  ]
+    .filter((part) => part?.trim())
+    .join(" ");
+}
 
-    @Column({ nullable: true })
-    age: number
 
-    @Column({ nullable: true })
-    address: string
+@Column({ type: "varchar", length: 100, unique: true,nullable: true })
+username: string;
 
-    @Column({ nullable: true })
-    city: string
+@Column ({name:'nickname' , type: "varchar", length: 100, nullable: true})
+nickname: string;
 
-    @Column({ nullable: true })
-    state: string
+@Column({ nullable: true })
+email: string
 
-    @Column({ nullable: true })
-    pincode: string
+@Column({ type: "varchar", length: 255 })
+password: string;
 
-    @Column()
-    phone: string
+@Column({ default: true })
+active: boolean;
 
-    @Column({ nullable: true })
-    email: string
+@Column({ type: "varchar", length: 100, nullable: true })
+country: string;
+@Column({ type: "varchar", length: 100, nullable: true })
+state: string;
+@Column({ nullable: true })
+city: string
 
-    @Column({ nullable: true })
-    zone: string
+@Column({ type: "varchar", length: 100, nullable: true })
+region: string;
+@Column({ nullable: true })
+pincode: string
 
-    @Column()
-    joining_date: Date
+@Column({ type: "text", nullable: true })
+street: string;
 
-    @Column({ nullable: true })
-    dob: Date
+@Column({ type: "varchar", length: 20, nullable: true })
+phone: string;
 
-    @Column()
-    password: string
+@Column({ type:"varchar", length: 20, nullable: true })
+mobile: string;
 
-    @Column({ nullable: true })
-    image: string;
+@Column({ type: "varchar", length: 100, nullable: true })
+department: string;
+
+@Column({ type: "varchar", length: 100, nullable: true })
+division: string;
+
+@Column({ type: "varchar", length: 100, nullable: true })
+team: string;
+
+@Column({ type: "varchar", length: 100, nullable: true })
+vertical: string;
+
+@Column({ type: "varchar", length: 100, nullable: true })
+title: string;
+
+@Column({ type: "varchar", length: 100, nullable: true })
+language: string;
+
+@Column({ type: "varchar", length: 100, nullable: true })
+timeZone: string;
+
+@Column({ type: "varchar", length: 100, nullable: true, unique: true })
+employeeId: string;
+
+@Column({ type: "date", nullable: true })
+joining_date: Date
+
+@Column({ type: "date", nullable: true })
+resignationDate: Date;
+
+@ManyToOne(() => User, { nullable: true })
+@JoinColumn({ name: "managerId" })
+manager: User;
+
+@ManyToOne(() => User, { nullable: true })
+@JoinColumn({ name: "delegatedApproverId" })
+delegatedApprover: User;
+
+@Column({ nullable: true })
+delegatedApproverId: number;
+
+    // Role
+  @Column({ nullable: true })
+  roleId: number;
+
+  /*
+  @ManyToOne(() => Role)
+  @JoinColumn({ name: "roleId" })
+  role: Role;
+  */
+
+
+  @Column({ default: false })
+  isDeleted: boolean;
 
     @Column({ name: 'manager_id' })
     managerId: number
-
-    @Column({ name: 'availability', nullable: true })
-    availability: number
-
-    @Column({ name: 'patient_volume', nullable: true })
-    patientVolume: number
-
-    @Column({ name: 'value_target', nullable: true })
-    valueTarget: number
-
-    @Column({ name: 'store_target', nullable: true })
-    storeTarget: number
-
-    @Column({ name: 'learning_role', nullable: true })
-    learningRole?: string
 
     @Column({ name: 'profile_id', nullable: true })
     profileId?: number;
@@ -107,15 +151,14 @@ export class User extends BaseEntity implements IUser {
     profile?: Profile;
 
 
-    @Column({
-        type: 'enum',
-        enum: UserRole,
-        default: UserRole.SSM, // Set default role to USER  
-    })
-    role: UserRole
+    // @Column({
+    //     type: 'enum',
+    //     enum: UserRole,
+    //     default: UserRole.SSM, // Set default role to USER  
+    // })
+    // role: UserRole
 
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean
+
 
     @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
     createdAt: Date;
@@ -132,32 +175,32 @@ export class User extends BaseEntity implements IUser {
     // @OneToMany(() => Taxes, (tax) => tax.user)
     // taxes: Taxes[];
 
-    @OneToMany(() => Workplace, (workplace) => workplace.user)
-    workplace: Workplace[];
+    // @OneToMany(() => Workplace, (workplace) => workplace.user)
+    // workplace: Workplace[];
 
-    @OneToMany(() => Sessions, (sessions) => sessions.user)
-    sessions: Sessions[];
+    // @OneToMany(() => Sessions, (sessions) => sessions.user)
+    // sessions: Sessions[];
 
-    @OneToMany(() => FeedBack, (feedback) => feedback.user)
-    feedback: FeedBack[];
+    // @OneToMany(() => FeedBack, (feedback) => feedback.user)
+    // feedback: FeedBack[];
 
-    @OneToMany(() => Samples, (samples) => samples.user)
-    samples: Samples[];
+    // @OneToMany(() => Samples, (samples) => samples.user)
+    // samples: Samples[];
 
-    @OneToMany(() => Gifts, (samples) => samples.user)
-    gift: Gifts[];
+    // @OneToMany(() => Gifts, (samples) => samples.user)
+    // gift: Gifts[];
 
-    @OneToMany(() => Holiday, (holiday) => holiday.user)
-    holiday: Holiday[];
+    // @OneToMany(() => Holiday, (holiday) => holiday.user)
+    // holiday: Holiday[];
 
-    @OneToMany(() => JointWork, (jointWork) => jointWork.user)
-    jointWorks?: JointWork;
+    // @OneToMany(() => JointWork, (jointWork) => jointWork.user)
+    // jointWorks?: JointWork;
 
-    @OneToMany(() => RCPA, (rcpa) => rcpa.user)
-    rcpa: RCPA[];
+    // @OneToMany(() => RCPA, (rcpa) => rcpa.user)
+    // rcpa: RCPA[];
 
-    @OneToMany(() => NewTarget, (target) => target.user)
-    target: NewTarget[];
+    // @OneToMany(() => NewTarget, (target) => target.user)
+    // target: NewTarget[];
 }
 
 export const UserRepository = (): Repository<any> => {

@@ -46,17 +46,17 @@ router.delete('/delete/:storeId', validateDtoMiddleware(DeleteStoreById), Access
     }
 });
 
-router.get('/storeList', validateDtoMiddleware(StoreListFilter), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: StoreListFilter = RequestHandler.Defaults.getQuery<StoreListFilter>(req, StoreListFilter);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const storeService = new StoreService();
-        const data = await storeService.storeList(input, payload);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/storeList', validateDtoMiddleware(StoreListFilter), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: StoreListFilter = RequestHandler.Defaults.getQuery<StoreListFilter>(req, StoreListFilter);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const storeService = new StoreService();
+//         const data = await storeService.storeList(input, payload);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.get('/getStore', validateDtoMiddleware(GetStoreById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
     try {
@@ -136,35 +136,35 @@ router.delete('/deleteCategory/:categoryId', validateDtoMiddleware(DeleteCategor
     }
 });
 
-router.post('/add/importStore',
-    AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), 
-    async (req: Request, res: Response) => {
-        try {
-            const inputs: CreateStore[] = RequestHandler.Defaults.getBody<CreateStore[]>(req);
+// router.post('/add/importStore',
+//     AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), 
+//     async (req: Request, res: Response) => {
+//         try {
+//             const inputs: CreateStore[] = RequestHandler.Defaults.getBody<CreateStore[]>(req);
 
-            // Manually validate array of inputs
-            if (!Array.isArray(inputs)) {
-                return res.status(400).json({ message: 'Expected an array of stores.' });
-            }
+//             // Manually validate array of inputs
+//             if (!Array.isArray(inputs)) {
+//                 return res.status(400).json({ message: 'Expected an array of stores.' });
+//             }
 
-            for (const input of inputs) {
-                const errors = validateSync(plainToInstance(CreateStore, input));
-                if (errors.length > 0) {
-                    return res.status(400).json({ errors });
-                }
-            }
+//             for (const input of inputs) {
+//                 const errors = validateSync(plainToInstance(CreateStore, input));
+//                 if (errors.length > 0) {
+//                     return res.status(400).json({ errors });
+//                 }
+//             }
 
-            const payload: IUser = RequestHandler.Custom.getUser(req);
-            const storeService = new StoreService();
+//             const payload: IUser = RequestHandler.Custom.getUser(req);
+//             const storeService = new StoreService();
 
-            const results = await storeService.createImportStores(inputs, payload);
+//             const results = await storeService.createImportStores(inputs, payload);
 
-            ResponseHandler.sendResponse(res, results);
-        } catch (error) {
-            ResponseHandler.sendErrorResponse(res, error);
-        }
-    }
-);
+//             ResponseHandler.sendResponse(res, results);
+//         } catch (error) {
+//             ResponseHandler.sendErrorResponse(res, error);
+//         }
+//     }
+// );
 router.post('/importStoreCategories',
     AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
     async (req: Request, res: Response) => {

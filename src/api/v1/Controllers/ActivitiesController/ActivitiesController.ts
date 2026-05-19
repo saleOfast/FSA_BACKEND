@@ -51,9 +51,9 @@ class ActivitiesService {
                 relations: {
                     user: true,
                     // product: true,
-                    jointWorks: {
-                        user: true // Populate user inside jointWorks
-                    }
+                    // jointWorks: {
+                    //     user: true // Populate user inside jointWorks
+                    // }
                 },
                 order: { createdAt: "DESC" },
             });

@@ -33,29 +33,29 @@ router.get('/visitList', validateDtoMiddleware(VisitListFilter), AccessTokenServ
     }
 });
 
-router.get('/getVisit/:visitId', validateDtoMiddleware(GetVisitById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: GetVisitById = RequestHandler.Defaults.getParams<GetVisitById>(req, GetVisitById);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const visitService = new VisitService()
-        const data = await visitService.getVisitById(payload, input);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/getVisit/:visitId', validateDtoMiddleware(GetVisitById), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: GetVisitById = RequestHandler.Defaults.getParams<GetVisitById>(req, GetVisitById);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const visitService = new VisitService()
+//         const data = await visitService.getVisitById(payload, input);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
-router.post('/updateImage', validateDtoMiddleware(UpdateImage), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: UpdateImage = RequestHandler.Defaults.getBody<UpdateImage>(req, UpdateImage);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const visitService = new VisitService()
-        const data = await visitService.updateImage(payload, input);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.post('/updateImage', validateDtoMiddleware(UpdateImage), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: UpdateImage = RequestHandler.Defaults.getBody<UpdateImage>(req, UpdateImage);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
+//         const visitService = new VisitService()
+//         const data = await visitService.updateImage(payload, input);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.post('/checkIn', validateDtoMiddleware(CheckInRequest), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
     try {

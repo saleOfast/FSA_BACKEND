@@ -20,9 +20,9 @@ export class Holiday extends BaseEntity {
     @Column({ name: 'day', nullable: true })
     day: string;
 
-    @ManyToOne(() => User, (user) => user.holiday, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
-    user: User;
+    // @ManyToOne(() => User, (user) => user.holiday, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
+    // user: User;
 
     @Column({ name: 'added_by', nullable: true })
     addedBy: number;

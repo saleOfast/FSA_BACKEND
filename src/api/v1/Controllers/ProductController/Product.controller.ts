@@ -306,7 +306,7 @@ class ProductController {
     // }
     async list(input: GetProductListRequest, payload: IUser): Promise<IApiResponse> {
         try {
-            const { role } = payload;
+            const { roleId } = payload;
             const { search, category, isActive } = input;
 
             console.log({ input });
@@ -321,9 +321,9 @@ class ProductController {
                 .where('product.isDeleted = :isDeleted', { isDeleted: false });
 
             // Add conditions dynamically
-            if (role === UserRole.SSM || role === UserRole.RETAILER) {
-                queryBuilder.andWhere('product.status = :status', { status: 'Active' });
-            }
+            // if (role === UserRole.SSM || role === UserRole.RETAILER) {
+            //     queryBuilder.andWhere('product.status = :status', { status: 'Active' });
+            // }
             if (isActive === 'true') {
                 queryBuilder.andWhere('product.status = :status', { status: 'Active' });
             }

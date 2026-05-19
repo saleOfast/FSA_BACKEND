@@ -16,9 +16,9 @@ export class Workplace extends BaseEntity {
     @Column({ name: 'store_id', nullable: true }) 
     storeId?: number;
 
-    @ManyToOne(() => User, (user) => user.workplace, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
-    user: User;
+    // @ManyToOne(() => User, (user) => user.workplace, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
+    // user: User;
 
     @Column({ name: 'added_by' })
     addedBy: number;

@@ -8,9 +8,9 @@ export class JointWork extends BaseEntity {
     @PrimaryGeneratedColumn({ name: 'joint_work_id' })
     jwId: number;
 
-    @ManyToOne(() => User, (user) => user.jointWorks, { onDelete: "CASCADE" }) // Many joint works can belong to one user
-    @JoinColumn({ name: 'emp_id' })
-    user: User;
+    // @ManyToOne(() => User, (user) => user.jointWorks, { onDelete: "CASCADE" }) // Many joint works can belong to one user
+    // @JoinColumn({ name: 'emp_id' })
+    // user: User;
 
     @ManyToOne(() => Activities, (activity) => activity.jointWorks, { onDelete: "CASCADE" })
     @JoinColumn({ name: 'activity_id' })  // Correct placement of @JoinColumn

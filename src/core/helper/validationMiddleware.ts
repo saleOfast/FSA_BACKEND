@@ -44,12 +44,12 @@ AccessTokenService.validateTokenMiddleware = (tokenType?: JwtTokenTypes, allowed
             if (!user) {
                 throw new Error("User Not Found.");
             }
-            const roles = user.role;
-            if (allowedRoles && allowedRoles.length) {
-                if (!allowedRoles.some(role => roles.includes(role))) {
-                    throw new Error('No valid role found');
-                }
-            }
+            // const roles = user.role;
+            // if (allowedRoles && allowedRoles.length) {
+            //     if (!allowedRoles.some(role => roles.includes(role))) {
+            //         throw new Error('No valid role found');
+            //     }
+            // }
             payloadBody = user;
             isTokenVerified = true;
             userData = user;

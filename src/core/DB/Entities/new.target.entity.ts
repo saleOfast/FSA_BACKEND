@@ -11,9 +11,9 @@ export class NewTarget extends BaseEntity {
     @Column({ name: 'emp_id' })
     empId: number;
 
-    @ManyToOne(() => User, (user) => user.target, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'emp_id', referencedColumnName: 'emp_id' })
-    user: User;
+    // @ManyToOne(() => User, (user) => user.target, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'emp_id', referencedColumnName: 'emp_id' })
+    // user: User;
 
     @Column({ name: 'store_target', nullable: true })
     storeTarget: number

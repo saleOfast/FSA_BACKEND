@@ -30,7 +30,7 @@ class SessionsService {
         try {
             const SessionsList = await this.sessionsRepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true, product: true },
+                // relations: { store: true, user: true, product: true },
                 order: { createdAt: "DESC" },
             });
             return { status: STATUSCODES.SUCCESS, message: "Session list retrieved successfully.", data: SessionsList };

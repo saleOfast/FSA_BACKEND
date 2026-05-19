@@ -19,9 +19,9 @@ export class RCPA extends BaseEntity {
     @Column({ name: 'store_id', nullable: true }) // Store ID column
     storeId?: number;
 
-    @ManyToOne(() => User, (user) => user.rcpa, { onDelete: "CASCADE" })
-    @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
-    user: User;
+    // @ManyToOne(() => User, (user) => user.rcpa, { onDelete: "CASCADE" })
+    // @JoinColumn({ name: 'added_by', referencedColumnName: 'emp_id' })
+    // user: User;
 
     @Column({ name: 'added_by', nullable: true })
     addedBy: number;

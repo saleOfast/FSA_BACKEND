@@ -1,27 +1,68 @@
-import { IsArray, IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 import { SpecialDiscountStatus, UserRole } from "../Constent/common";
+import { User } from "../../DB/Entities/User.entity"
+import { Profile } from "../../DB/Entities/profile.entity"
 
 export interface IUser {
     emp_id: number;
+
     firstname: string;
+    middlename?: string | null;
     lastname: string;
-    age: number;
-    dob: Date;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-    phone: string;
-    email: string;
-    zone: string;
-    joining_date: Date;
+    name?: string | null;
+
+    username: string;
+    nickname?: string | null;
+
+    email?: string | null;
+
     password: string;
-    managerId: number;
-    image: string | null;
-    role: UserRole;
-    learningRole?: string | null;
+
+    active: boolean;
+
+    country?: string | null;
+    state?: string | null;
+    city?: string | null;
+    region?: string | null;
+    pincode?: string | null;
+    street?: string | null;
+
+    phone?: string | null;
+    mobile?: string | null;
+
+    department?: string | null;
+    division?: string | null;
+    team?: string | null;
+    vertical?: string | null;
+    title?: string | null;
+
+    language?: string | null;
+    timeZone?: string | null;
+
+    employeeId?: string | null;
+
+    joining_date?: Date | null;
+    resignationDate?: Date | null;
+
+    managerId?: number | null;
+    manager?: User | null;
+
+    delegatedApproverId?: number | null;
+    delegatedApprover?: User | null;
+
+    roleId?: number | null;
+
+    profileId?: number | null;
+    profile?: Profile | null;
+
+    // role: UserRole;
+
+    isDeleted: boolean;
+
     createdAt: Date;
     updatedAt: Date;
+
+    deleted_at?: Date | null;
 }
 
 export class Login {
@@ -42,9 +83,10 @@ export class ForgetPassword {
     @IsNumber()
     phone: number;
 
-    @IsNotEmpty()
-    @IsDateString()
-    dob: Date;
+
+  @IsNotEmpty()
+  @IsDateString()
+  joining_date: Date;
 }
 
 export class ResetPassword {
@@ -70,76 +112,137 @@ export class ResetConfirmPassword {
     @IsNumber()
     empId: string
 }
+
 export class SignUp {
+
     @IsString()
     @IsNotEmpty()
     firstname: string;
 
-    @IsString()
     @IsOptional()
+    @IsString()
+    middlename?: string;
+
+    @IsString()
+    @IsNotEmpty()
     lastname: string;
 
-    @IsNumber()
-    @IsOptional()
-    age: number;
-
-    @IsString()
-    @IsOptional()
-    address: string;
-
-    @IsString()
-    @IsOptional()
-    city: string;
-
-    @IsString()
-    @IsOptional()
-    state: string;
-
-    @IsString()
-    @IsOptional()
-    pincode: string;
-
     @IsString()
     @IsNotEmpty()
-    phone: string;
+    username: string;
 
-    @IsString()
     @IsOptional()
-    email: string;
-
-    @IsString()
-    @IsOptional()
-    zone: string;
-
-    @IsDateString()
-    @IsNotEmpty()
-    joining_date: Date;
-
-    // @IsDateString()
-    @IsOptional()
-    dob: Date;
+    @IsEmail()
+    email?: string;
 
     @IsString()
     @IsNotEmpty()
     password: string;
 
-    @IsNotEmpty()
-    @IsNumber()
-    managerId: number;
-
-    @IsNotEmpty()
-    @IsEnum(UserRole)
-    role: UserRole;
+    @IsOptional()
+    @IsBoolean()
+    active?: boolean;
 
     @IsOptional()
     @IsString()
-    learningRole?: string;
-}
+    country?: string;
 
-export class UpdateUserProfile {
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    image: string
+    state?: string;
+
+    @IsOptional()
+    @IsString()
+    city?: string;
+
+    @IsOptional()
+    @IsString()
+    region?: string;
+
+    @IsOptional()
+    @IsString()
+    pincode?: string;
+
+    @IsOptional()
+    @IsString()
+    street?: string;
+
+    @IsOptional()
+    @IsString()
+    phone?: string;
+
+    @IsOptional()
+    @IsString()
+    mobile?: string;
+
+    @IsOptional()
+    @IsString()
+    department?: string;
+
+    @IsOptional()
+    @IsString()
+    division?: string;
+
+    @IsOptional()
+    @IsString()
+    team?: string;
+
+    @IsOptional()
+    @IsString()
+    vertical?: string;
+
+    @IsOptional()
+    @IsString()
+    title?: string;
+
+    @IsOptional()
+    @IsString()
+    language?: string;
+
+    @IsOptional()
+    @IsString()
+    timeZone?: string;
+
+    @IsOptional()
+    @IsString()
+    employeeId?: string;
+
+    @IsOptional()
+    @IsDateString()
+    joining_date?: Date;
+
+    @IsOptional()
+    @IsDateString()
+    resignationDate?: Date;
+
+    @IsOptional()
+    @IsNumber()
+    managerId?: number;
+
+    @IsOptional()
+    @IsNumber()
+    delegatedApproverId?: number;
+
+    @IsOptional()
+    @IsNumber()
+    roleId?: number;
+
+    @IsOptional()
+    @IsNumber()
+    profileId?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    isDeleted?: boolean;
+
+    // @IsNotEmpty()
+    // @IsEnum(UserRole)
+    // role: UserRole;
+}
+export class UpdateUserProfile {
+    // @IsNotEmpty()
+    // @IsString()
+    // image: string
 
     @IsNotEmpty()
     @IsString()
@@ -151,6 +254,8 @@ export class DeleteUserProfile {
     @IsString()
     empId: string
 }
+
+
 export class DashboardFilter {
     @IsOptional()
     @IsArray()
@@ -174,21 +279,54 @@ export class TargetSummaryFilter {
     timelineYear: string
 }
 
-
 export declare namespace IUserProfile {
+
     interface IProfile {
-        id: number,
-        name: string,
-        address: string,
-        contactNumber: string,
-        joiningDate: string,
-        emailId: string,
-        zone: string,
-        manager: string,
-        isCheckInMarked: boolean,
-        isCheckOutMarked: boolean,
-        role: UserRole,
-        image: string | null
+
+        emp_id: number;
+
+        firstname: string;
+        middlename?: string | null;
+        lastname: string;
+        name?: string | null;
+
+        username: string;
+
+        email?: string | null;
+
+        phone?: string | null;
+        mobile?: string | null;
+
+        country?: string | null;
+        state?: string | null;
+        city?: string | null;
+        region?: string | null;
+        pincode?: string | null;
+        street?: string | null;
+
+        department?: string | null;
+        division?: string | null;
+        team?: string | null;
+        vertical?: string | null;
+        title?: string | null;
+
+        language?: string | null;
+        timeZone?: string | null;
+
+        employeeId?: string | null;
+
+        joining_date?: Date | null;
+        resignationDate?: Date | null;
+
+        managerName?: string | null;
+        delegatedApproverName?: string | null;
+
+        role: UserRole;
+
+        active: boolean;
+
+        createdAt: Date;
+        updatedAt: Date;
     }
 }
 
@@ -197,75 +335,131 @@ export class GetUsers {
     @IsString()
     empId: string
 }
-
 export class UpdateUser {
 
     @IsNotEmpty()
     @IsNumber()
-    empId: number
+    emp_id: number;
 
-    @IsString()
-    @IsNotEmpty()
-    firstname: string;
-
-    @IsString()
     @IsOptional()
-    lastname: string;
-
-    @IsNumber()
-    @IsOptional()
-    age: number;
-
     @IsString()
+    firstname?: string;
+
     @IsOptional()
-    address: string;
-
     @IsString()
+    middlename?: string;
+
     @IsOptional()
-    city: string;
-
     @IsString()
+    lastname?: string;
+
     @IsOptional()
-    state: string;
-
     @IsString()
+    username?: string;
+
     @IsOptional()
-    pincode: string;
+    @IsEmail()
+    email?: string;
 
-    @IsString()
-    @IsNotEmpty()
-    phone: string;
-
-    @IsString()
     @IsOptional()
-    email: string;
-
     @IsString()
-    @IsOptional()
-    zone: string;
+    phone?: string;
 
+    @IsOptional()
+    @IsString()
+    mobile?: string;
+
+    @IsOptional()
+    @IsString()
+    country?: string;
+
+    @IsOptional()
+    @IsString()
+    state?: string;
+
+    @IsOptional()
+    @IsString()
+    city?: string;
+
+    @IsOptional()
+    @IsString()
+    region?: string;
+
+    @IsOptional()
+    @IsString()
+    pincode?: string;
+
+    @IsOptional()
+    @IsString()
+    street?: string;
+
+    @IsOptional()
+    @IsString()
+    department?: string;
+
+    @IsOptional()
+    @IsString()
+    division?: string;
+
+    @IsOptional()
+    @IsString()
+    team?: string;
+
+    @IsOptional()
+    @IsString()
+    vertical?: string;
+
+    @IsOptional()
+    @IsString()
+    title?: string;
+
+    @IsOptional()
+    @IsString()
+    language?: string;
+
+    @IsOptional()
+    @IsString()
+    timeZone?: string;
+
+    @IsOptional()
+    @IsString()
+    employeeId?: string;
+
+    @IsOptional()
     @IsDateString()
-    @IsOptional()
-    joining_date: Date;
-    
-    // @IsDateString()
-    @IsOptional()
-    dob: Date;
-    // @IsString()
-    // @IsNotEmpty()
-    // password: string;
+    joining_date?: Date;
 
-    @IsNotEmpty()
-    @IsNumber()
-    managerId: number;
-
-    @IsNotEmpty()
-    @IsEnum(UserRole)
-    role: UserRole;
+    @IsOptional()
+    @IsDateString()
+    resignationDate?: Date;
 
     @IsOptional()
     @IsString()
-    learningRole?: string;
+    managerName?: string;
+
+    @IsOptional()
+    @IsString()
+    delegatedApproverName?: string;
+
+    @IsOptional()
+    @IsNumber()
+    roleId?: number;
+
+    @IsOptional()
+    @IsNumber()
+    profileId?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    active?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    isDeleted?: boolean;
+
+    @IsOptional()
+    @IsEnum(UserRole)
+    role?: UserRole;
 }
 
 export class DeleteUser {
@@ -273,16 +467,18 @@ export class DeleteUser {
     @IsString()
     empId: string
 }
-export class UpdateApprovalStore {
-    @IsNotEmpty()
-    @IsEnum(SpecialDiscountStatus)
-    specialDiscountStatus: SpecialDiscountStatus;
 
-    @IsNotEmpty()
-    @IsNumber()
-    orderId: number
 
-    @IsOptional()
-    @IsString()
-    specialDiscountComment?: string
-}
+// export class UpdateApprovalStore {
+//     @IsNotEmpty()
+//     @IsEnum(SpecialDiscountStatus)
+//     specialDiscountStatus: SpecialDiscountStatus;
+
+//     @IsNotEmpty()
+//     @IsNumber()
+//     orderId: number
+
+//     @IsOptional()
+//     @IsString()
+//     specialDiscountComment?: string
+// }

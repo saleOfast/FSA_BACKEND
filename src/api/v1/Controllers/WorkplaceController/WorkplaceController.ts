@@ -30,7 +30,7 @@ class WorkplaceService {
         try {
             const WorkplaceList = await this.WorkplaceRepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true },
+                // relations: { store: true, user: true },
                 order: { createdAt: "DESC" },
             });
             return { status: STATUSCODES.SUCCESS, message: "Workplace list retrieved successfully.", data: WorkplaceList };

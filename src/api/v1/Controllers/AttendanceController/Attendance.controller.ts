@@ -160,7 +160,7 @@ class AttendanceService {
     }
 
     async attendanceReport(payload: IUser, input: any): Promise<IApiResponse> {
-        const { role } = payload;
+        // const { role } = payload;
         const currentYr = new Date().getFullYear();
         // const today = new Date().getFullYear();
         let startTimeline: any = null, endTimeline: any = null

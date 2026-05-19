@@ -30,7 +30,7 @@ class FeedbackService {
         try {
             const FeedbackList = await this.FeedbackRepository.find({
                 where: { storeId: input.storeId },
-                relations: { store: true, user: true},
+                // relations: { store: true, user: true},
                     //  product: true },
                 order: { createdAt: "DESC" },
             });

@@ -63,39 +63,39 @@ router.post('/forgotPassword', catchAsync(async (req: Request, res: Response) =>
         ResponseHandler.sendErrorResponse(res, error);
     }
 }));
-router.get('/reset-password/:id/:role' , validateDtoMiddleware(ResetPassword), catchAsync(async (req: Request, res: Response) => {
-    try {
-        const input: ResetPassword = RequestHandler.Defaults.getParams<ResetPassword>(req, ResetPassword);
-        const data = await userController.forgotRedirect(input);
-        if(data.status === 200){
-            res.setHeader('X-Token-Verified', 'true');
-            res.redirect(302, `http://mrapp.saleofast.com/auth/confirm-password?empId=${input.id}`);
-        }else{
-            res.redirect("authError")
-        // ResponseHandler.sendResponse(res, data);
+// router.get('/reset-password/:id/:role' , validateDtoMiddleware(ResetPassword), catchAsync(async (req: Request, res: Response) => {
+//     try {
+//         const input: ResetPassword = RequestHandler.Defaults.getParams<ResetPassword>(req, ResetPassword);
+//         const data = await userController.forgotRedirect(input);
+//         if(data.status === 200){
+//             res.setHeader('X-Token-Verified', 'true');
+//             res.redirect(302, `http://mrapp.saleofast.com/auth/confirm-password?empId=${input.id}`);
+//         }else{
+//             res.redirect("authError")
+//         // ResponseHandler.sendResponse(res, data);
 
-        }
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-}));
+//         }
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// }));
 
-router.get('/reset-password/:id/:token' , verifyEmailToken, validateDtoMiddleware(ResetPassword), catchAsync(async (req: Request, res: Response) => {
-    try {
-        const input: ResetPassword = RequestHandler.Defaults.getParams<ResetPassword>(req, ResetPassword);
-        const data = await userController.forgotRedirect(input);
-        if(data.status === 200){
-            res.setHeader('X-Token-Verified', 'true');
-            res.redirect(302, `http://mrapp.saleofast.com/auth/confirm-password?empId=${input.id}`);
-        }else{
-            res.redirect("authError")
-        // ResponseHandler.sendResponse(res, data);
+// router.get('/reset-password/:id/:token' , verifyEmailToken, validateDtoMiddleware(ResetPassword), catchAsync(async (req: Request, res: Response) => {
+//     try {
+//         const input: ResetPassword = RequestHandler.Defaults.getParams<ResetPassword>(req, ResetPassword);
+//         const data = await userController.forgotRedirect(input);
+//         if(data.status === 200){
+//             res.setHeader('X-Token-Verified', 'true');
+//             res.redirect(302, `http://mrapp.saleofast.com/auth/confirm-password?empId=${input.id}`);
+//         }else{
+//             res.redirect("authError")
+//         // ResponseHandler.sendResponse(res, data);
 
-        }
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-}));
+//         }
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// }));
 
 router.post('/reset-password' , validateDtoMiddleware(ResetConfirmPassword), catchAsync(async (req: Request, res: Response) => {
     try {
