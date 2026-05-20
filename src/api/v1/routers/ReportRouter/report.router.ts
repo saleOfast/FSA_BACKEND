@@ -18,15 +18,15 @@ const router = express.Router();
 //     }
 // });
 
-router.get('/managersList', async (req: Request, res: Response) => {
-    try {
-        const usersListService = new UsersListService();
-        const data = await usersListService.getManagersList();
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/managersList', async (req: Request, res: Response) => {
+//     try {
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getManagersList();
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.get('/userDetails/:empId', async (req: Request, res: Response) => {
     try {
@@ -75,15 +75,15 @@ router.delete('/delete/:empId',   async (req: Request, res: Response) => {
     }
 });
 
-router.get('/learningRoleList', async (req: Request, res: Response) => {
-    try {
-        const usersListService = new UsersListService();
-        const data = await usersListService.getLearningRoleList();
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/learningRoleList', async (req: Request, res: Response) => {
+//     try {
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getLearningRoleList();
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 // router.get('/getStoresByEmpId/:empId',AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
 //     try {

@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import { AccessTokenService, ResponseHandler, validateDtoMiddleware } from "../../../../core/helper/validationMiddleware";
 import { UsersListService } from "../../Controllers/UsersController/Users.controller";
 import {  RequestHandler } from "../../../../core/helper/RequestHander";
-import { DeleteUser, GetUsers, IUser, SignUp, UpdateUser } from "../../../../core/types/AuthService/AuthService";
+import { DeleteUser, GetAllActiveUsersDto, GetUsers, IUser, SignUp, UpdateUser } from "../../../../core/types/AuthService/AuthService";
 import { JwtTokenTypes } from "../../../../core/types/Constent/common";
 import { validateSync } from "class-validator";
 import { plainToInstance } from "class-transformer";
@@ -21,15 +21,15 @@ const router = express.Router();
 //     }
 // });
 
-router.get('/managersList', async (req: Request, res: Response) => {
-    try {
-        const usersListService = new UsersListService();
-        const data = await usersListService.getManagersList();
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/managersList', async (req: Request, res: Response) => {
+//     try {
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getManagersList();
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.get('/userDetails/:empId', async (req: Request, res: Response) => {
     try {
@@ -42,17 +42,85 @@ router.get('/userDetails/:empId', async (req: Request, res: Response) => {
     }
 });
 
-// router.post('/update', validateDtoMiddleware(UpdateUser), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-//     try {
-//         const input: UpdateUser = RequestHandler.Defaults.getBody<UpdateUser>(req, UpdateUser);
-//         const payload: IUser = RequestHandler.Custom.getUser(req);
-//         const brandService = new UsersListService();
-//         const data = await brandService.updateUser(payload, input);
-//         ResponseHandler.sendResponse(res, data);
-//     } catch (error) {
-//         ResponseHandler.sendErrorResponse(res, error);
-//     }
-// });
+router.get('/usersList', async (req: Request, res: Response) => {
+
+    try {
+
+        const usersListService = new UsersListService();
+
+        const data = await usersListService.getUsersList();
+
+        ResponseHandler.sendResponse(res, data);
+
+    } catch (error) {
+
+        ResponseHandler.sendErrorResponse(res, error);
+
+    }
+
+});
+
+router.get('/users', async (req: Request, res: Response) => {
+
+    try {
+
+        const input =
+            RequestHandler.Defaults.getQuery<GetAllActiveUsersDto>(
+                req,
+                GetAllActiveUsersDto
+            );
+
+        const usersListService =
+            new UsersListService();
+
+        const data =
+            await usersListService.getActiveUsersList(input);
+
+        ResponseHandler.sendResponse(res, data);
+
+    } catch (error) {
+
+        ResponseHandler.sendErrorResponse(res, error);
+
+    }
+
+});
+
+
+router.post(
+  '/update',
+  validateDtoMiddleware(UpdateUser),
+
+  async (req: Request, res: Response) => {
+
+    try {
+
+      console.log("UPDATE API HIT");
+      console.log("BODY:", req.body);
+
+      const input: UpdateUser = req.body;
+
+      if (!input?.emp_id) {
+        return ResponseHandler.sendResponse(res, {
+          status: 400,
+          message: "emp_id is required"
+        });
+      }
+
+      const service = new UsersListService();
+
+      const data = await service.updateUser(input);
+
+      return ResponseHandler.sendResponse(res, data);
+
+    } catch (error) {
+
+      console.error("UPDATE API ERROR:", error);
+
+      return ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
 
 // router.get('/getById/:brandId', validateDtoMiddleware(GetBrand), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
 //     try {
@@ -78,15 +146,15 @@ router.delete('/delete/:empId',   async (req: Request, res: Response) => {
     }
 });
 
-router.get('/learningRoleList', async (req: Request, res: Response) => {
-    try {
-        const usersListService = new UsersListService();
-        const data = await usersListService.getLearningRoleList();
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+// router.get('/learningRoleList', async (req: Request, res: Response) => {
+//     try {
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getLearningRoleList();
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 // router.get('/getStoresByEmpId/:empId',AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
 //     try {
@@ -101,18 +169,18 @@ router.get('/learningRoleList', async (req: Request, res: Response) => {
 //     }
 // });
 
-router.get('/getStoresByBeatId/:beatId',AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: GetUsers = RequestHandler.Defaults.getParams<GetUsers>(req, GetUsers);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
+// router.get('/getStoresByBeatId/:beatId',AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+//     try {
+//         const input: GetUsers = RequestHandler.Defaults.getParams<GetUsers>(req, GetUsers);
+//         const payload: IUser = RequestHandler.Custom.getUser(req);
        
-        const usersListService = new UsersListService();
-        const data = await usersListService.getStoresByBeatId(input, payload);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
-});
+//         const usersListService = new UsersListService();
+//         const data = await usersListService.getStoresByBeatId(input, payload);
+//         ResponseHandler.sendResponse(res, data);
+//     } catch (error) {
+//         ResponseHandler.sendErrorResponse(res, error);
+//     }
+// });
 
 router.post('/importUser',
     async (req: Request, res: Response) => {

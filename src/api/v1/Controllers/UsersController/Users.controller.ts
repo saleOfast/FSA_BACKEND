@@ -1,6 +1,6 @@
 import { STATUSCODES, UserRole } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
-import { DeleteUser, GetUsers, IUser, IUserProfile, SignUp, UpdateUser } from "../../../../core/types/AuthService/AuthService";
+import { DeleteUser, GetAllActiveUsersDto, GetUsers, IUser, IUserProfile, SignUp, UpdateUser } from "../../../../core/types/AuthService/AuthService";
 import { User, UserRepository } from "../../../../core/DB/Entities/User.entity";
 import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
 import { IStore } from "../../../../core/types/StoreService/StoreService";
@@ -62,24 +62,24 @@ class UsersController {
     //     }
     // }
 
-    async getManagersList(): Promise<IApiResponse> {
-        try {
-            const managersList: IUser[] | null = await this.userListRepositry.find({
-                select: ["emp_id", "firstname", "lastname", "zone", "role", "managerId"],
-                where: {
-                    role: Not(UserRole.SSM),
-                    isDeleted: false,
-                },
-                order: {
-                    updatedAt: 'DESC',
-                    createdAt: 'DESC'
-                }
-            });
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: managersList }
-        } catch (error) {
-            throw error;
-        }
-    }
+    // async getManagersList(): Promise<IApiResponse> {
+    //     try {
+    //         const managersList: IUser[] | null = await this.userListRepositry.find({
+    //             select: ["emp_id", "firstname", "lastname", "zone", "role", "managerId"],
+    //             where: {
+    //                 role: Not(UserRole.SSM),
+    //                 isDeleted: false,
+    //             },
+    //             order: {
+    //                 updatedAt: 'DESC',
+    //                 createdAt: 'DESC'
+    //             }
+    //         });
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: managersList }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     async getUserDetails(input: GetUsers): Promise<IApiResponse> {
         const { empId } = input
@@ -91,10 +91,10 @@ class UsersController {
             });
             let manager: any | null = null;
             if (userDetails?.managerId) {
-                manager = await this.userListRepositry.findOne({
-                    select: ["firstname", "lastname"],
-                    where: { emp_id: userDetails.managerId }
-                });
+             manager = await this.userListRepositry.findOne({
+    select: ["emp_id", "firstname", "lastname"],
+    where: { emp_id: userDetails.managerId }
+});
             }
 
             // if (!manager) {
@@ -107,6 +107,112 @@ class UsersController {
         }
     }
  
+async getUsersList(): Promise<IApiResponse> {
+
+    try {
+
+        const users = await this.userListRepositry.find({
+            where: {
+                isDeleted: false
+            },
+            select: [
+                "emp_id",
+                "firstname",
+                "middlename",
+                "lastname",
+                "name",
+                "username",
+                "nickname",
+                "email",
+                "phone",
+                "mobile",
+                "department",
+                "division",
+                "team",
+                "vertical",
+                "title",
+                "language",
+                "timeZone",
+                "employeeId",
+                "joining_date",
+                "resignationDate",
+                "roleId",
+                "managerId",
+                "delegatedApproverId",
+                "active",
+                "country",
+                "state",
+                "city",
+                "region",
+                "pincode",
+                "street",
+                "createdAt",
+                "updatedAt"
+            ],
+            relations: ["profile"],
+            order: {
+                createdAt: "DESC"
+            }
+        });
+
+        return {
+            status: STATUSCODES.SUCCESS,
+            message: "Users fetched successfully.",
+            data: users
+        };
+
+    } catch (error) {
+
+        throw error;
+
+    }
+}
+
+
+async getActiveUsersList(
+    input: GetAllActiveUsersDto
+): Promise<IApiResponse> {
+
+    try {
+
+        const { active } = input;
+
+        const queryBuilder =
+            this.userListRepositry
+                .createQueryBuilder("user");
+
+        queryBuilder.where(
+            "user.isDeleted = :isDeleted",
+            {
+                isDeleted: false
+            }
+        );
+
+      if (active !== undefined) {
+
+    queryBuilder.andWhere(
+        "user.active = :active",
+        { active }
+    );
+
+}
+
+        const users =
+            await queryBuilder.getMany();
+
+        return {
+            status: STATUSCODES.SUCCESS,
+            message: "Success.",
+            data: users
+        };
+
+    } catch (error) {
+
+        throw error;
+
+    }
+}
+
     // async getUserById(payload: IUser, input: GetBrand): Promise<IApiResponse> {
     //     try {
     //         const { brandId } = input;
@@ -123,23 +229,77 @@ class UsersController {
     //     }
     // }
 
+async updateUser(input: UpdateUser): Promise<IApiResponse> {
 
-    // async updateUser(payload: IUser, input: UpdateUser): Promise<IApiResponse> {
-    //     try {
-    //         const { emp_id } = payload;
-    //         const { firstname, lastname, empId, role, dob, zone, managerId, address, city, state, pincode, learningRole, phone, email, joining_date, age } = input;
-    //         // if (!name) {
-    //         //     return { message: "Name can't be empty.", status: STATUSCODES.BAD_REQUEST }
-    //         // }
+    try {
 
-    //         await this.userListRepositry.createQueryBuilder().update({ firstname: firstname, lastname: lastname, role: role, zone: zone, managerId: managerId, address: address, city, state, pincode, learningRole: learningRole, phone: phone, email: email, joining_date: joining_date, age: age, dob }).where({ emp_id: empId }).execute();
+        // 1. VALIDATION
+        if (!input.emp_id) {
+            return {
+                status: 400,
+                message: "emp_id is required"
+            };
+        }
+        // 2. BUILD SAFE UPDATE OBJECT (only defined fields)
+        const updateData: any = {};
 
-    //         return { message: "Updated.", status: STATUSCODES.SUCCESS }
-    //     } catch (error) {
-    //         throw error;
-    //     }
-    // }
+        if (input.firstname !== undefined) updateData.firstname = input.firstname;
+        if (input.middlename !== undefined) updateData.middlename = input.middlename;
+        if (input.lastname !== undefined) updateData.lastname = input.lastname;
+        if (input.phone !== undefined) updateData.phone = input.phone;
+        if (input.email !== undefined) updateData.email = input.email;
+        if (input.mobile !== undefined) updateData.mobile = input.mobile;
+        if (input.country !== undefined) updateData.country = input.country;
+        if (input.state !== undefined) updateData.state = input.state;
+        if (input.city !== undefined) updateData.city = input.city;
+        if (input.region !== undefined) updateData.region = input.region;
+        if (input.pincode !== undefined) updateData.pincode = input.pincode;
+        if (input.street !== undefined) updateData.street = input.street;
+        if (input.department !== undefined) updateData.department = input.department;
+        if (input.division !== undefined) updateData.division = input.division;
+        if (input.team !== undefined) updateData.team = input.team;
+        if (input.vertical !== undefined) updateData.vertical = input.vertical;
+        if (input.title !== undefined) updateData.title = input.title;
+        if (input.language !== undefined) updateData.language = input.language;
+        if (input.timeZone !== undefined) updateData.timeZone = input.timeZone;
+        if (input.employeeId !== undefined) updateData.employeeId = input.employeeId;
+        if (input.joining_date !== undefined) updateData.joining_date = input.joining_date;
+        if (input.resignationDate !== undefined) updateData.resignationDate = input.resignationDate;
+        if (input.managerId !== undefined) updateData.managerId = input.managerId;
+        if (input.delegatedApproverId !== undefined) updateData.delegatedApproverId = input.delegatedApproverId;
+        if (input.roleId !== undefined) updateData.roleId = input.roleId;
+        if (input.profileId !== undefined) updateData.profileId = input.profileId;
+        if (input.active !== undefined) updateData.active = input.active;
 
+        // 3. UPDATE QUERY
+        const result = await this.userListRepositry
+            .createQueryBuilder()
+            .update(User)
+            .set(updateData)
+            .where("emp_id = :emp_id", { emp_id: input.emp_id })
+            .execute();
+
+        // 4. CHECK IF UPDATED
+        if (result.affected === 0) {
+            return {
+                status: 404,
+                message: "User not found"
+            };
+        }
+
+        return {
+            status: 200,
+            message: "User updated successfully",
+            data: result
+        };
+
+    } catch (error) {
+
+        console.error("UPDATE ERROR:", error);
+
+        throw error;
+    }
+}
     async deleteUser(input: DeleteUser): Promise<IApiResponse> {
         try {
             // const { emp_id } = payload;
@@ -151,32 +311,32 @@ class UsersController {
         }
     }
 
-    async getLearningRoleList(): Promise<IApiResponse> {
-        try {
-            const learningRoleList: IUser[] | null = await this.userListRepositry.find({
-                select: ["learningRole"],
-                where: {
-                    role: UserRole.SSM,
-                    order: {
-                        updatedAt: 'DESC',
-                        createdAt: 'DESC'
-                    }
-                }
-            });
-            const uniqueLearningRoles = new Set<string>();
+    // async getLearningRoleList(): Promise<IApiResponse> {
+    //     try {
+    //         const learningRoleList: IUser[] | null = await this.userListRepositry.find({
+    //             select: ["learningRole"],
+    //             where: {
+    //                 role: UserRole.SSM,
+    //                 order: {
+    //                     updatedAt: 'DESC',
+    //                     createdAt: 'DESC'
+    //                 }
+    //             }
+    //         });
+    //         const uniqueLearningRoles = new Set<string>();
 
-            learningRoleList.forEach((user: any) => uniqueLearningRoles.add(user.learningRole));
+    //         learningRoleList.forEach((user: any) => uniqueLearningRoles.add(user.learningRole));
 
-            const data = Array.from(uniqueLearningRoles).map(learningRole => {
-                return {
-                    learningRole: learningRole
-                };
-            });
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: data }
-        } catch (error) {
-            throw error;
-        }
-    }
+    //         const data = Array.from(uniqueLearningRoles).map(learningRole => {
+    //             return {
+    //                 learningRole: learningRole
+    //             };
+    //         });
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: data }
+    //     } catch (error) {
+    //         throw error;
+    //     }
+    // }
 
     // async getStoresByEmpId(input: GetUsers, payload: IUser): Promise<IApiResponse> {
     //     try {
@@ -414,40 +574,40 @@ class UsersController {
     // }
     
     
-    async getStoresByBeatId(input: any, payload: IUser): Promise<IApiResponse> {
-        try {
-            const { beatId } = input;
-            // const { role, emp_id } = payload;
+    // async getStoresByBeatId(input: any, payload: IUser): Promise<IApiResponse> {
+    //     try {
+    //         const { beatId } = input;
+    //         // const { role, emp_id } = payload;
     
-            // Query to get the stores linked to the beat
-            const storeQueryBuilder = this.beatRepository.createQueryBuilder("beat")
-                .select("beat.store", "store")
-                .where("beat.beatId = :beatId", { beatId: Number(beatId) });
+    //         // Query to get the stores linked to the beat
+    //         const storeQueryBuilder = this.beatRepository.createQueryBuilder("beat")
+    //             .select("beat.store", "store")
+    //             .where("beat.beatId = :beatId", { beatId: Number(beatId) });
     
-            // Get the store data from the beat query
-            const store: any = await storeQueryBuilder.getRawMany();
+    //         // Get the store data from the beat query
+    //         const store: any = await storeQueryBuilder.getRawMany();
             
-            // Extract store IDs (assuming it's an array of store objects)
-            const storeIds = store.map((s: any) => s.store) ?? [];
+    //         // Extract store IDs (assuming it's an array of store objects)
+    //         const storeIds = store.map((s: any) => s.store) ?? [];
     
-            if (storeIds[0].length === 0) {
-                return { message: "No stores found.", status: STATUSCODES.SUCCESS, data: [] };
-            }
+    //         if (storeIds[0].length === 0) {
+    //             return { message: "No stores found.", status: STATUSCODES.SUCCESS, data: [] };
+    //         }
     
-            // Query to get store details based on store IDs
-            const storeData = await this.storeRepositry.createQueryBuilder("stores")
-                .select("stores.storeId", "storeId")
-                .addSelect("stores.storeName", "storeName")
-                .where("stores.storeId IN (:...storeId)", { storeId: storeIds[0] })
-                .getRawMany();
+    //         // Query to get store details based on store IDs
+    //         const storeData = await this.storeRepositry.createQueryBuilder("stores")
+    //             .select("stores.storeId", "storeId")
+    //             .addSelect("stores.storeName", "storeName")
+    //             .where("stores.storeId IN (:...storeId)", { storeId: storeIds[0] })
+    //             .getRawMany();
     
-            console.log({ storeData, storeIds });
-            return { message: "Success.", status: STATUSCODES.SUCCESS, data: storeData };
-        } catch (error) {
-            console.error(error);
-            throw new Error("An error occurred while fetching store data.");
-        }
-    }
+    //         console.log({ storeData, storeIds });
+    //         return { message: "Success.", status: STATUSCODES.SUCCESS, data: storeData };
+    //     } catch (error) {
+    //         console.error(error);
+    //         throw new Error("An error occurred while fetching store data.");
+    //     }
+    // }
     
     // async getStoresByEmpId(input: GetUsers, payload: IUser): Promise<IApiResponse> {
     //     try {

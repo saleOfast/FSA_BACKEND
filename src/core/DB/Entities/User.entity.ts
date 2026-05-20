@@ -136,7 +136,6 @@ delegatedApproverId: number;
   role: Role;
   */
 
-
   @Column({ default: false })
   isDeleted: boolean;
 

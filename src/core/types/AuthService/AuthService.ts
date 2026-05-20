@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsEmail, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString ,IsBooleanString} from "class-validator";
 import { SpecialDiscountStatus, UserRole } from "../Constent/common";
 import { User } from "../../DB/Entities/User.entity"
 import { Profile } from "../../DB/Entities/profile.entity"
@@ -66,9 +66,10 @@ export interface IUser {
 }
 
 export class Login {
-    @IsNotEmpty()
-    @IsNumber()
-    phone: number;
+       @IsNotEmpty()
+    @IsString()
+    phone: string;
+
 
     @IsNotEmpty()
     @IsString()
@@ -80,8 +81,8 @@ export class ForgetPassword {
     // @IsEmail()
     // emailId: string;
     @IsNotEmpty()
-    @IsNumber()
-    phone: number;
+    @IsString()
+    phone: string;
 
 
   @IsNotEmpty()
@@ -427,19 +428,20 @@ export class UpdateUser {
 
     @IsOptional()
     @IsDateString()
-    joining_date?: Date;
+    joining_date?: string;
 
     @IsOptional()
     @IsDateString()
-    resignationDate?: Date;
+    resignationDate?: string;
+
+    // FIXED (IDs instead of names)
+    @IsOptional()
+    @IsNumber()
+    managerId?: number;
 
     @IsOptional()
-    @IsString()
-    managerName?: string;
-
-    @IsOptional()
-    @IsString()
-    delegatedApproverName?: string;
+    @IsNumber()
+    delegatedApproverId?: number;
 
     @IsOptional()
     @IsNumber()
@@ -456,12 +458,49 @@ export class UpdateUser {
     @IsOptional()
     @IsBoolean()
     isDeleted?: boolean;
-
-    @IsOptional()
-    @IsEnum(UserRole)
-    role?: UserRole;
 }
 
+export class GetAllUsersDto {
+
+    @IsOptional()
+    @IsNumber()
+    page?: number;
+
+    @IsOptional()
+    @IsNumber()
+    limit?: number;
+
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @IsOptional()
+    @IsString()
+    department?: string;
+
+
+    @IsOptional()
+    @IsNumber()
+    roleId?: number;
+
+    @IsOptional()
+    @IsBooleanString()
+    active?: boolean;
+
+    @IsOptional()
+     @IsNumber()
+    emp_id: number;
+
+}
+
+
+export class GetAllActiveUsersDto {
+
+    @IsOptional()
+    @IsBooleanString()
+    active?: boolean;
+
+}
 export class DeleteUser {
     @IsNotEmpty()
     @IsString()
