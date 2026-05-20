@@ -19,6 +19,21 @@ import {
 import { ProfileMetadataSyncService } from '../../../../core/services/profileMetadataSync.service';
 
 
+
+/** Relations to load full profile permissions (reuse for getProfile + createUser). */
+export const PROFILE_PERMISSION_RELATIONS = [
+  'tabPermissions',
+  'tabPermissions.tab',
+  'objectPermissions',
+  'objectPermissions.object',
+  'fieldPermissions',
+  'fieldPermissions.object',
+  'recordTypeAccesses',
+  'recordTypeAccesses.object',
+  'systemPermissions',
+] as const;
+
+
 export class ProfileController {
   private profileRepo: BaseRepository<Profile>;
   private metadataSyncService: ProfileMetadataSyncService;
@@ -36,6 +51,14 @@ export class ProfileController {
       relations,
     });
   }
+
+
+    /** Load profile with tab/object/field/record-type/system permissions. */
+    async getProfileWithPermissions(profileId: number) {
+      return this.getActiveProfileById(profileId, [...PROFILE_PERMISSION_RELATIONS]);
+    }
+
+
 
   // Create Profile
   async createProfile(profileData: Omit<ICreateProfileDto, 'createdBy'>, user: IUser) {
@@ -110,16 +133,7 @@ export class ProfileController {
   // Get Profile by ID
   async getProfile(profileId: number) {
     try {
-      const profile = await this.getActiveProfileById(profileId, [
-        'tabPermissions',
-        'tabPermissions.tab',
-        'objectPermissions',
-        'objectPermissions.object',
-        'fieldPermissions',
-        'fieldPermissions.object',
-        'recordTypeAccesses',
-        'recordTypeAccesses.object'
-      ]);
+            const profile = await this.getProfileWithPermissions(profileId);
       if (!profile) {
         return { status: 404, message: 'Profile not found', data: null };
       }
@@ -200,16 +214,7 @@ export class ProfileController {
       }
 
       if (hasPermissionPayload || hasScalarUpdate) {
-        updatedProfile = await this.getActiveProfileById(profileId, [
-          'tabPermissions',
-          'tabPermissions.tab',
-          'objectPermissions',
-          'objectPermissions.object',
-          'fieldPermissions',
-          'fieldPermissions.object',
-          'recordTypeAccesses',
-          'recordTypeAccesses.object'
-        ]);
+        updatedProfile = await this.getProfileWithPermissions(profileId);
       }
 
       const skipped =

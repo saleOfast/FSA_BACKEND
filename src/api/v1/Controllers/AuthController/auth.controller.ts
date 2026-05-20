@@ -7,6 +7,8 @@ import { IUser, Login, SignUp as ISignUp, ForgetPassword } from '../../../../cor
 import { UserRole } from '../../../../core/types/Constent/common';
 import { IApiResponse } from '../../../../core/types/Constent/commonService';
 import { STATUSCODES } from '../../../../core/types/Constent/common';
+import ProfileController from '../profileController/profile.controller';
+
 // const { privateKey, expiry } = process.env;
 const { forgotPasswordPrivateKey, forgotPasswordExpiry } = process.env;
 import jwt from "jsonwebtoken";
@@ -66,12 +68,21 @@ const userController = {
 
         const { password, ...userData } = user;
 
+        let profileWithPermissions = null;
+        if (user.profileId) {
+            profileWithPermissions =
+                await ProfileController.getProfileWithPermissions(user.profileId);
+        }
+
         return {
             status: STATUSCODES.SUCCESS,
             message: "Success.",
             data: {
                 accessToken: token,
-                user: userData
+                user: {
+                    ...userData,
+                    profile: profileWithPermissions
+                }
             }
         };
 
@@ -195,11 +206,27 @@ const userController = {
             newUser.profile = profile;
         }
 
-        await UserRepository().save(newUser);
+        const savedUser = await UserRepository().save(newUser);
+
+        const userWithRelations = await UserRepository().findOne({
+            where: { emp_id: savedUser.emp_id, isDeleted: false },
+        });
+
+        let profileWithPermissions: Profile | null = null;
+        if (profileId) {
+            profileWithPermissions = await ProfileController.getProfileWithPermissions(profileId);
+        }
+
+        const source = userWithRelations ?? savedUser;
+        const { password: _pw, ...safeUser } = source;
 
         return {
             status: STATUSCODES.SUCCESS,
-            message: "Success."
+            message: "Success.",
+            data: {
+                ...safeUser,
+                profile: profileWithPermissions,
+            },
         };
 
     } catch (error) {
