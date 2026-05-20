@@ -128,6 +128,10 @@ export class SignUp {
     @IsNotEmpty()
     lastname: string;
 
+    @IsOptional()
+        @IsString()
+        nickname?: string;
+        
     @IsString()
     @IsNotEmpty()
     username: string;

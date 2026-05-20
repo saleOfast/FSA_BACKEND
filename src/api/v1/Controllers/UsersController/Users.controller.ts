@@ -228,78 +228,97 @@ async getActiveUsersList(
     //         throw error;
     //     }
     // }
-
 async updateUser(input: UpdateUser): Promise<IApiResponse> {
 
     try {
 
-        // 1. VALIDATION
         if (!input.emp_id) {
             return {
                 status: 400,
                 message: "emp_id is required"
             };
         }
-        // 2. BUILD SAFE UPDATE OBJECT (only defined fields)
-        const updateData: any = {};
 
-        if (input.firstname !== undefined) updateData.firstname = input.firstname;
-        if (input.middlename !== undefined) updateData.middlename = input.middlename;
-        if (input.lastname !== undefined) updateData.lastname = input.lastname;
-        if (input.phone !== undefined) updateData.phone = input.phone;
-        if (input.email !== undefined) updateData.email = input.email;
-        if (input.mobile !== undefined) updateData.mobile = input.mobile;
-        if (input.country !== undefined) updateData.country = input.country;
-        if (input.state !== undefined) updateData.state = input.state;
-        if (input.city !== undefined) updateData.city = input.city;
-        if (input.region !== undefined) updateData.region = input.region;
-        if (input.pincode !== undefined) updateData.pincode = input.pincode;
-        if (input.street !== undefined) updateData.street = input.street;
-        if (input.department !== undefined) updateData.department = input.department;
-        if (input.division !== undefined) updateData.division = input.division;
-        if (input.team !== undefined) updateData.team = input.team;
-        if (input.vertical !== undefined) updateData.vertical = input.vertical;
-        if (input.title !== undefined) updateData.title = input.title;
-        if (input.language !== undefined) updateData.language = input.language;
-        if (input.timeZone !== undefined) updateData.timeZone = input.timeZone;
-        if (input.employeeId !== undefined) updateData.employeeId = input.employeeId;
-        if (input.joining_date !== undefined) updateData.joining_date = input.joining_date;
-        if (input.resignationDate !== undefined) updateData.resignationDate = input.resignationDate;
-        if (input.managerId !== undefined) updateData.managerId = input.managerId;
-        if (input.delegatedApproverId !== undefined) updateData.delegatedApproverId = input.delegatedApproverId;
-        if (input.roleId !== undefined) updateData.roleId = input.roleId;
-        if (input.profileId !== undefined) updateData.profileId = input.profileId;
-        if (input.active !== undefined) updateData.active = input.active;
+        const user = await this.userListRepositry.findOne({
+            where: { emp_id: input.emp_id }
+        });
 
-        // 3. UPDATE QUERY
-        const result = await this.userListRepositry
-            .createQueryBuilder()
-            .update(User)
-            .set(updateData)
-            .where("emp_id = :emp_id", { emp_id: input.emp_id })
-            .execute();
-
-        // 4. CHECK IF UPDATED
-        if (result.affected === 0) {
+        if (!user) {
             return {
                 status: 404,
                 message: "User not found"
             };
         }
 
+        // only update defined fields
+        Object.keys(input).forEach((key) => {
+
+            const value = input[key as keyof UpdateUser];
+
+            if (value !== undefined) {
+                (user as any)[key] = value;
+            }
+
+        });
+
+        // validate manager
+        if (input.managerId) {
+
+            const manager = await this.userListRepositry.findOne({
+                where: {
+                    emp_id: input.managerId,
+                    isDeleted: false
+                }
+            });
+
+            if (!manager) {
+                return {
+                    status: 400,
+                    message: "Manager not found"
+                };
+            }
+
+            user.manager = manager;
+        }
+
+        // validate delegated approver
+        if (input.delegatedApproverId) {
+
+            const approver = await this.userListRepositry.findOne({
+                where: {
+                    emp_id: input.delegatedApproverId,
+                    isDeleted: false
+                }
+            });
+
+            if (!approver) {
+                return {
+                    status: 400,
+                    message: "Delegated approver not found"
+                };
+            }
+
+            user.delegatedApprover = approver;
+        }
+
+        await this.userListRepositry.save(user);
+
+        const { password, ...safeUser } = user;
+
         return {
             status: 200,
             message: "User updated successfully",
-            data: result
+            data: safeUser
         };
 
     } catch (error) {
 
         console.error("UPDATE ERROR:", error);
-
         throw error;
     }
 }
+
+
     async deleteUser(input: DeleteUser): Promise<IApiResponse> {
         try {
             // const { emp_id } = payload;

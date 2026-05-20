@@ -116,10 +116,6 @@ joining_date: Date
 resignationDate: Date;
 
 @ManyToOne(() => User, { nullable: true })
-@JoinColumn({ name: "managerId" })
-manager: User;
-
-@ManyToOne(() => User, { nullable: true })
 @JoinColumn({ name: "delegatedApproverId" })
 delegatedApprover: User;
 
@@ -139,8 +135,12 @@ delegatedApproverId: number;
   @Column({ default: false })
   isDeleted: boolean;
 
-    @Column({ name: 'manager_id' })
-    managerId: number
+@ManyToOne(() => User, { nullable: true })
+@JoinColumn({ name: "manager_id" })
+manager: User;
+
+@Column({ name: "manager_id", nullable: true })
+managerId: number;
 
     @Column({ name: 'profile_id', nullable: true })
     profileId?: number;

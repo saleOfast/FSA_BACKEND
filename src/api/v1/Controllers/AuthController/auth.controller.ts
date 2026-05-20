@@ -101,6 +101,7 @@ const userController = {
             middlename,
             lastname,
             username,
+            nickname,
             email,
             password,
             active,
@@ -153,7 +154,7 @@ const userController = {
         newUser.lastname = lastname;
 
         newUser.username = username;
-
+        newUser.nickname = nickname!;
         newUser.email = email!;
 
         newUser.password = hashPassword;
@@ -183,8 +184,39 @@ const userController = {
         newUser.joining_date = joining_date!;
         newUser.resignationDate = resignationDate!;
 
-        newUser.managerId = managerId!;
-        newUser.delegatedApproverId = delegatedApproverId!;
+        if (managerId) {
+
+    const manager = await UserRepository().findOne({
+        where: { emp_id: managerId }
+    });
+
+    if (!manager) {
+        return {
+            status: 400,
+            message: "Manager not found"
+        };
+    }
+
+    newUser.manager = manager;
+}
+       if (delegatedApproverId) {
+
+    const approver = await UserRepository().findOne({
+        where: {
+            emp_id: delegatedApproverId,
+            isDeleted: false
+        }
+    });
+
+    if (!approver) {
+        return {
+            status: STATUSCODES.BAD_REQUEST,
+            message: "Delegated Approver not found"
+        };
+    }
+
+    newUser.delegatedApprover = approver;
+};
 
         newUser.roleId = roleId!;
 
