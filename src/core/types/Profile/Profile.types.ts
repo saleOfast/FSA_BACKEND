@@ -58,6 +58,8 @@ export interface IUserReference {
 export interface ICreateProfileDto {
   profileName: string;
   userLicence?: string;
+  /** UI "Description" field — stored in `profiles.remarks` */
+  description?: string;
   remarks?: string;
   department?: string;
   tabPermissions?: ITabPermissionInput[];
@@ -70,6 +72,7 @@ export interface ICreateProfileDto {
 export interface IUpdateProfileDto {
   profileName?: string;
   userLicence?: string;
+  description?: string;
   remarks?: string;
   department?: string;
   tabPermissions?: ITabPermissionInput[];

@@ -133,6 +133,84 @@ router.get('/all', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUT
   }
 });
 
+function parseProfileIdParam(req: Request): number | null {
+  const profileId = parseInt(req.params.profileId, 10);
+  return Number.isNaN(profileId) ? null : profileId;
+}
+
+// Assign permissions after profile create (matches Profile Setting UI tabs)
+router.put(
+  '/:profileId/permissions/tabs',
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const profileId = parseProfileIdParam(req);
+      if (profileId == null) {
+        return ResponseHandler.sendErrorResponse(res, { status: 400, message: 'Invalid profile ID' });
+      }
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await ProfileController.saveTabPermissions(profileId, req.body, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.put(
+  '/:profileId/permissions/tables',
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const profileId = parseProfileIdParam(req);
+      if (profileId == null) {
+        return ResponseHandler.sendErrorResponse(res, { status: 400, message: 'Invalid profile ID' });
+      }
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await ProfileController.saveObjectPermissions(profileId, req.body, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.put(
+  '/:profileId/permissions/fields',
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const profileId = parseProfileIdParam(req);
+      if (profileId == null) {
+        return ResponseHandler.sendErrorResponse(res, { status: 400, message: 'Invalid profile ID' });
+      }
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await ProfileController.saveFieldPermissions(profileId, req.body, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+router.put(
+  '/:profileId/permissions/record-types',
+  AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN),
+  async (req: Request, res: Response) => {
+    try {
+      const profileId = parseProfileIdParam(req);
+      if (profileId == null) {
+        return ResponseHandler.sendErrorResponse(res, { status: 400, message: 'Invalid profile ID' });
+      }
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await ProfileController.saveRecordTypeAccesses(profileId, req.body, payload);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
 // Get profile by ID
 router.get('/:profileId', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
   try {

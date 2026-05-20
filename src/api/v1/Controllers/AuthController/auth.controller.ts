@@ -152,11 +152,9 @@ const userController = {
         newUser.firstname = firstname;
         newUser.middlename = middlename!;
         newUser.lastname = lastname;
-
         newUser.username = username;
         newUser.nickname = nickname!;
         newUser.email = email!;
-
         newUser.password = hashPassword;
 
         newUser.active = active ?? true;

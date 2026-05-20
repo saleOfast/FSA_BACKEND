@@ -9,7 +9,15 @@ import { ObjectPermission } from '../../../../core/DB/Entities/ObjectPermission.
 import { RecordTypeAccess } from '../../../../core/DB/Entities/RecordTypeAccess.entity';
 import { BaseRepository } from '../../../../core/base/BaseRepository';
 import { IUser } from '../../../../core/types/AuthService/AuthService';
-import { IUserReference, ICreateProfileDto, IUpdateProfileDto } from '../../../../core/types/Profile/Profile.types';
+import {
+  IUserReference,
+  ICreateProfileDto,
+  IUpdateProfileDto,
+  ITabPermissionInput,
+  IObjectPermissionInput,
+  IFieldPermissionInput,
+  IRecordTypeAccessInput
+} from '../../../../core/types/Profile/Profile.types';
 import { DbConnections } from '../../../../core/DB/postgresdb';
 import { FindOptionsWhere } from 'typeorm';
 import {
@@ -18,7 +26,22 @@ import {
 } from '../../../../core/services/profilePermission.service';
 import { ProfileMetadataSyncService } from '../../../../core/services/profileMetadataSync.service';
 
-
+/** Accept body as array or under common wrapper keys (UI may use tablePermissions, etc.). */
+function normalizePermissionRows<T>(input: unknown, keys: string[]): T[] {
+  if (Array.isArray(input)) {
+    return input as T[];
+  }
+  if (input && typeof input === 'object') {
+    const record = input as Record<string, unknown>;
+    for (const key of keys) {
+      const val = record[key];
+      if (Array.isArray(val)) {
+        return val as T[];
+      }
+    }
+  }
+  return [];
+}
 
 /** Relations to load full profile permissions (reuse for getProfile + createUser). */
 export const PROFILE_PERMISSION_RELATIONS = [
@@ -88,39 +111,54 @@ export class ProfileController {
         objectPermissions,
         fieldPermissions,
         recordTypeAccesses,
+        description,
         ...coreProfile
       } = profileData;
 
+      const remarks = coreProfile.remarks ?? description;
+
       const ds = DbConnections.AppDbConnection.getConnection();
+      const hasPermissionPayload =
+        (tabPermissions && tabPermissions.length > 0) ||
+        (objectPermissions && objectPermissions.length > 0) ||
+        (fieldPermissions && fieldPermissions.length > 0) ||
+        (recordTypeAccesses && recordTypeAccesses.length > 0);
+
       const { saved: newProfile, permSummary } = await ds.transaction(async (manager) => {
         const profileRepo = manager.getRepository(Profile);
         const row = profileRepo.create({
           profileName: coreProfile.profileName,
-          userLicence: coreProfile.userLicence,
-          remarks: coreProfile.remarks,
+          userLicence: coreProfile.userLicence ?? '',
+          remarks,
           department: coreProfile.department,
           createdBy: userReference
         });
         const saved = await profileRepo.save(row);
-        const summary = await applyProfilePermissions(manager, saved.profileId, {
-          tabPermissions,
-          objectPermissions,
-          fieldPermissions,
-          recordTypeAccesses
-        });
+        const summary = hasPermissionPayload
+          ? await applyProfilePermissions(manager, saved.profileId, {
+              tabPermissions,
+              objectPermissions,
+              fieldPermissions,
+              recordTypeAccesses
+            })
+          : { missingTabs: [], missingObjects: [] };
         return { saved, permSummary: summary };
       });
+
+      const fullProfile = await this.getProfileWithPermissions(newProfile.profileId);
 
       const skipped =
         permSummary.missingTabs.length > 0 || permSummary.missingObjects.length > 0;
 
       return {
         status: 201,
-        message: skipped
-          ? 'Profile created. Some permission rows were skipped because no matching tab/object exists in the catalog — see permissionApplySummary.'
-          : 'Profile created successfully',
+        message: hasPermissionPayload
+          ? skipped
+            ? 'Profile created. Some permission rows were skipped — see permissionApplySummary. Assign remaining permissions via Tab / Table / Field / Record Type APIs.'
+            : 'Profile created successfully with permissions.'
+          : 'Profile created successfully. Assign Tab, Table, Field, and Record Type permissions using the permission save APIs.',
         data: {
-          ...newProfile,
+          ...fullProfile,
           permissionApplySummary: permSummary
         }
       };
@@ -169,6 +207,7 @@ export class ProfileController {
         profileName,
         userLicence,
         remarks,
+        description,
         department
       } = profileData;
 
@@ -177,10 +216,12 @@ export class ProfileController {
         name: `${user.firstname} ${user.lastname || ''}`.trim()
       };
 
+      const resolvedRemarks = remarks ?? description;
+
       const scalarPatch: Partial<Pick<Profile, 'profileName' | 'userLicence' | 'remarks' | 'department'>> = {};
       if (profileName !== undefined) scalarPatch.profileName = profileName;
       if (userLicence !== undefined) scalarPatch.userLicence = userLicence;
-      if (remarks !== undefined) scalarPatch.remarks = remarks;
+      if (resolvedRemarks !== undefined) scalarPatch.remarks = resolvedRemarks;
       if (department !== undefined) scalarPatch.department = department;
 
       const hasScalarUpdate = Object.keys(scalarPatch).length > 0;
@@ -235,6 +276,146 @@ export class ProfileController {
       console.error('Error updating profile:', error);
       throw error;
     }
+  }
+
+  /** Save Tab Permissions tab only (UI: "Save Tab Permissions"). */
+  async saveTabPermissions(
+    profileId: number,
+    tabPermissions: unknown,
+    user: IUser
+  ) {
+    const rows = normalizePermissionRows<ITabPermissionInput>(tabPermissions, [
+      'tabPermissions',
+      'tabs'
+    ]);
+    return this.savePermissionSlice(
+      profileId,
+      user,
+      { tabPermissions: rows },
+      'Tab permissions saved successfully.',
+      'Send a non-empty array or { "tabPermissions": [ { "tabName": "Customer", "readOnly": false, "defaultOn": true } ] }'
+    );
+  }
+
+  /** Save Table Permissions tab only (UI: "Save Permissions" on Table tab). */
+  async saveObjectPermissions(
+    profileId: number,
+    objectPermissions: unknown,
+    user: IUser
+  ) {
+    const rows = normalizePermissionRows<IObjectPermissionInput>(objectPermissions, [
+      'objectPermissions',
+      'tablePermissions',
+      'tables'
+    ]);
+    return this.savePermissionSlice(
+      profileId,
+      user,
+      { objectPermissions: rows },
+      'Table permissions saved successfully.',
+      'Send a non-empty array or { "objectPermissions": [ { "objectName": "Customer", "canRead": true, "canCreate": true, "canEdit": true, "canDelete": false } ] }'
+    );
+  }
+
+  /** Save Field Permissions tab only. */
+  async saveFieldPermissions(
+    profileId: number,
+    fieldPermissions: unknown,
+    user: IUser
+  ) {
+    const rows = normalizePermissionRows<IFieldPermissionInput>(fieldPermissions, [
+      'fieldPermissions',
+      'fields'
+    ]);
+    return this.savePermissionSlice(
+      profileId,
+      user,
+      { fieldPermissions: rows },
+      'Field permissions saved successfully.',
+      'Send a non-empty array or { "fieldPermissions": [ { "objectName": "Customer", "fieldName": "Phone", "mandatory": false, "readOnly": false, "editable": true } ] }'
+    );
+  }
+
+  /** Save Record Type Access tab only. */
+  async saveRecordTypeAccesses(
+    profileId: number,
+    recordTypeAccesses: unknown,
+    user: IUser
+  ) {
+    const rows = normalizePermissionRows<IRecordTypeAccessInput>(recordTypeAccesses, [
+      'recordTypeAccesses',
+      'recordTypeAccess',
+      'recordTypes'
+    ]);
+    return this.savePermissionSlice(
+      profileId,
+      user,
+      { recordTypeAccesses: rows },
+      'Record type access saved successfully.',
+      'Send a non-empty array or { "recordTypeAccesses": [ { "objectName": "Customer", "recordTypeName": "GT", "canRead": true, "canCreate": true, "canEdit": true, "canDelete": false } ] }'
+    );
+  }
+
+  private async savePermissionSlice(
+    profileId: number,
+    user: IUser,
+    payload: {
+      tabPermissions?: ITabPermissionInput[];
+      objectPermissions?: IObjectPermissionInput[];
+      fieldPermissions?: IFieldPermissionInput[];
+      recordTypeAccesses?: IRecordTypeAccessInput[];
+    },
+    successMessage: string,
+    bodyHint?: string
+  ) {
+    if (!user?.emp_id) {
+      return { status: 401, message: 'Unauthorized', data: null };
+    }
+
+    const profile = await this.getActiveProfileById(profileId);
+    if (!profile) {
+      return { status: 404, message: 'Profile not found', data: null };
+    }
+
+    const hasPayload =
+      (payload.tabPermissions && payload.tabPermissions.length > 0) ||
+      (payload.objectPermissions && payload.objectPermissions.length > 0) ||
+      (payload.fieldPermissions && payload.fieldPermissions.length > 0) ||
+      (payload.recordTypeAccesses && payload.recordTypeAccesses.length > 0);
+
+    if (!hasPayload) {
+      return {
+        status: 400,
+        message: 'At least one permission row is required',
+        data: bodyHint ? { hint: bodyHint } : null
+      };
+    }
+
+    const modifiedBy = {
+      id: user.emp_id,
+      name: `${user.firstname} ${user.lastname || ''}`.trim()
+    };
+    await this.profileRepo.update(profileId, { modifiedBy } as Partial<Profile>);
+
+    const ds = DbConnections.AppDbConnection.getConnection();
+    const permSummary = await ds.transaction((manager) =>
+      applyProfilePermissions(manager, profileId, payload)
+    );
+
+    const fullProfile = await this.getProfileWithPermissions(profileId);
+    const skipped =
+      permSummary.missingTabs.length > 0 || permSummary.missingObjects.length > 0;
+
+    return {
+      status: 200,
+      message: skipped
+        ? `${successMessage} Some rows were skipped — see permissionApplySummary.`
+        : successMessage,
+      data: {
+        ...fullProfile,
+        permissionApplySummary: permSummary
+      }
+    };
   }
 
   // Delete Profile
