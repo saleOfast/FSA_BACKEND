@@ -2,15 +2,22 @@ import { STATUSCODES, UserRole } from "../../../../core/types/Constent/common";
 import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { DeleteUser, GetAllActiveUsersDto, GetUsers, IUser, IUserProfile, SignUp, UpdateUser } from "../../../../core/types/AuthService/AuthService";
 import { User, UserRepository } from "../../../../core/DB/Entities/User.entity";
+import { Profile } from "../../../../core/DB/Entities/profile.entity";
 import { StoreRepository } from "../../../../core/DB/Entities/stores.entity";
 import { IStore } from "../../../../core/types/StoreService/StoreService";
 import { Not } from "typeorm";
 import { BeatRepository } from "../../../../core/DB/Entities/beat.entity";
+import ProfileController from "../profileController/profile.controller";
+
 
 class UsersController {
     private userListRepositry = UserRepository();
     private storeRepositry = StoreRepository();
     private beatRepository = BeatRepository();
+
+    private get profileRepository() {
+        return this.userListRepositry.manager.getRepository(Profile);
+    }
 
     constructor() { }
 
@@ -228,6 +235,7 @@ async getActiveUsersList(
     //         throw error;
     //     }
     // }
+
 async updateUser(input: UpdateUser): Promise<IApiResponse> {
 
     try {
@@ -239,8 +247,17 @@ async updateUser(input: UpdateUser): Promise<IApiResponse> {
             };
         }
 
+        // fetch existing user with relations
         const user = await this.userListRepositry.findOne({
-            where: { emp_id: input.emp_id }
+            where: {
+                emp_id: input.emp_id,
+                isDeleted: false
+            },
+            relations: [
+                "profile",
+                "manager",
+                "delegatedApprover"
+            ]
         });
 
         if (!user) {
@@ -250,19 +267,65 @@ async updateUser(input: UpdateUser): Promise<IApiResponse> {
             };
         }
 
-        // only update defined fields
+        // update primitive fields only
         Object.keys(input).forEach((key) => {
 
             const value = input[key as keyof UpdateUser];
 
-            if (value !== undefined) {
+            // skip relation handling here
+            if (
+                value !== undefined &&
+                ![
+                    "managerId",
+                    "delegatedApproverId",
+                    "profileId"
+                ].includes(key)
+            ) {
                 (user as any)[key] = value;
             }
 
         });
 
-        // validate manager
-        if (input.managerId) {
+        /**
+         * PROFILE UPDATE — set FK only; clear stale eager-loaded profile object
+         */
+        if (input.profileId !== undefined) {
+            const raw = input.profileId;
+            if (raw === null || raw === ("" as unknown as number)) {
+                user.profileId = undefined;
+                user.profile = undefined;
+            } else {
+                const profileId = Number(raw);
+                if (Number.isNaN(profileId)) {
+                    return {
+                        status: 400,
+                        message: "Invalid profileId"
+                    };
+                }
+
+                const profile = await this.profileRepository.findOne({
+                    where: {
+                        profileId,
+                        isDeleted: false
+                    }
+                });
+
+                if (!profile) {
+                    return {
+                        status: 400,
+                        message: "Profile not found"
+                    };
+                }
+
+                user.profileId = profileId;
+                user.profile = undefined;
+            }
+        }
+
+        /**
+         * MANAGER UPDATE
+         */
+        if (input.managerId !== undefined) {
 
             const manager = await this.userListRepositry.findOne({
                 where: {
@@ -279,10 +342,13 @@ async updateUser(input: UpdateUser): Promise<IApiResponse> {
             }
 
             user.manager = manager;
+            user.managerId = manager.emp_id;
         }
 
-        // validate delegated approver
-        if (input.delegatedApproverId) {
+        /**
+         * DELEGATED APPROVER UPDATE
+         */
+        if (input.delegatedApproverId !== undefined) {
 
             const approver = await this.userListRepositry.findOne({
                 where: {
@@ -299,25 +365,55 @@ async updateUser(input: UpdateUser): Promise<IApiResponse> {
             }
 
             user.delegatedApprover = approver;
+            user.delegatedApproverId = approver.emp_id;
         }
 
         await this.userListRepositry.save(user);
 
-        const { password, ...safeUser } = user;
+        const updatedUser = await this.userListRepositry
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.manager", "manager")
+            .leftJoinAndSelect("user.delegatedApprover", "delegatedApprover")
+            .where("user.emp_id = :emp_id", { emp_id: input.emp_id })
+            .andWhere("user.isDeleted = :isDeleted", { isDeleted: false })
+            .getOne();
+
+        if (!updatedUser) {
+            return {
+                status: 404,
+                message: "Updated user not found"
+            };
+        }
+
+        let profileWithPermissions: Profile | null = null;
+        if (updatedUser.profileId != null) {
+            profileWithPermissions = await ProfileController.getProfileWithPermissions(
+                updatedUser.profileId
+            );
+        }
+
+        const { password, profile: _staleProfile, ...safeUser } = updatedUser;
 
         return {
             status: 200,
             message: "User updated successfully",
-            data: safeUser
+            data: {
+                ...safeUser,
+                profile: profileWithPermissions
+            }
         };
 
     } catch (error) {
 
         console.error("UPDATE ERROR:", error);
-        throw error;
+
+        return {
+            status: 500,
+            message: "Internal server error",
+            error: error instanceof Error ? error.message : error
+        };
     }
 }
-
 
     async deleteUser(input: DeleteUser): Promise<IApiResponse> {
         try {
