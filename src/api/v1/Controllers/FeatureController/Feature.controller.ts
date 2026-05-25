@@ -3,11 +3,11 @@ import { IApiResponse } from "../../../../core/types/Constent/commonService";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
 import { CreateFeature, DeleteFeature, GetFeature, IFeature, UpdateFeature } from "../../../../core/types/ReasonService/ReasonService";
 import { Feature, FeatureRepository } from "../../../../core/DB/Entities/feature.entity";
-import { RoleRepository } from "../../../../core/DB/Entities/role.entity";
+// import { RoleRepository } from "../../../../core/DB/Entities/role.entity";
 
 class FeatureController {
     private feature = FeatureRepository();
-    private role = RoleRepository();
+    // private role = RoleRepository();
 
     constructor() { }
 
@@ -86,11 +86,11 @@ class FeatureController {
                 const roleIds = roleMapping[key];
 
                 // Update `role` table for the provided list of role IDs
-                await this.role.createQueryBuilder()
-                    .update()
-                    .set({ isActive })
-                    .where("key IN (:...roleIds)", { roleIds })
-                    .execute();
+            //     await this.role.createQueryBuilder()
+            //         .update()
+            //         .set({ isActive })
+            //         .where("key IN (:...roleIds)", { roleIds })
+            //         .execute();
             }
 
             return { message: "Updated.", status: STATUSCODES.SUCCESS }

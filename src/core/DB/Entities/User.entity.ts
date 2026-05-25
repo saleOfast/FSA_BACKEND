@@ -15,6 +15,7 @@ import { Taxes } from "./tax.entity";
 import { Gifts } from "./giftDistribution.entity";
 import { NewTarget } from "./new.target.entity";
 import { Profile } from "./profile.entity";
+import { Role } from "./role.entity";
 
 
 
@@ -126,11 +127,11 @@ delegatedApproverId: number;
   @Column({ nullable: true })
   roleId: number;
 
-  /*
+  
   @ManyToOne(() => Role)
   @JoinColumn({ name: "roleId" })
   role: Role;
-  */
+  
 
   @Column({ default: false })
   isDeleted: boolean;

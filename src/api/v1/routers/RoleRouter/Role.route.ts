@@ -1,70 +1,134 @@
 import express, { Request, Response } from "express";
-import { AccessTokenService, ResponseHandler, validateDtoMiddleware } from "../../../../core/helper/validationMiddleware";
+import {
+  AccessTokenService,
+  ResponseHandler,
+  validateDtoMiddleware,
+} from "../../../../core/helper/validationMiddleware";
 import { RequestHandler } from "../../../../core/helper/RequestHander";
 import { JwtTokenTypes } from "../../../../core/types/Constent/common";
 import { IUser } from "../../../../core/types/AuthService/AuthService";
-import { CreateRole, DeleteRole, GetRole, IsActiveRole, UpdateRole } from "../../../../core/types/ReasonService/ReasonService";
-import { RoleService } from "../../../../api/v1/Controllers/RoleController/Role.controller";
+import {
+  CreateRoleDto,
+  UpdateRoleDto,
+  RoleListQuery,
+  RoleIdParam,
+} from "../../../../core/types/RoleService/RoleService";
+import { RoleService } from "../../Controllers/RoleController/Role.controller";
+
 const router = express.Router();
+const auth = AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN);
 
-router.post('/add', validateDtoMiddleware(CreateRole), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+router.post(
+  "/create",
+  auth,
+  validateDtoMiddleware(CreateRoleDto),
+  async (req: Request, res: Response) => {
     try {
-        const input: CreateRole = RequestHandler.Defaults.getBody<CreateRole>(req, CreateRole);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const service = new RoleService();
-        const data = await service.add(input, payload);
-        ResponseHandler.sendResponse(res, data);
+      const input = RequestHandler.Defaults.getBody<CreateRoleDto>(req, CreateRoleDto);
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await new RoleService().create(input, payload);
+      ResponseHandler.sendResponse(res, data);
     } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
+      ResponseHandler.sendErrorResponse(res, error);
     }
+  }
+);
+
+router.get("/list", auth, async (req: Request, res: Response) => {
+  try {
+    const input = RequestHandler.Defaults.getQuery<RoleListQuery>(req, RoleListQuery);
+    const data = await new RoleService().list(input.search);
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
 });
 
-router.get('/list', AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const input: IsActiveRole = RequestHandler.Defaults.getQuery<IsActiveRole>(req, IsActiveRole);
-        const service = new RoleService();
-        const data = await service.list(payload, input);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
+router.get("/hierarchy", auth, async (req: Request, res: Response) => {
+  try {
+    const data = await new RoleService().hierarchy();
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
 });
 
-router.post('/update', validateDtoMiddleware(UpdateRole), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
-    try {
-        const input: UpdateRole = RequestHandler.Defaults.getBody<UpdateRole>(req, UpdateRole);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const service = new RoleService();
-        const data = await service.update(payload, input);
-        ResponseHandler.sendResponse(res, data);
-    } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
-    }
+router.get("/parent-options", auth, async (req: Request, res: Response) => {
+  try {
+    const exclude = req.query.excludeRoleId
+      ? parseInt(String(req.query.excludeRoleId), 10)
+      : undefined;
+    const data = await new RoleService().parentOptions(
+      exclude != null && !Number.isNaN(exclude) ? exclude : undefined
+    );
+    ResponseHandler.sendResponse(res, data);
+  } catch (error) {
+    ResponseHandler.sendErrorResponse(res, error);
+  }
 });
 
-router.get('/getById/:roleId', validateDtoMiddleware(GetRole), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+router.get(
+  "/:roleId",
+  auth,
+  validateDtoMiddleware(RoleIdParam),
+  async (req: Request, res: Response) => {
     try {
-        const input: GetRole = RequestHandler.Defaults.getParams<GetRole>(req, GetRole);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const service = new RoleService();
-        const data = await service.getRoleById(payload, input);
-        ResponseHandler.sendResponse(res, data);
+      const roleId = parseInt(req.params.roleId, 10);
+      if (Number.isNaN(roleId)) {
+        return ResponseHandler.sendErrorResponse(res, {
+          status: 400,
+          message: "Invalid role ID",
+        });
+      }
+      const data = await new RoleService().getById(roleId);
+      ResponseHandler.sendResponse(res, data);
     } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
+      ResponseHandler.sendErrorResponse(res, error);
     }
-});
+  }
+);
 
-router.delete('/delete/:roleId', validateDtoMiddleware(DeleteRole), AccessTokenService.validateTokenMiddleware!(JwtTokenTypes.AUTH_TOKEN), async (req: Request, res: Response) => {
+router.put(
+  "/update/:roleId",
+  auth,
+  validateDtoMiddleware(UpdateRoleDto),
+  async (req: Request, res: Response) => {
     try {
-        const input: DeleteRole = RequestHandler.Defaults.getParams<DeleteRole>(req, DeleteRole);
-        const payload: IUser = RequestHandler.Custom.getUser(req);
-        const service = new RoleService();
-        const data = await service.delete(payload, input);
-        ResponseHandler.sendResponse(res, data);
+      const roleId = parseInt(req.params.roleId, 10);
+      if (Number.isNaN(roleId)) {
+        return ResponseHandler.sendErrorResponse(res, {
+          status: 400,
+          message: "Invalid role ID",
+        });
+      }
+      const input = RequestHandler.Defaults.getBody<UpdateRoleDto>(req, UpdateRoleDto);
+      const payload: IUser = RequestHandler.Custom.getUser(req);
+      const data = await new RoleService().update(roleId, input, payload);
+      ResponseHandler.sendResponse(res, data);
     } catch (error) {
-        ResponseHandler.sendErrorResponse(res, error);
+      ResponseHandler.sendErrorResponse(res, error);
     }
-});
+  }
+);
 
-export { router as RoleRouter }
+router.delete(
+  "/:roleId",
+  auth,
+  async (req: Request, res: Response) => {
+    try {
+      const roleId = parseInt(req.params.roleId, 10);
+      if (Number.isNaN(roleId)) {
+        return ResponseHandler.sendErrorResponse(res, {
+          status: 400,
+          message: "Invalid role ID",
+        });
+      }
+      const data = await new RoleService().delete(roleId);
+      ResponseHandler.sendResponse(res, data);
+    } catch (error) {
+      ResponseHandler.sendErrorResponse(res, error);
+    }
+  }
+);
+
+export { router as RoleRouter };

@@ -1,34 +1,80 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, CreateDateColumn, UpdateDateColumn, Repository } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  BaseEntity,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+  Repository,
+} from "typeorm";
 import { DbConnections } from "../postgresdb";
-import { IColour, IFeature, IRole } from "core/types/ReasonService/ReasonService";
+import { Profile } from "./profile.entity";
+import { User } from  "./User.entity";
+import { IUserReference } from "../../types/Profile/Profile.types";
 
-@Entity()
-export class Role extends BaseEntity implements IRole {
-    @PrimaryGeneratedColumn({ name: 'role_id' })
-    roleId: number
+@Entity({ name: "role" })
+export class Role extends BaseEntity {
+  @PrimaryGeneratedColumn({ name: "role_id" })
+  roleId!: number;
 
-    @Column({ name: 'emp_id' })
-    empId: number
+  @Column({ name: "name", length: 100 })
+  name!: string;
 
-    @Column({ name: 'name', nullable: true })
-    name: string
+  @Column({ name: "profile_id", nullable: true })
+  profileId!: number;
 
-    @Column({ name: 'key', nullable: true })
-    key: string
-    
-    @Column({ name: 'is_active', default: false })
-    isActive: boolean
+  @ManyToOne(() => Profile, { nullable: true })
+  @JoinColumn({ name: "profile_id" })
+  profile?: Profile;
 
-    @Column({ name: 'is_deleted', default: false })
-    isDeleted: boolean
+  @Column({ name: "parent_role_id", nullable: true })
+  parentRoleId?: number | null;
 
-    @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', name: 'created_at' })
-    createdAt: Date;
+  @ManyToOne(() => Role, (r) => r.children, { nullable: true })
+  @JoinColumn({ name: "parent_role_id" })
+  parent?: Role;
 
-    @UpdateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP', name: 'updated_at' })
-    updatedAt: Date;
+  @OneToMany(() => Role, (r) => r.parent)
+  children?: Role[];
+
+  @Column({ type: "text", nullable: true })
+  description?: string;
+
+  @Column({ name: "is_deleted", default: false })
+  isDeleted!: boolean;
+
+  @Column({ name: "is_active", default: true })
+  isActive!: boolean;
+
+@Column({
+  name: "created_by",
+  type: "jsonb",
+  nullable: true
+})
+createdBy?: IUserReference;
+
+@Column({
+  name: "modified_by",
+  type: "jsonb",
+  nullable: true
+})
+modifiedBy?: IUserReference;
+
+  @CreateDateColumn({ name: "created_at" })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ name: "updated_at" })
+  updatedAt!: Date;
+
+  @OneToMany(() => User, (u) => u.role)
+  users?: User[];
+
+
 }
 
-export const RoleRepository = (): Repository<IRole> => {
-    return DbConnections.AppDbConnection.getConnection().getRepository(Role);
-}
+export const RoleRepository = (): Repository<Role> => {
+  return DbConnections.AppDbConnection.getConnection().getRepository(Role);
+};

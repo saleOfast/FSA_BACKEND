@@ -148,14 +148,21 @@ async function seedUserTypes(ds: DataSource): Promise<void> {
 
 async function seedRoles(ds: DataSource): Promise<void> {
 	const repo = ds.getRepository(Role);
-	const items = [
-		{ key: 'ADMIN', name: 'Administrator', empId: 0, isActive: true, isDeleted: false },
-		{ key: 'MANAGER', name: 'Manager', empId: 0, isActive: true, isDeleted: false },
-		{ key: 'USER', name: 'User', empId: 0, isActive: true, isDeleted: false }
-	];
-	for (const item of items) {
-		await upsertIfMissing(repo, { key: item.key }, item);
-	}
+	const profileRepo = ds.getRepository(Profile);
+	const adminProfile = await profileRepo.findOne({ where: { isDeleted: false } });
+	const profileId = adminProfile?.profileId ?? 1;
+	const admin = await upsertIfMissing(
+	  repo,
+	  { name: "Administrator" },
+	  {
+		name: "Administrator",
+		profileId,
+		parentRoleId: null,
+		description: "Top level",
+		isActive: true,
+		isDeleted: false,
+	  }
+	);
 }
 
 async function seedPaymentModes(ds: DataSource): Promise<void> {

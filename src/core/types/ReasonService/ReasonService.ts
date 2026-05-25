@@ -167,52 +167,16 @@ export class GetFeature {
 
 // Role
 
-export interface IRole {
-    roleId: number;
-    empId: number;
-    name: string;
-    isActive: boolean;
-    isDeleted: boolean;
-    createdAt: Date;
-    updatedAt: Date
-}
+// export interface IRole {
+//     roleId: number;
+//     empId: number;
+//     name: string;
+//     isActive: boolean;
+//     isDeleted: boolean;
+//     createdAt: Date;
+//     updatedAt: Date
+// }
 
 
-export class CreateRole {
-    @IsNotEmpty()
-    @IsString()
-    name: string;
-}
 
-export class UpdateRole {
-    @IsOptional()
-    @IsString()
-    name?: string;
-
-    @IsNotEmpty()
-    @IsNumber()
-    roleId: number
-
-    @IsOptional()
-    @IsBoolean()
-    isActive: boolean
-}
-
-export class IsActiveRole {
-    @IsOptional()
-    @IsBoolean()
-    isActive: boolean
-}
-
-export class DeleteRole {
-    @IsNotEmpty()
-    @IsString()
-    roleId: string
-}
-
-export class GetRole {
-    @IsNotEmpty()
-    @IsString()
-    roleId: string
-}
 
