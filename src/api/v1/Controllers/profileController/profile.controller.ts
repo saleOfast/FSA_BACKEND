@@ -74,8 +74,6 @@ export class ProfileController {
       relations,
     });
   }
-
-
     /** Load profile with tab/object/field/record-type/system permissions. */
     async getProfileWithPermissions(profileId: number) {
       return this.getActiveProfileById(profileId, [...PROFILE_PERMISSION_RELATIONS]);

@@ -91,6 +91,7 @@ import { SalesOrderItem } from './Entities/salesOrderItem.entity';
 import { SalesOrderHeader } from './Entities/SalesOrderHeader.entity';
 import{InvoiceHeader} from './Entities/invoiceHeader.entity'
 import {InvoiceItem} from './Entities/invoiceItem.entity'
+import {PurchaseOrder} from './Entities/purchaseOrder.entity'
 
 const dbConfig = config();
 const env = (dbConfig.environment || '').toLowerCase();
@@ -116,7 +117,7 @@ export const AppDataSource = new DataSource({
 		ActivityRelTo, ActivityType, NextActionOn, Status, Workplace, Holiday,
 	Dar, Edetailing, RCPA, Taxes, Gifts, NewTarget,
 	Inventory, Warehouse, SalesReturn, Customer, CustomerType, Country, State, District, Profile, ObjectPermission, Tab, TabPermission, FieldPermission, ObjectFieldDefinition, ObjectRecordTypeDefinition, RecordTypeAccess, SystemPermission, Posm, Sku, Batch,
-	PriceBook, PriceBookItem, ItemShippingAddress, Collection, GrnHeader, GrnItem, DispatchHeader, DispatchItem, DeliveryHeader, DeliveryItem, SalesOrderItem, SalesOrderHeader,InvoiceHeader,InvoiceItem
+	PriceBook, PriceBookItem, ItemShippingAddress, Collection, GrnHeader, GrnItem, DispatchHeader, DispatchItem, DeliveryHeader, DeliveryItem, SalesOrderItem, SalesOrderHeader,InvoiceHeader,InvoiceItem,PurchaseOrder
 ],
 	migrations: [path.join(__dirname, 'migrations', '*.ts')],
 	subscribers: [],

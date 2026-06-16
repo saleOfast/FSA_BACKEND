@@ -28,6 +28,8 @@ const userController = {
             password: inputPassword
         } = input;
 
+
+     
         const user: IUser | null = await UserRepository().findOne({
             where: {
                 phone: inputPhone,
@@ -43,6 +45,20 @@ const userController = {
             };
         }
 
+        if (!user.password) {
+    return {
+        status: STATUSCODES.BAD_REQUEST,
+        message: "Password is not set for this user."
+    };
+}
+
+        console.log("inputPassword =", inputPassword);
+console.log("typeof inputPassword =", typeof inputPassword);
+
+console.log("user.password =", user.password);
+console.log("typeof user.password =", typeof user.password);
+
+console.log("user =", user);
         const isMatch: boolean = await bcrypt.compare(
             inputPassword,
             user.password
@@ -54,6 +70,8 @@ const userController = {
                 message: "Invalid Password"
             };
         }
+
+
 
         const token = await generateToken(
             JSON.parse(
